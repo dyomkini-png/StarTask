@@ -1,0 +1,7 @@
+{
+  "name": "startask",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "cd bot && node index.js"
+  }
+}
