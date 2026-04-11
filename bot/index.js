@@ -1,5 +1,9 @@
-require('dotenv').config();
-const { Telegraf } = require('telegraf');
+import net from 'node:net';
+import dotenv from 'dotenv';
+import { Telegraf } from 'telegraf';
+
+net.setDefaultAutoSelectFamily(false);
+dotenv.config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const MINI_APP_URL = process.env.MINI_APP_URL || 'https://starquest-tma.vercel.app';
@@ -45,7 +49,7 @@ bot.command('tasks', async (ctx) => {
 
 bot.command('referral', async (ctx) => {
     const refLink = `https://t.me/StarTaskBot?start=ref_${ctx.from.id}`;
-    await ctx.reply(`👥 *Партнерская ссылка:*\n${refLink}`, { parse_mode: 'Markdown' });
+    await ctx.reply(`👥 *Партнерская ссылка:*\n${refLink}`);
 });
 
 bot.launch();
