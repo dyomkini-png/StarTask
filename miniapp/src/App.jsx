@@ -116,6 +116,32 @@ function App() {
         });
     };
 
+    // Функция для получения буквы/эмодзи из названия канала
+    const getChannelInitial = (taskTitle, targetUrl) => {
+        if (taskTitle.includes('StarTask')) return '⭐';
+        if (taskTitle.includes('канал')) return '📢';
+        
+        // Пробуем извлечь username из URL
+        const match = targetUrl.match(/t\.me\/([^\/]+)/);
+        if (match) {
+            const username = match[1];
+            return username.charAt(0).toUpperCase();
+        }
+        
+        return taskTitle.charAt(0).toUpperCase();
+    };
+
+    // Функция для генерации цвета на основе названия
+    const getChannelColor = (taskTitle) => {
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#FF9F4A', '#6B5B95'];
+        let hash = 0;
+        for (let i = 0; i < taskTitle.length; i++) {
+            hash = ((hash << 5) - hash) + taskTitle.charCodeAt(i);
+            hash |= 0;
+        }
+        return colors[Math.abs(hash) % colors.length];
+    };
+
     const getReferralLink = () => `https://t.me/StarTaskBot?start=ref_${user?.id}`;
 
     const copyReferralLink = () => {
@@ -170,7 +196,12 @@ function App() {
                                     {channelAvatars[task.id] ? (
                                         <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
                                     ) : (
-                                        <div style={styles.avatarPlaceholder}>📢</div>
+                                        <div style={{
+                                            ...styles.avatarPlaceholder,
+                                            background: getChannelColor(task.title)
+                                        }}>
+                                            {getChannelInitial(task.title, task.target_url)}
+                                        </div>
                                     )}
                                 </div>
                                 <div style={styles.taskContent}>
@@ -242,9 +273,9 @@ const styles = {
     tab: { flex: 1, padding: '12px', background: 'transparent', border: 'none', borderRadius: '40px', color: 'rgba(255,255,255,0.7)', fontSize: '14px', cursor: 'pointer' },
     tabActive: { flex: 1, padding: '12px', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '40px', color: '#ffd700', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' },
     taskCard: { background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(12px)', borderRadius: '24px', padding: '16px', marginBottom: '12px', display: 'flex', gap: '14px', border: '1px solid rgba(255,255,255,0.1)' },
-    taskAvatar: { width: '52px', height: '52px', borderRadius: '26px', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 },
+    taskAvatar: { width: '52px', height: '52px', borderRadius: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 },
     avatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
-    avatarPlaceholder: { fontSize: '28px' },
+    avatarPlaceholder: { width: '52px', height: '52px', borderRadius: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 'bold', color: 'white' },
     taskContent: { flex: 1 },
     taskTitle: { margin: '0 0 4px 0', fontSize: '16px', fontWeight: '600', color: 'white' },
     taskDesc: { margin: '0 0 12px 0', fontSize: '13px', color: 'rgba(255,255,255,0.6)' },
