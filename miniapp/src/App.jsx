@@ -16,6 +16,8 @@ function App() {
         tg.ready();
         tg.expand();
         tg.MainButton.hide();
+        tg.setHeaderColor('#0a0a1a');
+        tg.setBackgroundColor('#0a0a1a');
 
         if (tg.initDataUnsafe?.user) {
             authenticate(tg.initDataUnsafe.user);
@@ -53,13 +55,11 @@ function App() {
     const fetchTasks = async () => {
         try {
             const response = await axios.get(`${API_URL}/api/quests`);
-            // Убираем дубликаты
             const uniqueTasks = response.data.filter((task, index, self) => 
                 index === self.findIndex(t => t.target_url === task.target_url)
             );
             setTasks(uniqueTasks);
             
-            // Загружаем аватарки для каналов
             for (const task of uniqueTasks) {
                 if (task.type === 'subscription' && task.target_url.includes('t.me/')) {
                     let username = task.target_url.split('t.me/')[1];
@@ -90,7 +90,7 @@ function App() {
         const tg = window.Telegram.WebApp;
         tg.openLink(taskUrl);
         
-        tg.showConfirm('✅ Вы подписались на канал? Нажмите "Да", чтобы получить Stars', async (confirmed) => {
+        tg.showConfirm('✅ Вы подписались на канал?', async (confirmed) => {
             if (confirmed) {
                 try {
                     await axios.post(`${API_URL}/api/quests/${taskId}/complete`, {
@@ -116,22 +116,14 @@ function App() {
         });
     };
 
-    // Функция для получения буквы/эмодзи из названия канала
     const getChannelInitial = (taskTitle, targetUrl) => {
         if (taskTitle.includes('StarTask')) return '⭐';
         if (taskTitle.includes('канал')) return '📢';
-        
-        // Пробуем извлечь username из URL
         const match = targetUrl.match(/t\.me\/([^\/]+)/);
-        if (match) {
-            const username = match[1];
-            return username.charAt(0).toUpperCase();
-        }
-        
+        if (match) return match[1].charAt(0).toUpperCase();
         return taskTitle.charAt(0).toUpperCase();
     };
 
-    // Функция для генерации цвета на основе названия
     const getChannelColor = (taskTitle) => {
         const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#FF9F4A', '#6B5B95'];
         let hash = 0;
@@ -164,142 +156,492 @@ function App() {
 
     return (
         <div style={styles.container}>
-            <div style={styles.header}>
-                <div>
-                    <h1 style={styles.logo}>⭐ StarTask</h1>
-                    <p style={styles.subtitle}>Зарабатывай Stars на заданиях</p>
+            <div style={styles.backgroundGradient}></div>
+            <div style={styles.content}>
+                <div style={styles.header}>
+                    <div>
+                        <h1 style={styles.logo}>⭐ StarTask</h1>
+                        <p style={styles.subtitle}>Premium Tasks</p>
+                    </div>
+                    <div style={styles.balanceCard}>
+                        <div style={styles.balanceGlow}></div>
+                        <span style={styles.balanceLabel}>Баланс</span>
+                        <span style={styles.balanceValue}>{balance} ⭐</span>
+                    </div>
                 </div>
-                <div style={styles.balanceCard}>
-                    <span style={styles.balanceLabel}>Баланс</span>
-                    <span style={styles.balanceValue}>{balance} ⭐</span>
+
+                <div style={styles.tabs}>
+                    <button onClick={() => setActiveTab('tasks')} style={activeTab === 'tasks' ? styles.tabActive : styles.tab}>
+                        <span>📋</span> Задания
+                    </button>
+                    <button onClick={() => setActiveTab('referral')} style={activeTab === 'referral' ? styles.tabActive : styles.tab}>
+                        <span>👥</span> Партнёры
+                    </button>
+                    <button onClick={() => setActiveTab('info')} style={activeTab === 'info' ? styles.tabActive : styles.tab}>
+                        <span>ℹ️</span> О проекте
+                    </button>
                 </div>
-            </div>
 
-            <div style={styles.tabs}>
-                <button onClick={() => setActiveTab('tasks')} style={activeTab === 'tasks' ? styles.tabActive : styles.tab}>📋 Задания</button>
-                <button onClick={() => setActiveTab('referral')} style={activeTab === 'referral' ? styles.tabActive : styles.tab}>👥 Партнёры</button>
-                <button onClick={() => setActiveTab('info')} style={activeTab === 'info' ? styles.tabActive : styles.tab}>ℹ️ О проекте</button>
-            </div>
-
-            {activeTab === 'tasks' && (
-                <div>
-                    {tasks.length === 0 ? (
-                        <div style={styles.emptyState}>
-                            <div style={styles.emptyIcon}>📭</div>
-                            <h3 style={styles.emptyTitle}>Пока нет заданий</h3>
-                            <p style={styles.emptyText}>Загляните позже — новые задания появляются каждый день!</p>
-                        </div>
-                    ) : (
-                        tasks.map(task => (
-                            <div key={task.id} style={styles.taskCard}>
-                                <div style={styles.taskAvatar}>
-                                    {channelAvatars[task.id] ? (
-                                        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
-                                    ) : (
-                                        <div style={{
-                                            ...styles.avatarPlaceholder,
-                                            background: getChannelColor(task.title)
-                                        }}>
-                                            {getChannelInitial(task.title, task.target_url)}
+                {activeTab === 'tasks' && (
+                    <div style={styles.tasksContainer}>
+                        {tasks.length === 0 ? (
+                            <div style={styles.emptyState}>
+                                <div style={styles.emptyIcon}>📭</div>
+                                <h3 style={styles.emptyTitle}>Пока нет заданий</h3>
+                                <p style={styles.emptyText}>Новые задания появляются каждый день!</p>
+                            </div>
+                        ) : (
+                            tasks.map(task => (
+                                <div key={task.id} style={styles.taskCard}>
+                                    <div style={styles.taskGlow}></div>
+                                    <div style={styles.taskAvatar}>
+                                        {channelAvatars[task.id] ? (
+                                            <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
+                                        ) : (
+                                            <div style={{
+                                                ...styles.avatarPlaceholder,
+                                                background: getChannelColor(task.title)
+                                            }}>
+                                                {getChannelInitial(task.title, task.target_url)}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div style={styles.taskContent}>
+                                        <h3 style={styles.taskTitle}>{task.title}</h3>
+                                        <p style={styles.taskDesc}>{task.description}</p>
+                                        <div style={styles.taskFooter}>
+                                            <span style={styles.taskReward}>+{task.reward} ⭐</span>
+                                            <button onClick={() => completeTask(task.id, task.target_url)} style={styles.taskButton}>
+                                                Выполнить →
+                                            </button>
                                         </div>
-                                    )}
-                                </div>
-                                <div style={styles.taskContent}>
-                                    <h3 style={styles.taskTitle}>{task.title}</h3>
-                                    <p style={styles.taskDesc}>{task.description}</p>
-                                    <div style={styles.taskFooter}>
-                                        <span style={styles.taskReward}>+{task.reward} ⭐</span>
-                                        <button onClick={() => completeTask(task.id, task.target_url)} style={styles.taskButton}>Выполнить →</button>
                                     </div>
                                 </div>
+                            ))
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'referral' && (
+                    <div>
+                        <div style={styles.glassCard}>
+                            <div style={styles.glassCardGlow}></div>
+                            <div style={styles.infoIcon}>👥</div>
+                            <h3 style={styles.glassTitle}>Партнёрская программа</h3>
+                            <p style={styles.glassText}>Приглашайте друзей и получайте <strong style={{color: '#ffd700'}}>10%</strong> от их заработка!</p>
+                            <div style={styles.referralLinkBox}>
+                                <code style={styles.referralLink}>{getReferralLink()}</code>
                             </div>
-                        ))
-                    )}
-                </div>
-            )}
+                            <button onClick={copyReferralLink} style={styles.copyButton}>
+                                📋 Скопировать ссылку
+                            </button>
+                        </div>
 
-            {activeTab === 'referral' && (
-                <div>
-                    <div style={styles.glassCard}>
-                        <div style={styles.infoIcon}>👥</div>
-                        <h3 style={styles.glassTitle}>Партнёрская программа</h3>
-                        <p style={styles.glassText}>Приглашайте друзей и получайте <strong>10%</strong> от их заработка!</p>
-                        <div style={styles.referralLinkBox}><code style={styles.referralLink}>{getReferralLink()}</code></div>
-                        <button onClick={copyReferralLink} style={styles.copyButton}>📋 Скопировать ссылку</button>
+                        <div style={styles.glassCard}>
+                            <h4 style={styles.statsTitle}>Ваша статистика</h4>
+                            <div style={styles.statsRow}>
+                                <span>👥 Приглашено друзей:</span>
+                                <strong>0</strong>
+                            </div>
+                            <div style={styles.statsRow}>
+                                <span>💰 Заработано комиссии:</span>
+                                <strong>0 ⭐</strong>
+                            </div>
+                        </div>
                     </div>
-                    <div style={styles.glassCard}>
-                        <h4 style={styles.statsTitle}>Ваша статистика</h4>
-                        <div style={styles.statsRow}><span>👥 Приглашено друзей:</span><strong>0</strong></div>
-                        <div style={styles.statsRow}><span>💰 Заработано комиссии:</span><strong>0 ⭐</strong></div>
-                    </div>
-                </div>
-            )}
+                )}
 
-            {activeTab === 'info' && (
-                <div>
-                    <div style={styles.glassCard}>
-                        <div style={styles.infoIcon}>⭐</div>
-                        <h3 style={styles.glassTitle}>Что такое StarTask?</h3>
-                        <p style={styles.glassText}>StarTask — платформа, где вы зарабатываете Telegram Stars, выполняя простые задания.</p>
+                {activeTab === 'info' && (
+                    <div>
+                        <div style={styles.glassCard}>
+                            <div style={styles.infoIcon}>⭐</div>
+                            <h3 style={styles.glassTitle}>Что такое StarTask?</h3>
+                            <p style={styles.glassText}>StarTask — премиальная платформа для заработка Telegram Stars на выполнении простых заданий.</p>
+                        </div>
+                        <div style={styles.glassCard}>
+                            <div style={styles.infoIcon}>💡</div>
+                            <h3 style={styles.glassTitle}>Как заработать?</h3>
+                            <ol style={styles.infoList}>
+                                <li>Выберите задание из списка</li>
+                                <li>Перейдите по ссылке и выполните действие</li>
+                                <li>Подтвердите выполнение</li>
+                                <li>Получите Stars на баланс</li>
+                            </ol>
+                        </div>
+                        <div style={styles.glassCard}>
+                            <div style={styles.infoIcon}>🤝</div>
+                            <h3 style={styles.glassTitle}>Партнёрская программа</h3>
+                            <p style={styles.glassText}>Приглашайте друзей и получайте 10% от их заработка.</p>
+                        </div>
                     </div>
-                    <div style={styles.glassCard}>
-                        <div style={styles.infoIcon}>💡</div>
-                        <h3 style={styles.glassTitle}>Как заработать?</h3>
-                        <ol style={styles.infoList}><li>Выберите задание</li><li>Перейдите по ссылке</li><li>Подтвердите выполнение</li><li>Получите Stars</li></ol>
-                    </div>
-                    <div style={styles.glassCard}>
-                        <div style={styles.infoIcon}>🤝</div>
-                        <h3 style={styles.glassTitle}>Партнёрская программа</h3>
-                        <p style={styles.glassText}>Приглашайте друзей и получайте 10% от их заработка.</p>
-                    </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }
 
 const styles = {
-    container: { minHeight: '100vh', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)', padding: '20px', fontFamily: "'Inter', -apple-system, sans-serif" },
-    loadingContainer: { minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', color: 'white' },
-    spinner: { width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.2)', borderTop: '4px solid #ffd700', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '16px' },
-    loadingText: { color: 'rgba(255,255,255,0.7)', fontSize: '14px' },
-    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
-    logo: { margin: 0, fontSize: '28px', fontWeight: 'bold', color: 'white' },
-    subtitle: { margin: '4px 0 0 0', fontSize: '12px', color: 'rgba(255,255,255,0.6)' },
-    balanceCard: { background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', borderRadius: '20px', padding: '10px 18px', textAlign: 'center' },
-    balanceLabel: { fontSize: '11px', color: 'rgba(255,255,255,0.6)', display: 'block' },
-    balanceValue: { fontSize: '20px', fontWeight: 'bold', color: '#ffd700' },
-    tabs: { display: 'flex', gap: '10px', marginBottom: '24px', background: 'rgba(255,255,255,0.05)', borderRadius: '50px', padding: '6px' },
-    tab: { flex: 1, padding: '12px', background: 'transparent', border: 'none', borderRadius: '40px', color: 'rgba(255,255,255,0.7)', fontSize: '14px', cursor: 'pointer' },
-    tabActive: { flex: 1, padding: '12px', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '40px', color: '#ffd700', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' },
-    taskCard: { background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(12px)', borderRadius: '24px', padding: '16px', marginBottom: '12px', display: 'flex', gap: '14px', border: '1px solid rgba(255,255,255,0.1)' },
-    taskAvatar: { width: '52px', height: '52px', borderRadius: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 },
-    avatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
-    avatarPlaceholder: { width: '52px', height: '52px', borderRadius: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 'bold', color: 'white' },
-    taskContent: { flex: 1 },
-    taskTitle: { margin: '0 0 4px 0', fontSize: '16px', fontWeight: '600', color: 'white' },
-    taskDesc: { margin: '0 0 12px 0', fontSize: '13px', color: 'rgba(255,255,255,0.6)' },
-    taskFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-    taskReward: { fontWeight: 'bold', color: '#ffd700', background: 'rgba(0,0,0,0.3)', padding: '5px 14px', borderRadius: '20px', fontSize: '13px' },
-    taskButton: { background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '40px', padding: '8px 20px', color: 'white', cursor: 'pointer' },
-    emptyState: { textAlign: 'center', padding: '50px 20px', background: 'rgba(255,255,255,0.05)', borderRadius: '24px' },
-    emptyIcon: { fontSize: '48px', marginBottom: '16px' },
-    emptyTitle: { color: 'white' },
-    emptyText: { color: 'rgba(255,255,255,0.5)' },
-    glassCard: { background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(12px)', borderRadius: '24px', padding: '24px', marginBottom: '16px' },
-    glassTitle: { textAlign: 'center', margin: '0 0 12px 0', color: 'white' },
-    glassText: { color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
-    infoIcon: { fontSize: '48px', textAlign: 'center', marginBottom: '12px' },
-    infoList: { color: 'rgba(255,255,255,0.7)', paddingLeft: '20px' },
-    referralLinkBox: { background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '12px', margin: '16px 0' },
-    referralLink: { fontSize: '12px', wordBreak: 'break-all', color: '#ffd700' },
-    copyButton: { width: '100%', padding: '12px', background: 'rgba(255,255,255,0.15)', borderRadius: '40px', color: 'white', cursor: 'pointer' },
-    statsTitle: { margin: '0 0 16px 0', color: 'white' },
-    statsRow: { display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }
+    container: {
+        minHeight: '100vh',
+        position: 'relative',
+        overflowX: 'hidden',
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    },
+    backgroundGradient: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(ellipse at 20% 0%, #1a1a3e 0%, #0a0a1a 100%)',
+        zIndex: -2
+    },
+    content: {
+        padding: '20px',
+        position: 'relative',
+        zIndex: 1
+    },
+    loadingContainer: {
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        background: '#0a0a1a',
+        color: 'white'
+    },
+    spinner: {
+        width: '48px',
+        height: '48px',
+        border: '3px solid rgba(255,215,0,0.1)',
+        borderTop: '3px solid #ffd700',
+        borderRadius: '50%',
+        animation: 'spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite',
+        marginBottom: '20px'
+    },
+    loadingText: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: '14px',
+        letterSpacing: '1px'
+    },
+    header: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: '32px',
+        paddingTop: '10px'
+    },
+    logo: {
+        margin: 0,
+        fontSize: '32px',
+        fontWeight: '800',
+        background: 'linear-gradient(135deg, #ffffff 0%, #ffd700 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+        letterSpacing: '-0.5px'
+    },
+    subtitle: {
+        margin: '4px 0 0 0',
+        fontSize: '11px',
+        color: 'rgba(255,255,255,0.4)',
+        letterSpacing: '1px',
+        textTransform: 'uppercase'
+    },
+    balanceCard: {
+        position: 'relative',
+        background: 'rgba(255,255,255,0.03)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '28px',
+        padding: '12px 20px',
+        textAlign: 'center',
+        border: '1px solid rgba(255,215,0,0.15)',
+        overflow: 'hidden'
+    },
+    balanceGlow: {
+        position: 'absolute',
+        top: '-50%',
+        left: '-50%',
+        width: '200%',
+        height: '200%',
+        background: 'radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%)',
+        animation: 'glow 3s ease-in-out infinite'
+    },
+    balanceLabel: {
+        fontSize: '10px',
+        color: 'rgba(255,215,0,0.7)',
+        display: 'block',
+        letterSpacing: '1px',
+        textTransform: 'uppercase'
+    },
+    balanceValue: {
+        fontSize: '24px',
+        fontWeight: 'bold',
+        color: '#ffd700',
+        textShadow: '0 0 10px rgba(255,215,0,0.3)'
+    },
+    tabs: {
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '24px',
+        background: 'rgba(255,255,255,0.03)',
+        borderRadius: '60px',
+        padding: '6px',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255,255,255,0.05)'
+    },
+    tab: {
+        flex: 1,
+        padding: '12px 8px',
+        background: 'transparent',
+        border: 'none',
+        borderRadius: '50px',
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: '13px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '6px'
+    },
+    tabActive: {
+        flex: 1,
+        padding: '12px 8px',
+        background: 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,215,0,0.05) 100%)',
+        border: 'none',
+        borderRadius: '50px',
+        color: '#ffd700',
+        fontSize: '13px',
+        fontWeight: '600',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '6px',
+        backdropFilter: 'blur(10px)'
+    },
+    tasksContainer: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px'
+    },
+    taskCard: {
+        position: 'relative',
+        background: 'rgba(255,255,255,0.03)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '28px',
+        padding: '18px',
+        display: 'flex',
+        gap: '16px',
+        border: '1px solid rgba(255,255,255,0.05)',
+        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+        overflow: 'hidden'
+    },
+    taskGlow: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(circle at 100% 0%, rgba(255,215,0,0.05) 0%, transparent 70%)',
+        pointerEvents: 'none'
+    },
+    taskAvatar: {
+        width: '56px',
+        height: '56px',
+        borderRadius: '28px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        flexShrink: 0,
+        boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+    },
+    avatarImg: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover'
+    },
+    avatarPlaceholder: {
+        width: '56px',
+        height: '56px',
+        borderRadius: '28px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '26px',
+        fontWeight: 'bold',
+        color: 'white'
+    },
+    taskContent: {
+        flex: 1
+    },
+    taskTitle: {
+        margin: '0 0 6px 0',
+        fontSize: '17px',
+        fontWeight: '600',
+        color: 'white',
+        letterSpacing: '-0.3px'
+    },
+    taskDesc: {
+        margin: '0 0 14px 0',
+        fontSize: '13px',
+        color: 'rgba(255,255,255,0.5)',
+        lineHeight: 1.4
+    },
+    taskFooter: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
+    taskReward: {
+        fontWeight: 'bold',
+        color: '#ffd700',
+        background: 'rgba(255,215,0,0.1)',
+        padding: '6px 14px',
+        borderRadius: '24px',
+        fontSize: '13px',
+        border: '1px solid rgba(255,215,0,0.2)'
+    },
+    taskButton: {
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: '40px',
+        padding: '8px 20px',
+        color: 'white',
+        fontWeight: '500',
+        cursor: 'pointer',
+        fontSize: '13px',
+        transition: 'all 0.2s ease'
+    },
+    emptyState: {
+        textAlign: 'center',
+        padding: '60px 20px',
+        background: 'rgba(255,255,255,0.03)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '28px',
+        border: '1px solid rgba(255,255,255,0.05)'
+    },
+    emptyIcon: {
+        fontSize: '56px',
+        marginBottom: '20px',
+        opacity: 0.5
+    },
+    emptyTitle: {
+        color: 'white',
+        marginBottom: '10px',
+        fontSize: '18px'
+    },
+    emptyText: {
+        color: 'rgba(255,255,255,0.4)',
+        fontSize: '14px'
+    },
+    glassCard: {
+        position: 'relative',
+        background: 'rgba(255,255,255,0.03)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '28px',
+        padding: '28px',
+        marginBottom: '16px',
+        border: '1px solid rgba(255,255,255,0.05)',
+        overflow: 'hidden'
+    },
+    glassCardGlow: {
+        position: 'absolute',
+        top: '-50%',
+        left: '-50%',
+        width: '200%',
+        height: '200%',
+        background: 'radial-gradient(circle, rgba(255,215,0,0.05) 0%, transparent 70%)',
+        pointerEvents: 'none'
+    },
+    glassTitle: {
+        textAlign: 'center',
+        margin: '0 0 12px 0',
+        color: 'white',
+        fontSize: '20px',
+        fontWeight: '600'
+    },
+    glassText: {
+        color: 'rgba(255,255,255,0.6)',
+        lineHeight: 1.6,
+        textAlign: 'center',
+        margin: 0,
+        fontSize: '14px'
+    },
+    infoIcon: {
+        fontSize: '52px',
+        textAlign: 'center',
+        marginBottom: '16px'
+    },
+    infoList: {
+        color: 'rgba(255,255,255,0.6)',
+        lineHeight: 1.8,
+        paddingLeft: '20px',
+        margin: 0
+    },
+    referralLinkBox: {
+        background: 'rgba(0,0,0,0.4)',
+        borderRadius: '16px',
+        padding: '14px',
+        margin: '20px 0',
+        overflowX: 'auto',
+        border: '1px solid rgba(255,215,0,0.1)'
+    },
+    referralLink: {
+        fontSize: '12px',
+        wordBreak: 'break-all',
+        color: '#ffd700'
+    },
+    copyButton: {
+        width: '100%',
+        padding: '14px',
+        background: 'linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0.05) 100%)',
+        border: '1px solid rgba(255,215,0,0.2)',
+        borderRadius: '40px',
+        color: '#ffd700',
+        fontWeight: '600',
+        cursor: 'pointer',
+        fontSize: '14px',
+        transition: 'all 0.2s ease'
+    },
+    statsTitle: {
+        margin: '0 0 20px 0',
+        color: 'white',
+        fontSize: '18px',
+        fontWeight: '600'
+    },
+    statsRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        padding: '12px 0',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: '14px'
+    }
 };
 
 const styleSheet = document.createElement("style");
-styleSheet.textContent = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
+styleSheet.textContent = `
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    @keyframes glow {
+        0% { transform: translate(-50%, -50%) rotate(0deg); opacity: 0.5; }
+        50% { opacity: 1; }
+        100% { transform: translate(-50%, -50%) rotate(360deg); opacity: 0.5; }
+    }
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    }
+    button:active {
+        transform: translateY(0px);
+    }
+`;
 document.head.appendChild(styleSheet);
 
 export default App;
