@@ -159,14 +159,24 @@ function App() {
             <div style={styles.backgroundGradient}></div>
             <div style={styles.content}>
                 <div style={styles.header}>
-                    <div>
-                        <h1 style={styles.logo}>⭐ StarTask</h1>
-                        <p style={styles.subtitle}>Premium Tasks</p>
+                    <div style={styles.logoContainer}>
+                        <div style={styles.logoIcon}>
+                            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#FFD700" strokeWidth="1.2"/>
+                                <defs>
+                                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stopColor="#FFD700"/>
+                                        <stop offset="100%" stopColor="#FFA500"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <h1 style={styles.logo}>StarTask</h1>
                     </div>
                     <div style={styles.balanceCard}>
                         <div style={styles.balanceGlow}></div>
                         <span style={styles.balanceLabel}>Баланс</span>
-                        <span style={styles.balanceValue}>{balance} ⭐</span>
+                        <span style={styles.balanceValue}>{balance} ★</span>
                     </div>
                 </div>
 
@@ -256,7 +266,7 @@ function App() {
                         <div style={styles.glassCard}>
                             <div style={styles.infoIcon}>⭐</div>
                             <h3 style={styles.glassTitle}>Что такое StarTask?</h3>
-                            <p style={styles.glassText}>StarTask — премиальная платформа для заработка Telegram Stars на выполнении простых заданий.</p>
+                            <p style={styles.glassText}>StarTask — платформа для заработка Telegram Stars на выполнении простых заданий.</p>
                         </div>
                         <div style={styles.glassCard}>
                             <div style={styles.infoIcon}>💡</div>
@@ -327,36 +337,45 @@ const styles = {
     header: {
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         marginBottom: '32px',
         paddingTop: '10px'
     },
+    logoContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px'
+    },
+    logoIcon: {
+        width: '44px',
+        height: '44px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(255,215,0,0.08)',
+        borderRadius: '16px',
+        border: '1px solid rgba(255,215,0,0.15)'
+    },
     logo: {
         margin: 0,
-        fontSize: '32px',
-        fontWeight: '800',
-        background: 'linear-gradient(135deg, #ffffff 0%, #ffd700 100%)',
+        fontSize: '26px',
+        fontWeight: '700',
+        background: 'linear-gradient(135deg, #FFFFFF 0%, #E8E8E8 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text',
         letterSpacing: '-0.5px'
-    },
-    subtitle: {
-        margin: '4px 0 0 0',
-        fontSize: '11px',
-        color: 'rgba(255,255,255,0.4)',
-        letterSpacing: '1px',
-        textTransform: 'uppercase'
     },
     balanceCard: {
         position: 'relative',
         background: 'rgba(255,255,255,0.03)',
         backdropFilter: 'blur(20px)',
         borderRadius: '28px',
-        padding: '12px 20px',
+        padding: '10px 18px',
         textAlign: 'center',
         border: '1px solid rgba(255,215,0,0.15)',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        minWidth: '90px'
     },
     balanceGlow: {
         position: 'absolute',
@@ -375,7 +394,7 @@ const styles = {
         textTransform: 'uppercase'
     },
     balanceValue: {
-        fontSize: '24px',
+        fontSize: '22px',
         fontWeight: 'bold',
         color: '#ffd700',
         textShadow: '0 0 10px rgba(255,215,0,0.3)'
@@ -432,9 +451,9 @@ const styles = {
         background: 'rgba(255,255,255,0.03)',
         backdropFilter: 'blur(20px)',
         borderRadius: '28px',
-        padding: '18px',
+        padding: '16px',
         display: 'flex',
-        gap: '16px',
+        gap: '14px',
         border: '1px solid rgba(255,255,255,0.05)',
         transition: 'transform 0.3s ease, box-shadow 0.3s ease',
         overflow: 'hidden'
@@ -449,9 +468,9 @@ const styles = {
         pointerEvents: 'none'
     },
     taskAvatar: {
-        width: '56px',
-        height: '56px',
-        borderRadius: '28px',
+        width: '52px',
+        height: '52px',
+        borderRadius: '26px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -465,13 +484,13 @@ const styles = {
         objectFit: 'cover'
     },
     avatarPlaceholder: {
-        width: '56px',
-        height: '56px',
-        borderRadius: '28px',
+        width: '52px',
+        height: '52px',
+        borderRadius: '26px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '26px',
+        fontSize: '24px',
         fontWeight: 'bold',
         color: 'white'
     },
@@ -480,14 +499,14 @@ const styles = {
     },
     taskTitle: {
         margin: '0 0 6px 0',
-        fontSize: '17px',
+        fontSize: '16px',
         fontWeight: '600',
         color: 'white',
         letterSpacing: '-0.3px'
     },
     taskDesc: {
-        margin: '0 0 14px 0',
-        fontSize: '13px',
+        margin: '0 0 12px 0',
+        fontSize: '12px',
         color: 'rgba(255,255,255,0.5)',
         lineHeight: 1.4
     },
@@ -500,38 +519,38 @@ const styles = {
         fontWeight: 'bold',
         color: '#ffd700',
         background: 'rgba(255,215,0,0.1)',
-        padding: '6px 14px',
-        borderRadius: '24px',
-        fontSize: '13px',
+        padding: '5px 12px',
+        borderRadius: '20px',
+        fontSize: '12px',
         border: '1px solid rgba(255,215,0,0.2)'
     },
     taskButton: {
         background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)',
         border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: '40px',
-        padding: '8px 20px',
+        padding: '7px 18px',
         color: 'white',
         fontWeight: '500',
         cursor: 'pointer',
-        fontSize: '13px',
+        fontSize: '12px',
         transition: 'all 0.2s ease'
     },
     emptyState: {
         textAlign: 'center',
-        padding: '60px 20px',
+        padding: '50px 20px',
         background: 'rgba(255,255,255,0.03)',
         backdropFilter: 'blur(10px)',
         borderRadius: '28px',
         border: '1px solid rgba(255,255,255,0.05)'
     },
     emptyIcon: {
-        fontSize: '56px',
-        marginBottom: '20px',
+        fontSize: '48px',
+        marginBottom: '16px',
         opacity: 0.5
     },
     emptyTitle: {
         color: 'white',
-        marginBottom: '10px',
+        marginBottom: '8px',
         fontSize: '18px'
     },
     emptyText: {
@@ -543,7 +562,7 @@ const styles = {
         background: 'rgba(255,255,255,0.03)',
         backdropFilter: 'blur(20px)',
         borderRadius: '28px',
-        padding: '28px',
+        padding: '24px',
         marginBottom: '16px',
         border: '1px solid rgba(255,255,255,0.05)',
         overflow: 'hidden'
@@ -561,18 +580,18 @@ const styles = {
         textAlign: 'center',
         margin: '0 0 12px 0',
         color: 'white',
-        fontSize: '20px',
+        fontSize: '18px',
         fontWeight: '600'
     },
     glassText: {
         color: 'rgba(255,255,255,0.6)',
-        lineHeight: 1.6,
+        lineHeight: 1.5,
         textAlign: 'center',
         margin: 0,
         fontSize: '14px'
     },
     infoIcon: {
-        fontSize: '52px',
+        fontSize: '48px',
         textAlign: 'center',
         marginBottom: '16px'
     },
@@ -585,19 +604,19 @@ const styles = {
     referralLinkBox: {
         background: 'rgba(0,0,0,0.4)',
         borderRadius: '16px',
-        padding: '14px',
-        margin: '20px 0',
+        padding: '12px',
+        margin: '16px 0',
         overflowX: 'auto',
         border: '1px solid rgba(255,215,0,0.1)'
     },
     referralLink: {
-        fontSize: '12px',
+        fontSize: '11px',
         wordBreak: 'break-all',
         color: '#ffd700'
     },
     copyButton: {
         width: '100%',
-        padding: '14px',
+        padding: '12px',
         background: 'linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0.05) 100%)',
         border: '1px solid rgba(255,215,0,0.2)',
         borderRadius: '40px',
@@ -608,7 +627,7 @@ const styles = {
         transition: 'all 0.2s ease'
     },
     statsTitle: {
-        margin: '0 0 20px 0',
+        margin: '0 0 16px 0',
         color: 'white',
         fontSize: '18px',
         fontWeight: '600'
@@ -616,7 +635,7 @@ const styles = {
     statsRow: {
         display: 'flex',
         justifyContent: 'space-between',
-        padding: '12px 0',
+        padding: '10px 0',
         borderBottom: '1px solid rgba(255,255,255,0.05)',
         color: 'rgba(255,255,255,0.6)',
         fontSize: '14px'
