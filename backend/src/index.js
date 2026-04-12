@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const axios = require('axios');
+const cheerio = require('cheerio');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -161,43 +163,43 @@ app.get('/api/referral/:userId/stats', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-// Получение аватарки канала по username
+
+// НОВЫЙ ЭНДПОИНТ ДЛЯ АВАТАРОК (через парсинг страницы)
 app.get('/api/channel/avatar/:username', async (req, res) => {
     const { username } = req.params;
-    const BOT_TOKEN = process.env.BOT_TOKEN;
-    
-    if (!BOT_TOKEN) {
-        return res.status(500).json({ error: 'BOT_TOKEN not configured' });
-    }
     
     try {
-        // Получаем информацию о канале через Telegram Bot API
-        const response = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getChat`, {
-            params: { chat_id: `@${username}` }
+        const response = await axios.get(`https://t.me/s/${username}`, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            },
+            timeout: 10000
         });
         
-        if (response.data.ok && response.data.result.photo) {
-            // Получаем аватарку (самый большой размер)
-            const photo = response.data.result.photo;
-            const fileId = photo.big_file_id || photo[photo.length - 1].file_id;
-            
-            // Получаем ссылку на файл
-            const fileResponse = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getFile`, {
-                params: { file_id: fileId }
-            });
-            
-            if (fileResponse.data.ok) {
-                const filePath = fileResponse.data.result.file_path;
-                const photoUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
-                return res.json({ success: true, avatar: photoUrl });
+        const $ = cheerio.load(response.data);
+        const avatarElement = $('.tgme_page_photo_image');
+        let avatarUrl = null;
+        
+        if (avatarElement.length) {
+            let src = avatarElement.attr('src');
+            if (!src) {
+                const style = avatarElement.attr('style');
+                if (style) {
+                    const match = style.match(/url\(['"]?([^'"()]+)['"]?\)/);
+                    if (match) src = match[1];
+                }
             }
+            avatarUrl = src ? src.split('?')[0] : null;
         }
         
-        // Если аватарки нет, возвращаем дефолтную
-        res.json({ success: false, avatar: null });
+        if (avatarUrl) {
+            res.json({ success: true, avatar: avatarUrl });
+        } else {
+            res.json({ success: false, avatar: null, message: 'Avatar not found' });
+        }
     } catch (error) {
-        console.error('Avatar fetch error:', error);
-        res.json({ success: false, avatar: null });
+        console.error('Avatar fetch error:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to fetch channel data' });
     }
 });
 
