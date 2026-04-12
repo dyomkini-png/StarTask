@@ -161,6 +161,45 @@ app.get('/api/referral/:userId/stats', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+// Получение аватарки канала по username
+app.get('/api/channel/avatar/:username', async (req, res) => {
+    const { username } = req.params;
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    
+    if (!BOT_TOKEN) {
+        return res.status(500).json({ error: 'BOT_TOKEN not configured' });
+    }
+    
+    try {
+        // Получаем информацию о канале через Telegram Bot API
+        const response = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getChat`, {
+            params: { chat_id: `@${username}` }
+        });
+        
+        if (response.data.ok && response.data.result.photo) {
+            // Получаем аватарку (самый большой размер)
+            const photo = response.data.result.photo;
+            const fileId = photo.big_file_id || photo[photo.length - 1].file_id;
+            
+            // Получаем ссылку на файл
+            const fileResponse = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getFile`, {
+                params: { file_id: fileId }
+            });
+            
+            if (fileResponse.data.ok) {
+                const filePath = fileResponse.data.result.file_path;
+                const photoUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
+                return res.json({ success: true, avatar: photoUrl });
+            }
+        }
+        
+        // Если аватарки нет, возвращаем дефолтную
+        res.json({ success: false, avatar: null });
+    } catch (error) {
+        console.error('Avatar fetch error:', error);
+        res.json({ success: false, avatar: null });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
