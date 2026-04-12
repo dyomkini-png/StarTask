@@ -164,9 +164,10 @@ app.get('/api/referral/:userId/stats', async (req, res) => {
     }
 });
 
-// НОВЫЙ ЭНДПОИНТ ДЛЯ АВАТАРОК (через парсинг страницы)
+// ЭНДПОИНТ ДЛЯ АВАТАРОК (парсинг + резерв)
 app.get('/api/channel/avatar/:username', async (req, res) => {
     const { username } = req.params;
+    console.log(`🔍 Ищем аватарку для @${username}`);
     
     try {
         const response = await axios.get(`https://t.me/s/${username}`, {
@@ -177,29 +178,32 @@ app.get('/api/channel/avatar/:username', async (req, res) => {
         });
         
         const $ = cheerio.load(response.data);
-        const avatarElement = $('.tgme_page_photo_image');
         let avatarUrl = null;
         
-        if (avatarElement.length) {
-            let src = avatarElement.attr('src');
-            if (!src) {
-                const style = avatarElement.attr('style');
+        // Пробуем найти картинку
+        const imgElement = $('.tgme_page_photo_image');
+        if (imgElement.length) {
+            avatarUrl = imgElement.attr('src');
+            if (!avatarUrl) {
+                const style = imgElement.attr('style');
                 if (style) {
                     const match = style.match(/url\(['"]?([^'"()]+)['"]?\)/);
-                    if (match) src = match[1];
+                    if (match) avatarUrl = match[1];
                 }
             }
-            avatarUrl = src ? src.split('?')[0] : null;
         }
         
         if (avatarUrl) {
-            res.json({ success: true, avatar: avatarUrl });
+            avatarUrl = avatarUrl.split('?')[0];
+            console.log(`✅ Аватарка найдена: ${avatarUrl}`);
+            return res.json({ success: true, avatar: avatarUrl });
         } else {
-            res.json({ success: false, avatar: null, message: 'Avatar not found' });
+            console.log(`❌ Аватарка для @${username} не найдена`);
+            return res.json({ success: false, avatar: null, message: 'Avatar not found' });
         }
     } catch (error) {
-        console.error('Avatar fetch error:', error.message);
-        res.status(500).json({ success: false, error: 'Failed to fetch channel data' });
+        console.error(`❌ Ошибка получения аватарки для @${username}:`, error.message);
+        return res.status(500).json({ success: false, error: 'Failed to fetch channel data' });
     }
 });
 
