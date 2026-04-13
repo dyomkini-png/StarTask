@@ -86,29 +86,55 @@ function App() {
         }
     };
 
-    const completeTask = async (taskId, taskUrl) => {
+    // НОВАЯ ФУНКЦИЯ: АВТОМАТИЧЕСКАЯ ПРОВЕРКА ПОДПИСКИ
+    const completeTask = async (taskId, taskUrl, channelUsername) => {
         const tg = window.Telegram.WebApp;
+        
+        // Открываем канал
         tg.openLink(taskUrl);
         
-        tg.showConfirm('✅ Вы подписались на канал?', async (confirmed) => {
-            if (confirmed) {
+        // Показываем диалог с инструкцией
+        tg.showPopup({
+            title: '📢 Подпишитесь на канал',
+            message: 'После подписки нажмите "Проверить"',
+            buttons: [
+                { type: 'cancel', text: 'Отмена' },
+                { type: 'default', text: '✅ Проверить' }
+            ]
+        }, async (buttonId) => {
+            if (buttonId === 'default') {
+                tg.showPopup({
+                    title: '⏳ Проверка...',
+                    message: 'Пожалуйста, подождите',
+                    buttons: []
+                });
+                
                 try {
-                    await axios.post(`${API_URL}/api/quests/${taskId}/complete`, {
+                    const response = await axios.post(`${API_URL}/api/check-subscription`, {
                         userId: user.id,
-                        screenshotUrl: 'completed'
+                        channelUsername: channelUsername,
+                        questId: taskId
                     });
                     
-                    tg.showPopup({
-                        title: '🎉 Задание выполнено!',
-                        message: 'Stars будут начислены после проверки',
-                        buttons: [{ type: 'ok' }]
-                    });
-                    
-                    fetchBalance(user.id);
+                    if (response.data.success) {
+                        tg.showPopup({
+                            title: '🎉 Задание выполнено!',
+                            message: response.data.message,
+                            buttons: [{ type: 'ok' }]
+                        });
+                        fetchBalance(user.id);
+                    } else {
+                        tg.showPopup({
+                            title: '❌ Не подписаны',
+                            message: response.data.message || 'Вы не подписались на канал. Попробуйте снова.',
+                            buttons: [{ type: 'ok' }]
+                        });
+                    }
                 } catch (error) {
+                    console.error('Check subscription error:', error);
                     tg.showPopup({
-                        title: '❌ Ошибка',
-                        message: error.response?.data?.error || 'Что-то пошло не так',
+                        title: '⚠️ Ошибка',
+                        message: error.response?.data?.error || 'Не удалось проверить подписку',
                         buttons: [{ type: 'ok' }]
                     });
                 }
@@ -221,7 +247,10 @@ function App() {
                                         <p style={styles.taskDesc}>{task.description}</p>
                                         <div style={styles.taskFooter}>
                                             <span style={styles.taskReward}>+{task.reward} ⭐</span>
-                                            <button onClick={() => completeTask(task.id, task.target_url)} style={styles.taskButton}>
+                                            <button 
+                                                onClick={() => completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1])} 
+                                                style={styles.taskButton}
+                                            >
                                                 Выполнить →
                                             </button>
                                         </div>
@@ -274,8 +303,8 @@ function App() {
                             <ol style={styles.infoList}>
                                 <li>Выберите задание из списка</li>
                                 <li>Перейдите по ссылке и выполните действие</li>
-                                <li>Подтвердите выполнение</li>
-                                <li>Получите Stars на баланс</li>
+                                <li>Нажмите "Проверить"</li>
+                                <li>Получите Stars мгновенно!</li>
                             </ol>
                         </div>
                         <div style={styles.glassCard}>

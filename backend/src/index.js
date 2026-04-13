@@ -124,24 +124,6 @@ app.post('/api/quests', async (req, res) => {
     }
 });
 
-app.post('/api/quests/:questId/complete', async (req, res) => {
-    const { questId } = req.params;
-    const { userId, screenshotUrl } = req.body;
-    try {
-        const quest = await db.query('SELECT * FROM quests WHERE id = $1', [questId]);
-        if (quest.rows[0].remaining <= 0) {
-            return res.status(400).json({ error: 'Quest budget exhausted' });
-        }
-        const completion = await db.query(
-            `INSERT INTO completions (user_id, quest_id, screenshot_url) VALUES ($1, $2, $3) RETURNING *`,
-            [userId, questId, screenshotUrl]
-        );
-        res.json(completion.rows[0]);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
 app.post('/api/referral/create', async (req, res) => {
     const { userId } = req.body;
     const link = `https://t.me/StarTaskBot?start=ref_${userId}`;
@@ -164,10 +146,9 @@ app.get('/api/referral/:userId/stats', async (req, res) => {
     }
 });
 
-// ЭНДПОИНТ ДЛЯ АВАТАРОК (парсинг + резерв)
+// ЭНДПОИНТ ДЛЯ АВАТАРОК (парсинг страницы)
 app.get('/api/channel/avatar/:username', async (req, res) => {
     const { username } = req.params;
-    console.log(`🔍 Ищем аватарку для @${username}`);
     
     try {
         const response = await axios.get(`https://t.me/s/${username}`, {
@@ -178,32 +159,105 @@ app.get('/api/channel/avatar/:username', async (req, res) => {
         });
         
         const $ = cheerio.load(response.data);
+        const avatarElement = $('.tgme_page_photo_image');
         let avatarUrl = null;
         
-        // Пробуем найти картинку
-        const imgElement = $('.tgme_page_photo_image');
-        if (imgElement.length) {
-            avatarUrl = imgElement.attr('src');
-            if (!avatarUrl) {
-                const style = imgElement.attr('style');
+        if (avatarElement.length) {
+            let src = avatarElement.attr('src');
+            if (!src) {
+                const style = avatarElement.attr('style');
                 if (style) {
                     const match = style.match(/url\(['"]?([^'"()]+)['"]?\)/);
-                    if (match) avatarUrl = match[1];
+                    if (match) src = match[1];
                 }
             }
+            avatarUrl = src ? src.split('?')[0] : null;
         }
         
         if (avatarUrl) {
-            avatarUrl = avatarUrl.split('?')[0];
-            console.log(`✅ Аватарка найдена: ${avatarUrl}`);
-            return res.json({ success: true, avatar: avatarUrl });
+            res.json({ success: true, avatar: avatarUrl });
         } else {
-            console.log(`❌ Аватарка для @${username} не найдена`);
-            return res.json({ success: false, avatar: null, message: 'Avatar not found' });
+            res.json({ success: false, avatar: null, message: 'Avatar not found' });
         }
     } catch (error) {
-        console.error(`❌ Ошибка получения аватарки для @${username}:`, error.message);
-        return res.status(500).json({ success: false, error: 'Failed to fetch channel data' });
+        console.error('Avatar fetch error:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to fetch channel data' });
+    }
+});
+
+// НОВЫЙ ЭНДПОИНТ: ПРОВЕРКА ПОДПИСКИ И НАЧИСЛЕНИЕ НАГРАДЫ
+app.post('/api/check-subscription', async (req, res) => {
+    const { userId, channelUsername, questId } = req.body;
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    
+    if (!BOT_TOKEN) {
+        return res.status(500).json({ error: 'BOT_TOKEN not configured' });
+    }
+    
+    try {
+        // Получаем telegram_id пользователя из базы
+        const user = await db.query('SELECT telegram_id FROM users WHERE id = $1', [userId]);
+        if (!user.rows[0]) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const telegramId = user.rows[0].telegram_id;
+        
+        // Получаем информацию о квесте
+        const quest = await db.query('SELECT * FROM quests WHERE id = $1', [questId]);
+        if (quest.rows.length === 0) {
+            return res.status(404).json({ error: 'Quest not found' });
+        }
+        
+        // Проверяем, не выполнял ли пользователь это задание ранее
+        const existingCompletion = await db.query(
+            'SELECT * FROM completions WHERE user_id = $1 AND quest_id = $2 AND status = $3',
+            [userId, questId, 'completed']
+        );
+        
+        if (existingCompletion.rows.length > 0) {
+            return res.json({ success: false, message: 'Вы уже выполнили это задание' });
+        }
+        
+        // Проверяем, подписан ли пользователь на канал
+        const response = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember`, {
+            params: {
+                chat_id: `@${channelUsername}`,
+                user_id: telegramId
+            }
+        });
+        
+        const status = response.data.result.status;
+        const isMember = ['creator', 'administrator', 'member'].includes(status);
+        
+        if (isMember) {
+            const reward = quest.rows[0].reward;
+            
+            // Начисляем Stars пользователю
+            await db.query('UPDATE users SET stars_balance = stars_balance + $1 WHERE id = $2', [reward, userId]);
+            
+            // Уменьшаем бюджет квеста
+            await db.query('UPDATE quests SET remaining = remaining - $1 WHERE id = $2', [reward, questId]);
+            
+            // Записываем выполнение
+            await db.query(
+                'INSERT INTO completions (user_id, quest_id, screenshot_url, status) VALUES ($1, $2, $3, $4)',
+                [userId, questId, 'auto_verified', 'completed']
+            );
+            
+            return res.json({ success: true, message: `✅ Вы получили ${reward} Stars!` });
+        } else {
+            return res.json({ success: false, message: '❌ Вы не подписаны на канал. Подпишитесь и попробуйте снова.' });
+        }
+    } catch (error) {
+        console.error('Subscription check error:', error);
+        
+        // Если бот не является администратором канала
+        if (error.response?.data?.description?.includes('bot is not a member')) {
+            return res.status(500).json({ error: 'Бот не добавлен в администраторы канала' });
+        }
+        
+        res.status(500).json({ error: 'Failed to check subscription' });
     }
 });
 
