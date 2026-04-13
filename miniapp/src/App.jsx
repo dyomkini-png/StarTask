@@ -6,9 +6,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.ap
 function App() {
     const [user, setUser] = useState(null);
     const [balance, setBalance] = useState(0);
-    const [tasks, setTasks] = useState([]);
+    const [activeTasks, setActiveTasks] = useState([]);
+    const [completedTasks, setCompletedTasks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('tasks');
+    const [activeTab, setActiveTab] = useState('active');
+    const [mainTab, setMainTab] = useState('tasks');
     const [channelAvatars, setChannelAvatars] = useState({});
 
     useEffect(() => {
@@ -35,7 +37,7 @@ function App() {
             localStorage.setItem('token', response.data.token);
             
             fetchBalance(response.data.user.id);
-            fetchTasks();
+            fetchTasks(response.data.user.id);
         } catch (error) {
             console.error('Auth error:', error);
         } finally {
@@ -52,15 +54,25 @@ function App() {
         }
     };
 
-    const fetchTasks = async () => {
+    const fetchTasks = async (userId) => {
         try {
+            // Получаем все активные задания
             const response = await axios.get(`${API_URL}/api/quests`);
-            const uniqueTasks = response.data.filter((task, index, self) => 
-                index === self.findIndex(t => t.target_url === task.target_url)
-            );
-            setTasks(uniqueTasks);
+            const allTasks = response.data;
             
-            for (const task of uniqueTasks) {
+            // Получаем выполненные задания пользователя
+            const completionsResponse = await axios.get(`${API_URL}/api/user/${userId}/completions`);
+            const completedIds = completionsResponse.data.map(c => c.quest_id);
+            
+            // Разделяем на активные и выполненные
+            const active = allTasks.filter(task => !completedIds.includes(task.id));
+            const completed = allTasks.filter(task => completedIds.includes(task.id));
+            
+            setActiveTasks(active);
+            setCompletedTasks(completed);
+            
+            // Загружаем аватарки для всех заданий
+            for (const task of [...active, ...completed]) {
                 if (task.type === 'subscription' && task.target_url.includes('t.me/')) {
                     let username = task.target_url.split('t.me/')[1];
                     username = username.replace('/', '');
@@ -86,54 +98,51 @@ function App() {
         }
     };
 
-    // НОВАЯ ФУНКЦИЯ: АВТОМАТИЧЕСКАЯ ПРОВЕРКА ПОДПИСКИ
-const completeTask = async (taskId, taskUrl, channelUsername) => {
-    const tg = window.Telegram.WebApp;
-    
-    // Открываем канал
-    tg.openLink(taskUrl);
-    
-    // Показываем небольшой индикатор загрузки (не всплывающее окно)
-    tg.MainButton.show();
-    tg.MainButton.setText('⏳ Проверка подписки...');
-    tg.MainButton.disable();
-    
-    // Ждём 5 секунд, затем проверяем
-    setTimeout(async () => {
-        try {
-            const response = await axios.post(`${API_URL}/api/check-subscription`, {
-                userId: user.id,
-                channelUsername: channelUsername,
-                questId: taskId
-            });
-            
-            tg.MainButton.hide();
-            
-            if (response.data.success) {
-                tg.showPopup({
-                    title: '🎉 Задание выполнено!',
-                    message: response.data.message,
-                    buttons: [{ type: 'ok' }]
+    const completeTask = async (taskId, taskUrl, channelUsername) => {
+        const tg = window.Telegram.WebApp;
+        
+        tg.openLink(taskUrl);
+        
+        tg.MainButton.show();
+        tg.MainButton.setText('⏳ Проверка подписки...');
+        tg.MainButton.disable();
+        
+        setTimeout(async () => {
+            try {
+                const response = await axios.post(`${API_URL}/api/check-subscription`, {
+                    userId: user.id,
+                    channelUsername: channelUsername,
+                    questId: taskId
                 });
-                fetchBalance(user.id);
-            } else {
+                
+                tg.MainButton.hide();
+                
+                if (response.data.success) {
+                    tg.showPopup({
+                        title: '🎉 Задание выполнено!',
+                        message: response.data.message,
+                        buttons: [{ type: 'ok' }]
+                    });
+                    fetchBalance(user.id);
+                    fetchTasks(user.id); // Обновляем списки
+                } else {
+                    tg.showPopup({
+                        title: '❌ Подписка не найдена',
+                        message: 'Вы не подписались на канал. Попробуйте ещё раз.',
+                        buttons: [{ type: 'ok' }]
+                    });
+                }
+            } catch (error) {
+                tg.MainButton.hide();
+                console.error('Check subscription error:', error);
                 tg.showPopup({
-                    title: '❌ Подписка не найдена',
-                    message: 'Вы не подписались на канал. Попробуйте ещё раз.',
+                    title: '⚠️ Ошибка',
+                    message: error.response?.data?.error || 'Не удалось проверить подписку',
                     buttons: [{ type: 'ok' }]
                 });
             }
-        } catch (error) {
-            tg.MainButton.hide();
-            console.error('Check subscription error:', error);
-            tg.showPopup({
-                title: '⚠️ Ошибка',
-                message: error.response?.data?.error || 'Не удалось проверить подписку',
-                buttons: [{ type: 'ok' }]
-            });
-        }
-    }, 5000);
-};
+        }, 5000);
+    };
 
     const getChannelInitial = (taskTitle, targetUrl) => {
         if (taskTitle.includes('StarTask')) return '⭐';
@@ -199,62 +208,113 @@ const completeTask = async (taskId, taskUrl, channelUsername) => {
                     </div>
                 </div>
 
-                <div style={styles.tabs}>
-                    <button onClick={() => setActiveTab('tasks')} style={activeTab === 'tasks' ? styles.tabActive : styles.tab}>
+                <div style={styles.mainTabs}>
+                    <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.tabActive : styles.tab}>
                         <span>📋</span> Задания
                     </button>
-                    <button onClick={() => setActiveTab('referral')} style={activeTab === 'referral' ? styles.tabActive : styles.tab}>
+                    <button onClick={() => setMainTab('referral')} style={mainTab === 'referral' ? styles.tabActive : styles.tab}>
                         <span>👥</span> Партнёры
                     </button>
-                    <button onClick={() => setActiveTab('info')} style={activeTab === 'info' ? styles.tabActive : styles.tab}>
+                    <button onClick={() => setMainTab('info')} style={mainTab === 'info' ? styles.tabActive : styles.tab}>
                         <span>ℹ️</span> О проекте
                     </button>
                 </div>
 
-                {activeTab === 'tasks' && (
-                    <div style={styles.tasksContainer}>
-                        {tasks.length === 0 ? (
-                            <div style={styles.emptyState}>
-                                <div style={styles.emptyIcon}>📭</div>
-                                <h3 style={styles.emptyTitle}>Пока нет заданий</h3>
-                                <p style={styles.emptyText}>Новые задания появляются каждый день!</p>
-                            </div>
-                        ) : (
-                            tasks.map(task => (
-                                <div key={task.id} style={styles.taskCard}>
-                                    <div style={styles.taskGlow}></div>
-                                    <div style={styles.taskAvatar}>
-                                        {channelAvatars[task.id] ? (
-                                            <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
-                                        ) : (
-                                            <div style={{
-                                                ...styles.avatarPlaceholder,
-                                                background: getChannelColor(task.title)
-                                            }}>
-                                                {getChannelInitial(task.title, task.target_url)}
+                {mainTab === 'tasks' && (
+                    <>
+                        <div style={styles.subTabs}>
+                            <button onClick={() => setActiveTab('active')} style={activeTab === 'active' ? styles.subTabActive : styles.subTab}>
+                                Активные ({activeTasks.length})
+                            </button>
+                            <button onClick={() => setActiveTab('completed')} style={activeTab === 'completed' ? styles.subTabActive : styles.subTab}>
+                                Выполненные ({completedTasks.length})
+                            </button>
+                        </div>
+
+                        {activeTab === 'active' && (
+                            <div style={styles.tasksContainer}>
+                                {activeTasks.length === 0 ? (
+                                    <div style={styles.emptyState}>
+                                        <div style={styles.emptyIcon}>🎉</div>
+                                        <h3 style={styles.emptyTitle}>Все задания выполнены!</h3>
+                                        <p style={styles.emptyText}>Новые задания появятся скоро</p>
+                                    </div>
+                                ) : (
+                                    activeTasks.map(task => (
+                                        <div key={task.id} style={styles.taskCard}>
+                                            <div style={styles.taskGlow}></div>
+                                            <div style={styles.taskAvatar}>
+                                                {channelAvatars[task.id] ? (
+                                                    <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
+                                                ) : (
+                                                    <div style={{
+                                                        ...styles.avatarPlaceholder,
+                                                        background: getChannelColor(task.title)
+                                                    }}>
+                                                        {getChannelInitial(task.title, task.target_url)}
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-                                    <div style={styles.taskContent}>
-                                        <h3 style={styles.taskTitle}>{task.title}</h3>
-                                        <p style={styles.taskDesc}>{task.description}</p>
-                                        <div style={styles.taskFooter}>
-                                            <span style={styles.taskReward}>+{task.reward} ⭐</span>
-                                            <button 
-                                                onClick={() => completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1])} 
-                                                style={styles.taskButton}
-                                            >
-                                                Выполнить →
-                                            </button>
+                                            <div style={styles.taskContent}>
+                                                <h3 style={styles.taskTitle}>{task.title}</h3>
+                                                <p style={styles.taskDesc}>{task.description}</p>
+                                                <div style={styles.taskFooter}>
+                                                    <span style={styles.taskReward}>+{task.reward} ⭐</span>
+                                                    <button 
+                                                        onClick={() => completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1])} 
+                                                        style={styles.taskButton}
+                                                    >
+                                                        Выполнить →
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            ))
+                                    ))
+                                )}
+                            </div>
                         )}
-                    </div>
+
+                        {activeTab === 'completed' && (
+                            <div style={styles.tasksContainer}>
+                                {completedTasks.length === 0 ? (
+                                    <div style={styles.emptyState}>
+                                        <div style={styles.emptyIcon}>📭</div>
+                                        <h3 style={styles.emptyTitle}>Нет выполненных заданий</h3>
+                                        <p style={styles.emptyText}>Выполните задания, чтобы они появились здесь</p>
+                                    </div>
+                                ) : (
+                                    completedTasks.map(task => (
+                                        <div key={task.id} style={{...styles.taskCard, opacity: 0.7}}>
+                                            <div style={styles.taskGlow}></div>
+                                            <div style={styles.taskAvatar}>
+                                                {channelAvatars[task.id] ? (
+                                                    <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
+                                                ) : (
+                                                    <div style={{
+                                                        ...styles.avatarPlaceholder,
+                                                        background: getChannelColor(task.title)
+                                                    }}>
+                                                        {getChannelInitial(task.title, task.target_url)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div style={styles.taskContent}>
+                                                <h3 style={styles.taskTitle}>{task.title}</h3>
+                                                <p style={styles.taskDesc}>{task.description}</p>
+                                                <div style={styles.taskFooter}>
+                                                    <span style={styles.completedReward}>✅ +{task.reward} ⭐</span>
+                                                    <span style={styles.completedBadge}>Выполнено</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </>
                 )}
 
-                {activeTab === 'referral' && (
+                {mainTab === 'referral' && (
                     <div>
                         <div style={styles.glassCard}>
                             <div style={styles.glassCardGlow}></div>
@@ -283,12 +343,12 @@ const completeTask = async (taskId, taskUrl, channelUsername) => {
                     </div>
                 )}
 
-                {activeTab === 'info' && (
+                {mainTab === 'info' && (
                     <div>
                         <div style={styles.glassCard}>
                             <div style={styles.infoIcon}>⭐</div>
                             <h3 style={styles.glassTitle}>Что такое StarTask?</h3>
-                            <p style={styles.glassText}>StarTask — платформа для заработка Telegram Stars на выполнении простых заданий.</p>
+                            <p style={styles.glassText}>StarTask — премиальная платформа для заработка Telegram Stars на выполнении простых заданий.</p>
                         </div>
                         <div style={styles.glassCard}>
                             <div style={styles.infoIcon}>💡</div>
@@ -296,7 +356,7 @@ const completeTask = async (taskId, taskUrl, channelUsername) => {
                             <ol style={styles.infoList}>
                                 <li>Выберите задание из списка</li>
                                 <li>Перейдите по ссылке и выполните действие</li>
-                                <li>Нажмите "Проверить"</li>
+                                <li>Нажмите "Выполнить"</li>
                                 <li>Получите Stars мгновенно!</li>
                             </ol>
                         </div>
@@ -421,15 +481,44 @@ const styles = {
         color: '#ffd700',
         textShadow: '0 0 10px rgba(255,215,0,0.3)'
     },
-    tabs: {
+    mainTabs: {
         display: 'flex',
         gap: '8px',
-        marginBottom: '24px',
+        marginBottom: '16px',
         background: 'rgba(255,255,255,0.03)',
         borderRadius: '60px',
         padding: '6px',
         backdropFilter: 'blur(10px)',
         border: '1px solid rgba(255,255,255,0.05)'
+    },
+    subTabs: {
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '24px',
+        background: 'rgba(255,255,255,0.02)',
+        borderRadius: '40px',
+        padding: '4px'
+    },
+    subTab: {
+        flex: 1,
+        padding: '10px',
+        background: 'transparent',
+        border: 'none',
+        borderRadius: '40px',
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: '13px',
+        cursor: 'pointer'
+    },
+    subTabActive: {
+        flex: 1,
+        padding: '10px',
+        background: 'rgba(255,215,0,0.15)',
+        border: 'none',
+        borderRadius: '40px',
+        color: '#ffd700',
+        fontSize: '13px',
+        fontWeight: '600',
+        cursor: 'pointer'
     },
     tab: {
         flex: 1,
@@ -556,6 +645,18 @@ const styles = {
         cursor: 'pointer',
         fontSize: '12px',
         transition: 'all 0.2s ease'
+    },
+    completedReward: {
+        fontWeight: 'bold',
+        color: '#4ECDC4',
+        background: 'rgba(78,205,196,0.1)',
+        padding: '5px 12px',
+        borderRadius: '20px',
+        fontSize: '12px'
+    },
+    completedBadge: {
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: '12px'
     },
     emptyState: {
         textAlign: 'center',

@@ -260,6 +260,18 @@ app.post('/api/check-subscription', async (req, res) => {
         res.status(500).json({ error: 'Failed to check subscription' });
     }
 });
+// ПОЛУЧЕНИЕ ВЫПОЛНЕННЫХ ЗАДАНИЙ ПОЛЬЗОВАТЕЛЯ
+app.get('/api/user/:userId/completions', async (req, res) => {
+    try {
+        const completions = await db.query(
+            'SELECT quest_id FROM completions WHERE user_id = $1 AND status = $2',
+            [req.params.userId, 'completed']
+        );
+        res.json(completions.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
