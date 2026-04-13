@@ -87,60 +87,58 @@ function App() {
     };
 
     // НОВАЯ ФУНКЦИЯ: АВТОМАТИЧЕСКАЯ ПРОВЕРКА ПОДПИСКИ
-    const completeTask = async (taskId, taskUrl, channelUsername) => {
-        const tg = window.Telegram.WebApp;
-        
-        // Открываем канал
-        tg.openLink(taskUrl);
-        
-        // Показываем диалог с инструкцией
+const completeTask = async (taskId, taskUrl, channelUsername) => {
+    const tg = window.Telegram.WebApp;
+    
+    // Открываем канал
+    tg.openLink(taskUrl);
+    
+    // Показываем уведомление, что проверка будет автоматической
+    tg.showPopup({
+        title: '📢 Переход на канал',
+        message: 'Подпишитесь на канал, затем вернитесь в приложение',
+        buttons: [{ type: 'ok', text: 'Понятно' }]
+    });
+    
+    // Ждём 5 секунд, затем автоматически проверяем
+    setTimeout(async () => {
         tg.showPopup({
-            title: '📢 Подпишитесь на канал',
-            message: 'После подписки нажмите "Проверить"',
-            buttons: [
-                { type: 'cancel', text: 'Отмена' },
-                { type: 'default', text: '✅ Проверить' }
-            ]
-        }, async (buttonId) => {
-            if (buttonId === 'default') {
-                tg.showPopup({
-                    title: '⏳ Проверка...',
-                    message: 'Пожалуйста, подождите',
-                    buttons: []
-                });
-                
-                try {
-                    const response = await axios.post(`${API_URL}/api/check-subscription`, {
-                        userId: user.id,
-                        channelUsername: channelUsername,
-                        questId: taskId
-                    });
-                    
-                    if (response.data.success) {
-                        tg.showPopup({
-                            title: '🎉 Задание выполнено!',
-                            message: response.data.message,
-                            buttons: [{ type: 'ok' }]
-                        });
-                        fetchBalance(user.id);
-                    } else {
-                        tg.showPopup({
-                            title: '❌ Не подписаны',
-                            message: response.data.message || 'Вы не подписались на канал. Попробуйте снова.',
-                            buttons: [{ type: 'ok' }]
-                        });
-                    }
-                } catch (error) {
-                    console.error('Check subscription error:', error);
-                    tg.showPopup({
-                        title: '⚠️ Ошибка',
-                        message: error.response?.data?.error || 'Не удалось проверить подписку',
-                        buttons: [{ type: 'ok' }]
-                    });
-                }
-            }
+            title: '⏳ Проверка...',
+            message: 'Проверяем подписку',
+            buttons: []
         });
-    };
+        
+        try {
+            const response = await axios.post(`${API_URL}/api/check-subscription`, {
+                userId: user.id,
+                channelUsername: channelUsername,
+                questId: taskId
+            });
+            
+            if (response.data.success) {
+                tg.showPopup({
+                    title: '🎉 Задание выполнено!',
+                    message: response.data.message,
+                    buttons: [{ type: 'ok' }]
+                });
+                fetchBalance(user.id);
+            } else {
+                tg.showPopup({
+                    title: '❌ Подписка не найдена',
+                    message: 'Вы не подписались на канал. Попробуйте ещё раз.',
+                    buttons: [{ type: 'ok' }]
+                });
+            }
+        } catch (error) {
+            console.error('Check subscription error:', error);
+            tg.showPopup({
+                title: '⚠️ Ошибка',
+                message: error.response?.data?.error || 'Не удалось проверить подписку',
+                buttons: [{ type: 'ok' }]
+            });
+        }
+    }, 5000); // 5 секунд на подписку
+};
 
     const getChannelInitial = (taskTitle, targetUrl) => {
         if (taskTitle.includes('StarTask')) return '⭐';
