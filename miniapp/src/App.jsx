@@ -93,27 +93,21 @@ const completeTask = async (taskId, taskUrl, channelUsername) => {
     // Открываем канал
     tg.openLink(taskUrl);
     
-    // Показываем уведомление, что проверка будет автоматической
-    tg.showPopup({
-        title: '📢 Переход на канал',
-        message: 'Подпишитесь на канал, затем вернитесь в приложение',
-        buttons: [{ type: 'ok', text: 'Понятно' }]
-    });
+    // Показываем небольшой индикатор загрузки (не всплывающее окно)
+    tg.MainButton.show();
+    tg.MainButton.setText('⏳ Проверка подписки...');
+    tg.MainButton.disable();
     
-    // Ждём 5 секунд, затем автоматически проверяем
+    // Ждём 5 секунд, затем проверяем
     setTimeout(async () => {
-        tg.showPopup({
-            title: '⏳ Проверка...',
-            message: 'Проверяем подписку',
-            buttons: []
-        });
-        
         try {
             const response = await axios.post(`${API_URL}/api/check-subscription`, {
                 userId: user.id,
                 channelUsername: channelUsername,
                 questId: taskId
             });
+            
+            tg.MainButton.hide();
             
             if (response.data.success) {
                 tg.showPopup({
@@ -130,6 +124,7 @@ const completeTask = async (taskId, taskUrl, channelUsername) => {
                 });
             }
         } catch (error) {
+            tg.MainButton.hide();
             console.error('Check subscription error:', error);
             tg.showPopup({
                 title: '⚠️ Ошибка',
@@ -137,7 +132,7 @@ const completeTask = async (taskId, taskUrl, channelUsername) => {
                 buttons: [{ type: 'ok' }]
             });
         }
-    }, 5000); // 5 секунд на подписку
+    }, 5000);
 };
 
     const getChannelInitial = (taskTitle, targetUrl) => {
