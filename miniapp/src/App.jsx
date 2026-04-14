@@ -184,26 +184,31 @@ function App() {
             <div style={styles.content}>
                 {/* ШАПКА */}
                 <div style={styles.header}>
-                    <div style={styles.logoContainer}>
-                        <div style={styles.logoIcon}>
-                            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#FFD700" strokeWidth="1.2"/>
-                                <defs>
-                                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stopColor="#FFD700"/>
-                                        <stop offset="100%" stopColor="#FFA500"/>
-                                    </linearGradient>
-                                </defs>
-                            </svg>
-                        </div>
-                        <h1 style={styles.logo}>StarTask</h1>
-                    </div>
-                    <div style={styles.balanceCard}>
-                        <div style={styles.balanceGlow}></div>
-                        <span style={styles.balanceLabel}>Баланс</span>
-                        <span style={styles.balanceValue}>{balance} ★</span>
-                    </div>
+    <div style={styles.userInfo}>
+        <div style={styles.avatar}>
+            {user?.photo_url ? (
+                <img src={user.photo_url} alt="" style={styles.avatarImg} />
+            ) : (
+                <div style={styles.avatarPlaceholder}>
+                    {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
                 </div>
+            )}
+        </div>
+        <div style={styles.userText}>
+            <span style={styles.userName}>{user?.username || user?.first_name || 'Пользователь'}</span>
+            <span style={styles.userBalance}>⭐ {balance} Stars</span>
+        </div>
+    </div>
+    <button onClick={() => {
+        window.Telegram.WebApp.showPopup({
+            title: 'Профиль',
+            message: `ID: ${user?.telegram_id}\nUsername: @${user?.username}`,
+            buttons: [{ type: 'ok' }]
+        });
+    }} style={styles.profileButton}>
+        ⋮
+    </button>
+</div>
 
                 {/* КОНТЕНТ (скроллится) */}
                 <div style={styles.scrollArea}>
@@ -430,7 +435,7 @@ const styles = {
         fontSize: '14px',
         letterSpacing: '1px'
     },
-    header: {
+        header: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -438,6 +443,65 @@ const styles = {
         paddingTop: '10px',
         flexShrink: 0
     },
+    userInfo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px'
+    },
+    avatar: {
+        width: '48px',
+        height: '48px',
+        borderRadius: '50%',
+        background: 'rgba(255,215,0,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        border: '2px solid rgba(255,215,0,0.3)'
+    },
+    avatarPlaceholder: {
+        width: '48px',
+        height: '48px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '24px',
+        fontWeight: '600',
+        color: '#ffd700',
+        background: 'rgba(255,215,0,0.05)'
+    },
+    avatarImg: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover'
+    },
+    userText: {
+        display: 'flex',
+        flexDirection: 'column'
+    },
+    userName: {
+        fontSize: '16px',
+        fontWeight: '600',
+        color: 'white'
+    },
+    userBalance: {
+        fontSize: '13px',
+        color: '#ffd700'
+    },
+    profileButton: {
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.05)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        color: 'white',
+        fontSize: '20px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+    }
     logoContainer: {
         display: 'flex',
         alignItems: 'center',
