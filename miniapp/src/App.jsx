@@ -56,22 +56,18 @@ function App() {
 
     const fetchTasks = async (userId) => {
         try {
-            // Получаем все активные задания
             const response = await axios.get(`${API_URL}/api/quests`);
             const allTasks = response.data;
             
-            // Получаем выполненные задания пользователя
             const completionsResponse = await axios.get(`${API_URL}/api/user/${userId}/completions`);
             const completedIds = completionsResponse.data.map(c => c.quest_id);
             
-            // Разделяем на активные и выполненные
             const active = allTasks.filter(task => !completedIds.includes(task.id));
             const completed = allTasks.filter(task => completedIds.includes(task.id));
             
             setActiveTasks(active);
             setCompletedTasks(completed);
             
-            // Загружаем аватарки для всех заданий
             for (const task of [...active, ...completed]) {
                 if (task.type === 'subscription' && task.target_url.includes('t.me/')) {
                     let username = task.target_url.split('t.me/')[1];
@@ -124,7 +120,7 @@ function App() {
                         buttons: [{ type: 'ok' }]
                     });
                     fetchBalance(user.id);
-                    fetchTasks(user.id); // Обновляем списки
+                    fetchTasks(user.id);
                 } else {
                     tg.showPopup({
                         title: '❌ Подписка не найдена',
@@ -186,6 +182,7 @@ function App() {
         <div style={styles.container}>
             <div style={styles.backgroundGradient}></div>
             <div style={styles.content}>
+                {/* ШАПКА */}
                 <div style={styles.header}>
                     <div style={styles.logoContainer}>
                         <div style={styles.logoIcon}>
@@ -208,165 +205,172 @@ function App() {
                     </div>
                 </div>
 
-                <div style={styles.mainTabs}>
-                    <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.tabActive : styles.tab}>
-                        <span>📋</span> Задания
-                    </button>
-                    <button onClick={() => setMainTab('referral')} style={mainTab === 'referral' ? styles.tabActive : styles.tab}>
-                        <span>👥</span> Партнёры
-                    </button>
-                    <button onClick={() => setMainTab('info')} style={mainTab === 'info' ? styles.tabActive : styles.tab}>
-                        <span>ℹ️</span> О проекте
-                    </button>
+                {/* КОНТЕНТ (скроллится) */}
+                <div style={styles.scrollArea}>
+                    {mainTab === 'tasks' && (
+                        <>
+                            <div style={styles.subTabs}>
+                                <button onClick={() => setActiveTab('active')} style={activeTab === 'active' ? styles.subTabActive : styles.subTab}>
+                                    Активные ({activeTasks.length})
+                                </button>
+                                <button onClick={() => setActiveTab('completed')} style={activeTab === 'completed' ? styles.subTabActive : styles.subTab}>
+                                    Выполненные ({completedTasks.length})
+                                </button>
+                            </div>
+
+                            {activeTab === 'active' && (
+                                <div style={styles.tasksContainer}>
+                                    {activeTasks.length === 0 ? (
+                                        <div style={styles.emptyState}>
+                                            <div style={styles.emptyIcon}>🎉</div>
+                                            <h3 style={styles.emptyTitle}>Все задания выполнены!</h3>
+                                            <p style={styles.emptyText}>Новые задания появятся скоро</p>
+                                        </div>
+                                    ) : (
+                                        activeTasks.map(task => (
+                                            <div key={task.id} style={styles.taskCard}>
+                                                <div style={styles.taskGlow}></div>
+                                                <div style={styles.taskAvatar}>
+                                                    {channelAvatars[task.id] ? (
+                                                        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
+                                                    ) : (
+                                                        <div style={{
+                                                            ...styles.avatarPlaceholder,
+                                                            background: getChannelColor(task.title)
+                                                        }}>
+                                                            {getChannelInitial(task.title, task.target_url)}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div style={styles.taskContent}>
+                                                    <h3 style={styles.taskTitle}>{task.title}</h3>
+                                                    <p style={styles.taskDesc}>{task.description}</p>
+                                                    <div style={styles.taskFooter}>
+                                                        <span style={styles.taskReward}>+{task.reward} ⭐</span>
+                                                        <button 
+                                                            onClick={() => completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1])} 
+                                                            style={styles.taskButton}
+                                                        >
+                                                            Выполнить →
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
+                            {activeTab === 'completed' && (
+                                <div style={styles.tasksContainer}>
+                                    {completedTasks.length === 0 ? (
+                                        <div style={styles.emptyState}>
+                                            <div style={styles.emptyIcon}>📭</div>
+                                            <h3 style={styles.emptyTitle}>Нет выполненных заданий</h3>
+                                            <p style={styles.emptyText}>Выполните задания, чтобы они появились здесь</p>
+                                        </div>
+                                    ) : (
+                                        completedTasks.map(task => (
+                                            <div key={task.id} style={{...styles.taskCard, opacity: 0.7}}>
+                                                <div style={styles.taskGlow}></div>
+                                                <div style={styles.taskAvatar}>
+                                                    {channelAvatars[task.id] ? (
+                                                        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
+                                                    ) : (
+                                                        <div style={{
+                                                            ...styles.avatarPlaceholder,
+                                                            background: getChannelColor(task.title)
+                                                        }}>
+                                                            {getChannelInitial(task.title, task.target_url)}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div style={styles.taskContent}>
+                                                    <h3 style={styles.taskTitle}>{task.title}</h3>
+                                                    <p style={styles.taskDesc}>{task.description}</p>
+                                                    <div style={styles.taskFooter}>
+                                                        <span style={styles.completedReward}>✅ +{task.reward} ⭐</span>
+                                                        <span style={styles.completedBadge}>Выполнено</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {mainTab === 'referral' && (
+                        <div>
+                            <div style={styles.glassCard}>
+                                <div style={styles.glassCardGlow}></div>
+                                <div style={styles.infoIcon}>👥</div>
+                                <h3 style={styles.glassTitle}>Партнёрская программа</h3>
+                                <p style={styles.glassText}>Приглашайте друзей и получайте <strong style={{color: '#ffd700'}}>10%</strong> от их заработка!</p>
+                                <div style={styles.referralLinkBox}>
+                                    <code style={styles.referralLink}>{getReferralLink()}</code>
+                                </div>
+                                <button onClick={copyReferralLink} style={styles.copyButton}>
+                                    📋 Скопировать ссылку
+                                </button>
+                            </div>
+
+                            <div style={styles.glassCard}>
+                                <h4 style={styles.statsTitle}>Ваша статистика</h4>
+                                <div style={styles.statsRow}>
+                                    <span>👥 Приглашено друзей:</span>
+                                    <strong>0</strong>
+                                </div>
+                                <div style={styles.statsRow}>
+                                    <span>💰 Заработано комиссии:</span>
+                                    <strong>0 ⭐</strong>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {mainTab === 'info' && (
+                        <div>
+                            <div style={styles.glassCard}>
+                                <div style={styles.infoIcon}>⭐</div>
+                                <h3 style={styles.glassTitle}>Что такое StarTask?</h3>
+                                <p style={styles.glassText}>StarTask — премиальная платформа для заработка Telegram Stars на выполнении простых заданий.</p>
+                            </div>
+                            <div style={styles.glassCard}>
+                                <div style={styles.infoIcon}>💡</div>
+                                <h3 style={styles.glassTitle}>Как заработать?</h3>
+                                <ol style={styles.infoList}>
+                                    <li>Выберите задание из списка</li>
+                                    <li>Перейдите по ссылке и выполните действие</li>
+                                    <li>Нажмите "Выполнить"</li>
+                                    <li>Получите Stars мгновенно!</li>
+                                </ol>
+                            </div>
+                            <div style={styles.glassCard}>
+                                <div style={styles.infoIcon}>🤝</div>
+                                <h3 style={styles.glassTitle}>Партнёрская программа</h3>
+                                <p style={styles.glassText}>Приглашайте друзей и получайте 10% от их заработка.</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {mainTab === 'tasks' && (
-                    <>
-                        <div style={styles.subTabs}>
-                            <button onClick={() => setActiveTab('active')} style={activeTab === 'active' ? styles.subTabActive : styles.subTab}>
-                                Активные ({activeTasks.length})
-                            </button>
-                            <button onClick={() => setActiveTab('completed')} style={activeTab === 'completed' ? styles.subTabActive : styles.subTab}>
-                                Выполненные ({completedTasks.length})
-                            </button>
-                        </div>
-
-                        {activeTab === 'active' && (
-                            <div style={styles.tasksContainer}>
-                                {activeTasks.length === 0 ? (
-                                    <div style={styles.emptyState}>
-                                        <div style={styles.emptyIcon}>🎉</div>
-                                        <h3 style={styles.emptyTitle}>Все задания выполнены!</h3>
-                                        <p style={styles.emptyText}>Новые задания появятся скоро</p>
-                                    </div>
-                                ) : (
-                                    activeTasks.map(task => (
-                                        <div key={task.id} style={styles.taskCard}>
-                                            <div style={styles.taskGlow}></div>
-                                            <div style={styles.taskAvatar}>
-                                                {channelAvatars[task.id] ? (
-                                                    <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
-                                                ) : (
-                                                    <div style={{
-                                                        ...styles.avatarPlaceholder,
-                                                        background: getChannelColor(task.title)
-                                                    }}>
-                                                        {getChannelInitial(task.title, task.target_url)}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div style={styles.taskContent}>
-                                                <h3 style={styles.taskTitle}>{task.title}</h3>
-                                                <p style={styles.taskDesc}>{task.description}</p>
-                                                <div style={styles.taskFooter}>
-                                                    <span style={styles.taskReward}>+{task.reward} ⭐</span>
-                                                    <button 
-                                                        onClick={() => completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1])} 
-                                                        style={styles.taskButton}
-                                                    >
-                                                        Выполнить →
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        )}
-
-                        {activeTab === 'completed' && (
-                            <div style={styles.tasksContainer}>
-                                {completedTasks.length === 0 ? (
-                                    <div style={styles.emptyState}>
-                                        <div style={styles.emptyIcon}>📭</div>
-                                        <h3 style={styles.emptyTitle}>Нет выполненных заданий</h3>
-                                        <p style={styles.emptyText}>Выполните задания, чтобы они появились здесь</p>
-                                    </div>
-                                ) : (
-                                    completedTasks.map(task => (
-                                        <div key={task.id} style={{...styles.taskCard, opacity: 0.7}}>
-                                            <div style={styles.taskGlow}></div>
-                                            <div style={styles.taskAvatar}>
-                                                {channelAvatars[task.id] ? (
-                                                    <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
-                                                ) : (
-                                                    <div style={{
-                                                        ...styles.avatarPlaceholder,
-                                                        background: getChannelColor(task.title)
-                                                    }}>
-                                                        {getChannelInitial(task.title, task.target_url)}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div style={styles.taskContent}>
-                                                <h3 style={styles.taskTitle}>{task.title}</h3>
-                                                <p style={styles.taskDesc}>{task.description}</p>
-                                                <div style={styles.taskFooter}>
-                                                    <span style={styles.completedReward}>✅ +{task.reward} ⭐</span>
-                                                    <span style={styles.completedBadge}>Выполнено</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {mainTab === 'referral' && (
-                    <div>
-                        <div style={styles.glassCard}>
-                            <div style={styles.glassCardGlow}></div>
-                            <div style={styles.infoIcon}>👥</div>
-                            <h3 style={styles.glassTitle}>Партнёрская программа</h3>
-                            <p style={styles.glassText}>Приглашайте друзей и получайте <strong style={{color: '#ffd700'}}>10%</strong> от их заработка!</p>
-                            <div style={styles.referralLinkBox}>
-                                <code style={styles.referralLink}>{getReferralLink()}</code>
-                            </div>
-                            <button onClick={copyReferralLink} style={styles.copyButton}>
-                                📋 Скопировать ссылку
-                            </button>
-                        </div>
-
-                        <div style={styles.glassCard}>
-                            <h4 style={styles.statsTitle}>Ваша статистика</h4>
-                            <div style={styles.statsRow}>
-                                <span>👥 Приглашено друзей:</span>
-                                <strong>0</strong>
-                            </div>
-                            <div style={styles.statsRow}>
-                                <span>💰 Заработано комиссии:</span>
-                                <strong>0 ⭐</strong>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {mainTab === 'info' && (
-                    <div>
-                        <div style={styles.glassCard}>
-                            <div style={styles.infoIcon}>⭐</div>
-                            <h3 style={styles.glassTitle}>Что такое StarTask?</h3>
-                            <p style={styles.glassText}>StarTask — премиальная платформа для заработка Telegram Stars на выполнении простых заданий.</p>
-                        </div>
-                        <div style={styles.glassCard}>
-                            <div style={styles.infoIcon}>💡</div>
-                            <h3 style={styles.glassTitle}>Как заработать?</h3>
-                            <ol style={styles.infoList}>
-                                <li>Выберите задание из списка</li>
-                                <li>Перейдите по ссылке и выполните действие</li>
-                                <li>Нажмите "Выполнить"</li>
-                                <li>Получите Stars мгновенно!</li>
-                            </ol>
-                        </div>
-                        <div style={styles.glassCard}>
-                            <div style={styles.infoIcon}>🤝</div>
-                            <h3 style={styles.glassTitle}>Партнёрская программа</h3>
-                            <p style={styles.glassText}>Приглашайте друзей и получайте 10% от их заработка.</p>
-                        </div>
-                    </div>
-                )}
+                {/* НИЖНЯЯ НАВИГАЦИЯ (TAB BAR) */}
+                <div style={styles.bottomNav}>
+                    <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.navItemActive : styles.navItem}>
+                        <span style={styles.navIcon}>📋</span>
+                        <span style={styles.navLabel}>Задания</span>
+                    </button>
+                    <button onClick={() => setMainTab('referral')} style={mainTab === 'referral' ? styles.navItemActive : styles.navItem}>
+                        <span style={styles.navIcon}>👥</span>
+                        <span style={styles.navLabel}>Партнёры</span>
+                    </button>
+                    <button onClick={() => setMainTab('info')} style={mainTab === 'info' ? styles.navItemActive : styles.navItem}>
+                        <span style={styles.navIcon}>ℹ️</span>
+                        <span style={styles.navLabel}>О проекте</span>
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -391,7 +395,17 @@ const styles = {
     content: {
         padding: '20px',
         position: 'relative',
-        zIndex: 1
+        zIndex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        boxSizing: 'border-box'
+    },
+    scrollArea: {
+        flex: 1,
+        overflowY: 'auto',
+        paddingBottom: '20px',
+        marginBottom: '70px'
     },
     loadingContainer: {
         minHeight: '100vh',
@@ -420,8 +434,9 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '32px',
-        paddingTop: '10px'
+        marginBottom: '24px',
+        paddingTop: '10px',
+        flexShrink: 0
     },
     logoContainer: {
         display: 'flex',
@@ -481,20 +496,10 @@ const styles = {
         color: '#ffd700',
         textShadow: '0 0 10px rgba(255,215,0,0.3)'
     },
-    mainTabs: {
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '16px',
-        background: 'rgba(255,255,255,0.03)',
-        borderRadius: '60px',
-        padding: '6px',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255,255,255,0.05)'
-    },
     subTabs: {
         display: 'flex',
         gap: '8px',
-        marginBottom: '24px',
+        marginBottom: '20px',
         background: 'rgba(255,255,255,0.02)',
         borderRadius: '40px',
         padding: '4px'
@@ -520,42 +525,11 @@ const styles = {
         fontWeight: '600',
         cursor: 'pointer'
     },
-    tab: {
-        flex: 1,
-        padding: '12px 8px',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '50px',
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: '13px',
-        fontWeight: '500',
-        cursor: 'pointer',
-        transition: 'all 0.3s ease',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '6px'
-    },
-    tabActive: {
-        flex: 1,
-        padding: '12px 8px',
-        background: 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,215,0,0.05) 100%)',
-        border: 'none',
-        borderRadius: '50px',
-        color: '#ffd700',
-        fontSize: '13px',
-        fontWeight: '600',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '6px',
-        backdropFilter: 'blur(10px)'
-    },
     tasksContainer: {
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px'
+        gap: '16px',
+        paddingBottom: '10px'
     },
     taskCard: {
         position: 'relative',
@@ -762,6 +736,56 @@ const styles = {
         borderBottom: '1px solid rgba(255,255,255,0.05)',
         color: 'rgba(255,255,255,0.6)',
         fontSize: '14px'
+    },
+    bottomNav: {
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        display: 'flex',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        background: 'rgba(10,10,26,0.95)',
+        backdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(255,215,0,0.1)',
+        padding: '10px 20px 20px 20px',
+        zIndex: 10
+    },
+    navItem: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '4px',
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '8px',
+        borderRadius: '12px',
+        transition: 'all 0.2s ease',
+        opacity: 0.5
+    },
+    navItemActive: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '4px',
+        background: 'rgba(255,215,0,0.1)',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '8px',
+        borderRadius: '12px',
+        transition: 'all 0.2s ease',
+        opacity: 1
+    },
+    navIcon: {
+        fontSize: '22px'
+    },
+    navLabel: {
+        fontSize: '11px',
+        fontWeight: '500',
+        color: 'white'
     }
 };
 
