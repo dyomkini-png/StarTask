@@ -199,37 +199,39 @@ function App() {
             <div style={styles.backgroundGradient}></div>
             <div style={styles.content}>
                 {/* ШАПКА С АВАТАРОМ СПРАВА */}
-                <div style={styles.header}>
-                    <div style={styles.logoContainer}>
-                        <div style={styles.logoIcon}>
-                            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#FFD700" strokeWidth="1.2"/>
-                                <defs>
-                                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stopColor="#FFD700"/>
-                                        <stop offset="100%" stopColor="#FFA500"/>
-                                    </linearGradient>
-                                </defs>
-                            </svg>
-                        </div>
-                        <h1 style={styles.logo}>StarTask</h1>
-                    </div>
-                    <div style={styles.userInfo} onClick={openProfile}>
-                        <div style={styles.userText}>
-                            <span style={styles.userName}>{user?.first_name || user?.username || 'Пользователь'}</span>
-                            <span style={styles.userBalance}>⭐ {balance} Stars</span>
-                        </div>
-                        <div style={styles.avatar}>
-                            {user?.photo_url ? (
-                                <img src={user.photo_url} alt="avatar" style={styles.avatarImg} />
-                            ) : (
-                                <div style={styles.avatarPlaceholder}>
-                                    {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
-                                </div>
-                            )}
-                        </div>
-                    </div>
+<div style={styles.header}>
+    <div style={styles.logoContainer} onClick={() => {
+        window.Telegram.WebApp.openLink('https://t.me/startask_official');
+    }}>
+        <div style={styles.logoIcon}>
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#FFD700" strokeWidth="1.2"/>
+                <defs>
+                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#FFD700"/>
+                        <stop offset="100%" stopColor="#FFA500"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
+        <h1 style={styles.logo}>StarTask</h1>
+    </div>
+    <div style={styles.userInfo} onClick={openProfile}>
+        <div style={styles.userText}>
+            <span style={styles.userName}>{user?.first_name || user?.username || 'Пользователь'}</span>
+            <span style={styles.userBalance}>⭐ {balance} Stars</span>
+        </div>
+        <div style={styles.avatar}>
+            {user?.photo_url ? (
+                <img src={user.photo_url} alt="avatar" style={styles.avatarImg} />
+            ) : (
+                <div style={styles.avatarPlaceholder}>
+                    {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
                 </div>
+            )}
+        </div>
+    </div>
+</div>
 
                 <div style={styles.scrollArea}>
                     {mainTab === 'tasks' && (
@@ -462,30 +464,34 @@ const styles = {
         paddingTop: '10px',
         flexShrink: 0
     },
-    logoContainer: {
+        logoContainer: {
         display: 'flex',
         alignItems: 'center',
-        gap: '12px'
+        gap: '12px',
+        cursor: 'pointer'
     },
     logoIcon: {
-        width: '44px',
-        height: '44px',
+        width: '48px',
+        height: '48px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(255,215,0,0.08)',
-        borderRadius: '16px',
-        border: '1px solid rgba(255,215,0,0.15)'
+        background: 'linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0.05) 100%)',
+        borderRadius: '18px',
+        border: '1px solid rgba(255,215,0,0.25)',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
     },
     logo: {
         margin: 0,
-        fontSize: '26px',
-        fontWeight: '700',
-        background: 'linear-gradient(135deg, #FFFFFF 0%, #E8E8E8 100%)',
+        fontSize: '28px',
+        fontWeight: '800',
+        background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text',
-        letterSpacing: '-0.5px'
+        letterSpacing: '-0.8px',
+        fontFamily: "'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        textShadow: '0 2px 10px rgba(255,215,0,0.2)'
     },
     userInfo: {
         display: 'flex',
