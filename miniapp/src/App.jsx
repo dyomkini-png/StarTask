@@ -182,33 +182,32 @@ function App() {
         <div style={styles.container}>
             <div style={styles.backgroundGradient}></div>
             <div style={styles.content}>
-                {/* ШАПКА */}
+                {/* НОВАЯ ШАПКА С АВАТАРОМ И БАЛАНСОМ */}
                 <div style={styles.header}>
-    <div style={styles.userInfo}>
-        <div style={styles.avatar}>
-            {user?.photo_url ? (
-                <img src={user.photo_url} alt="" style={styles.avatarImg} />
-            ) : (
-                <div style={styles.avatarPlaceholder}>
-                    {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
+                    <div style={styles.userInfo}>
+                        <div style={styles.avatar}>
+                            <div style={styles.avatarPlaceholder}>
+                                {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
+                            </div>
+                        </div>
+                        <div style={styles.userText}>
+                            <span style={styles.userName}>{user?.username || 'Пользователь'}</span>
+                            <span style={styles.userBalance}>⭐ {balance} Stars</span>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => {
+                            window.Telegram.WebApp.showPopup({
+                                title: 'Профиль',
+                                message: `ID: ${user?.telegram_id}\nUsername: @${user?.username}`,
+                                buttons: [{ type: 'ok' }]
+                            });
+                        }} 
+                        style={styles.profileButton}
+                    >
+                        ⋮
+                    </button>
                 </div>
-            )}
-        </div>
-        <div style={styles.userText}>
-            <span style={styles.userName}>{user?.username || user?.first_name || 'Пользователь'}</span>
-            <span style={styles.userBalance}>⭐ {balance} Stars</span>
-        </div>
-    </div>
-    <button onClick={() => {
-        window.Telegram.WebApp.showPopup({
-            title: 'Профиль',
-            message: `ID: ${user?.telegram_id}\nUsername: @${user?.username}`,
-            buttons: [{ type: 'ok' }]
-        });
-    }} style={styles.profileButton}>
-        ⋮
-    </button>
-</div>
 
                 {/* КОНТЕНТ (скроллится) */}
                 <div style={styles.scrollArea}>
@@ -240,7 +239,7 @@ function App() {
                                                         <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
                                                     ) : (
                                                         <div style={{
-                                                            ...styles.avatarPlaceholder,
+                                                            ...styles.avatarPlaceholderSmall,
                                                             background: getChannelColor(task.title)
                                                         }}>
                                                             {getChannelInitial(task.title, task.target_url)}
@@ -283,7 +282,7 @@ function App() {
                                                         <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
                                                     ) : (
                                                         <div style={{
-                                                            ...styles.avatarPlaceholder,
+                                                            ...styles.avatarPlaceholderSmall,
                                                             background: getChannelColor(task.title)
                                                         }}>
                                                             {getChannelInitial(task.title, task.target_url)}
@@ -361,7 +360,7 @@ function App() {
                     )}
                 </div>
 
-                {/* НИЖНЯЯ НАВИГАЦИЯ (TAB BAR) */}
+                {/* НИЖНЯЯ НАВИГАЦИЯ (ОВАЛЬНАЯ ОБЛАСТЬ) */}
                 <div style={styles.bottomNav}>
                     <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.navItemActive : styles.navItem}>
                         <span style={styles.navIcon}>📋</span>
@@ -435,7 +434,8 @@ const styles = {
         fontSize: '14px',
         letterSpacing: '1px'
     },
-        header: {
+    // НОВАЯ ШАПКА
+    header: {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -471,11 +471,6 @@ const styles = {
         color: '#ffd700',
         background: 'rgba(255,215,0,0.05)'
     },
-    avatarImg: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover'
-    },
     userText: {
         display: 'flex',
         flexDirection: 'column'
@@ -501,65 +496,8 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
-    }
-    logoContainer: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px'
     },
-    logoIcon: {
-        width: '44px',
-        height: '44px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(255,215,0,0.08)',
-        borderRadius: '16px',
-        border: '1px solid rgba(255,215,0,0.15)'
-    },
-    logo: {
-        margin: 0,
-        fontSize: '26px',
-        fontWeight: '700',
-        background: 'linear-gradient(135deg, #FFFFFF 0%, #E8E8E8 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-        letterSpacing: '-0.5px'
-    },
-    balanceCard: {
-        position: 'relative',
-        background: 'rgba(255,255,255,0.03)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '28px',
-        padding: '10px 18px',
-        textAlign: 'center',
-        border: '1px solid rgba(255,215,0,0.15)',
-        overflow: 'hidden',
-        minWidth: '90px'
-    },
-    balanceGlow: {
-        position: 'absolute',
-        top: '-50%',
-        left: '-50%',
-        width: '200%',
-        height: '200%',
-        background: 'radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%)',
-        animation: 'glow 3s ease-in-out infinite'
-    },
-    balanceLabel: {
-        fontSize: '10px',
-        color: 'rgba(255,215,0,0.7)',
-        display: 'block',
-        letterSpacing: '1px',
-        textTransform: 'uppercase'
-    },
-    balanceValue: {
-        fontSize: '22px',
-        fontWeight: 'bold',
-        color: '#ffd700',
-        textShadow: '0 0 10px rgba(255,215,0,0.3)'
-    },
+    // ВКЛАДКИ
     subTabs: {
         display: 'flex',
         gap: '8px',
@@ -589,6 +527,7 @@ const styles = {
         fontWeight: '600',
         cursor: 'pointer'
     },
+    // КАРТОЧКИ ЗАДАНИЙ
     tasksContainer: {
         display: 'flex',
         flexDirection: 'column',
@@ -632,7 +571,7 @@ const styles = {
         height: '100%',
         objectFit: 'cover'
     },
-    avatarPlaceholder: {
+    avatarPlaceholderSmall: {
         width: '52px',
         height: '52px',
         borderRadius: '26px',
@@ -718,6 +657,7 @@ const styles = {
         color: 'rgba(255,255,255,0.4)',
         fontSize: '14px'
     },
+    // СТЕКЛЯННЫЕ КАРТОЧКИ
     glassCard: {
         position: 'relative',
         background: 'rgba(255,255,255,0.03)',
@@ -801,6 +741,7 @@ const styles = {
         color: 'rgba(255,255,255,0.6)',
         fontSize: '14px'
     },
+    // НИЖНЯЯ НАВИГАЦИЯ (ОВАЛЬНАЯ ОБЛАСТЬ)
     bottomNav: {
         position: 'fixed',
         bottom: 16,
