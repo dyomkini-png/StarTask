@@ -28,12 +28,18 @@ function App() {
 
     const authenticate = async (telegramUser) => {
         try {
+            const userPhotoUrl = window.Telegram.WebApp.initDataUnsafe?.user?.photo_url;
+            
             const response = await axios.post(`${API_URL}/api/auth`, {
                 telegramId: telegramUser.id,
                 username: telegramUser.username
             });
             
-            setUser(response.data.user);
+            setUser({
+                ...response.data.user,
+                photo_url: userPhotoUrl,
+                first_name: telegramUser.first_name
+            });
             localStorage.setItem('token', response.data.token);
             
             fetchBalance(response.data.user.id);
@@ -182,16 +188,20 @@ function App() {
         <div style={styles.container}>
             <div style={styles.backgroundGradient}></div>
             <div style={styles.content}>
-                {/* НОВАЯ ШАПКА С АВАТАРОМ И БАЛАНСОМ */}
+                {/* ШАПКА С АВАТАРОМ */}
                 <div style={styles.header}>
                     <div style={styles.userInfo}>
                         <div style={styles.avatar}>
-                            <div style={styles.avatarPlaceholder}>
-                                {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
-                            </div>
+                            {user?.photo_url ? (
+                                <img src={user.photo_url} alt="avatar" style={styles.avatarImg} />
+                            ) : (
+                                <div style={styles.avatarPlaceholder}>
+                                    {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
+                                </div>
+                            )}
                         </div>
                         <div style={styles.userText}>
-                            <span style={styles.userName}>{user?.username || 'Пользователь'}</span>
+                            <span style={styles.userName}>{user?.first_name || user?.username || 'Пользователь'}</span>
                             <span style={styles.userBalance}>⭐ {balance} Stars</span>
                         </div>
                     </div>
@@ -209,7 +219,6 @@ function App() {
                     </button>
                 </div>
 
-                {/* КОНТЕНТ (скроллится) */}
                 <div style={styles.scrollArea}>
                     {mainTab === 'tasks' && (
                         <>
@@ -236,7 +245,7 @@ function App() {
                                                 <div style={styles.taskGlow}></div>
                                                 <div style={styles.taskAvatar}>
                                                     {channelAvatars[task.id] ? (
-                                                        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
+                                                        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImgSmall} />
                                                     ) : (
                                                         <div style={{
                                                             ...styles.avatarPlaceholderSmall,
@@ -279,7 +288,7 @@ function App() {
                                                 <div style={styles.taskGlow}></div>
                                                 <div style={styles.taskAvatar}>
                                                     {channelAvatars[task.id] ? (
-                                                        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImg} />
+                                                        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImgSmall} />
                                                     ) : (
                                                         <div style={{
                                                             ...styles.avatarPlaceholderSmall,
@@ -360,7 +369,6 @@ function App() {
                     )}
                 </div>
 
-                {/* НИЖНЯЯ НАВИГАЦИЯ (ОВАЛЬНАЯ ОБЛАСТЬ) */}
                 <div style={styles.bottomNav}>
                     <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.navItemActive : styles.navItem}>
                         <span style={styles.navIcon}>📋</span>
@@ -434,7 +442,6 @@ const styles = {
         fontSize: '14px',
         letterSpacing: '1px'
     },
-    // НОВАЯ ШАПКА
     header: {
         display: 'flex',
         justifyContent: 'space-between',
@@ -459,6 +466,11 @@ const styles = {
         overflow: 'hidden',
         border: '2px solid rgba(255,215,0,0.3)'
     },
+    avatarImg: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover'
+    },
     avatarPlaceholder: {
         width: '48px',
         height: '48px',
@@ -470,6 +482,22 @@ const styles = {
         fontWeight: '600',
         color: '#ffd700',
         background: 'rgba(255,215,0,0.05)'
+    },
+    avatarImgSmall: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover'
+    },
+    avatarPlaceholderSmall: {
+        width: '52px',
+        height: '52px',
+        borderRadius: '26px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '24px',
+        fontWeight: 'bold',
+        color: 'white'
     },
     userText: {
         display: 'flex',
@@ -497,7 +525,6 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center'
     },
-    // ВКЛАДКИ
     subTabs: {
         display: 'flex',
         gap: '8px',
@@ -527,7 +554,6 @@ const styles = {
         fontWeight: '600',
         cursor: 'pointer'
     },
-    // КАРТОЧКИ ЗАДАНИЙ
     tasksContainer: {
         display: 'flex',
         flexDirection: 'column',
@@ -565,22 +591,6 @@ const styles = {
         overflow: 'hidden',
         flexShrink: 0,
         boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
-    },
-    avatarImg: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover'
-    },
-    avatarPlaceholderSmall: {
-        width: '52px',
-        height: '52px',
-        borderRadius: '26px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '24px',
-        fontWeight: 'bold',
-        color: 'white'
     },
     taskContent: {
         flex: 1
@@ -657,7 +667,6 @@ const styles = {
         color: 'rgba(255,255,255,0.4)',
         fontSize: '14px'
     },
-    // СТЕКЛЯННЫЕ КАРТОЧКИ
     glassCard: {
         position: 'relative',
         background: 'rgba(255,255,255,0.03)',
@@ -741,7 +750,6 @@ const styles = {
         color: 'rgba(255,255,255,0.6)',
         fontSize: '14px'
     },
-    // НИЖНЯЯ НАВИГАЦИЯ (ОВАЛЬНАЯ ОБЛАСТЬ)
     bottomNav: {
         position: 'fixed',
         bottom: 16,
