@@ -12,6 +12,7 @@ function App() {
     const [activeTab, setActiveTab] = useState('active');
     const [mainTab, setMainTab] = useState('tasks');
     const [channelAvatars, setChannelAvatars] = useState({});
+    const [showProfile, setShowProfile] = useState(false);
 
     useEffect(() => {
         const tg = window.Telegram.WebApp;
@@ -38,7 +39,8 @@ function App() {
             setUser({
                 ...response.data.user,
                 photo_url: userPhotoUrl,
-                first_name: telegramUser.first_name
+                first_name: telegramUser.first_name,
+                last_name: telegramUser.last_name
             });
             localStorage.setItem('token', response.data.token);
             
@@ -175,6 +177,14 @@ function App() {
         });
     };
 
+    const openProfile = () => {
+        window.Telegram.WebApp.showPopup({
+            title: '👤 Профиль',
+            message: `Имя: ${user?.first_name || '—'} ${user?.last_name || ''}\nUsername: @${user?.username || '—'}\nID: ${user?.telegram_id || '—'}\nБаланс: ${balance} ⭐`,
+            buttons: [{ type: 'ok', text: 'Закрыть' }]
+        });
+    };
+
     if (loading) {
         return (
             <div style={styles.loadingContainer}>
@@ -188,63 +198,37 @@ function App() {
         <div style={styles.container}>
             <div style={styles.backgroundGradient}></div>
             <div style={styles.content}>
-                {/* ШАПКА С АВАТАРОМ */}
-<div style={styles.header}>
-    <div style={styles.logoContainer}>
-        <div style={styles.logoIcon}>
-            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#FFD700" strokeWidth="1.2"/>
-                <defs>
-                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#FFD700"/>
-                        <stop offset="100%" stopColor="#FFA500"/>
-                    </linearGradient>
-                </defs>
-            </svg>
-        </div>
-        <h1 style={styles.logo}>StarTask</h1>
-    </div>
-    
-    {/* Профиль справа — кликабельный */}
-    <div style={styles.userInfo} onClick={() => {
-        window.Telegram.WebApp.showPopup({
-            title: '👤 Мой профиль',
-            message: `🆔 ID: ${user?.telegram_id || '—'}\n\n📛 Логин: @${user?.username || '—'}\n\n⭐ Баланс: ${balance} Stars\n\n📅 В проекте с: ${new Date(user?.created_at).toLocaleDateString() || '—'}`,
-            buttons: [{ type: 'ok', text: 'Закрыть' }]
-        });
-    }}>
-        <div style={styles.userText}>
-            <span style={styles.userName}>{user?.first_name || user?.username || 'Пользователь'}</span>
-            <span style={styles.userBalance}>⭐ {balance} Stars</span>
-        </div>
-        <div style={styles.avatar}>
-            {user?.photo_url ? (
-                <img src={user.photo_url} alt="avatar" style={styles.avatarImg} />
-            ) : (
-                <div style={styles.avatarPlaceholder}>
-                    {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
-                </div>
-            )}
-        </div>
-    </div>
-</div>
+                {/* ШАПКА С АВАТАРОМ СПРАВА */}
+                <div style={styles.header}>
+                    <div style={styles.logoContainer}>
+                        <div style={styles.logoIcon}>
+                            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#FFD700" strokeWidth="1.2"/>
+                                <defs>
+                                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stopColor="#FFD700"/>
+                                        <stop offset="100%" stopColor="#FFA500"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <h1 style={styles.logo}>StarTask</h1>
+                    </div>
+                    <div style={styles.userInfo} onClick={openProfile}>
                         <div style={styles.userText}>
                             <span style={styles.userName}>{user?.first_name || user?.username || 'Пользователь'}</span>
                             <span style={styles.userBalance}>⭐ {balance} Stars</span>
                         </div>
+                        <div style={styles.avatar}>
+                            {user?.photo_url ? (
+                                <img src={user.photo_url} alt="avatar" style={styles.avatarImg} />
+                            ) : (
+                                <div style={styles.avatarPlaceholder}>
+                                    {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    <button 
-                        onClick={() => {
-                            window.Telegram.WebApp.showPopup({
-                                title: 'Профиль',
-                                message: `ID: ${user?.telegram_id}\nUsername: @${user?.username}`,
-                                buttons: [{ type: 'ok' }]
-                            });
-                        }} 
-                        style={styles.profileButton}
-                    >
-                        ⋮
-                    </button>
                 </div>
 
                 <div style={styles.scrollArea}>
@@ -507,15 +491,11 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        cursor: 'pointer',
-        padding: '6px 12px',
-        borderRadius: '60px',
-        background: 'rgba(255,255,255,0.03)',
-        transition: 'all 0.2s ease'
+        cursor: 'pointer'
     },
     avatar: {
-        width: '44px',
-        height: '44px',
+        width: '48px',
+        height: '48px',
         borderRadius: '50%',
         background: 'rgba(255,215,0,0.1)',
         display: 'flex',
@@ -530,16 +510,32 @@ const styles = {
         objectFit: 'cover'
     },
     avatarPlaceholder: {
-        width: '44px',
-        height: '44px',
+        width: '48px',
+        height: '48px',
         borderRadius: '50%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '20px',
+        fontSize: '24px',
         fontWeight: '600',
         color: '#ffd700',
         background: 'rgba(255,215,0,0.05)'
+    },
+    avatarImgSmall: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover'
+    },
+    avatarPlaceholderSmall: {
+        width: '52px',
+        height: '52px',
+        borderRadius: '26px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '24px',
+        fontWeight: 'bold',
+        color: 'white'
     },
     userText: {
         display: 'flex',
@@ -549,25 +545,11 @@ const styles = {
     userName: {
         fontSize: '15px',
         fontWeight: '600',
-        color: 'white',
-        lineHeight: 1.3
+        color: 'white'
     },
     userBalance: {
         fontSize: '12px',
         color: '#ffd700'
-    },
-        profileButton: {
-        width: '40px',
-        height: '40px',
-        borderRadius: '50%',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        color: 'white',
-        fontSize: '20px',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
     },
     subTabs: {
         display: 'flex',
