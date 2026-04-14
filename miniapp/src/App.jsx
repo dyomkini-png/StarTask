@@ -782,7 +782,7 @@ const styles = {
         color: 'rgba(255,255,255,0.6)',
         fontSize: '14px'
     },
-    bottomNav: {
+        bottomNav: {
         position: 'fixed',
         bottom: 16,
         left: 16,
@@ -791,12 +791,14 @@ const styles = {
         justifyContent: 'space-around',
         alignItems: 'center',
         gap: '4px',
-        background: 'rgba(20,20,40,0.95)',
+        background: 'rgba(20, 20, 40, 0.4)',
         backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         borderRadius: '60px',
-        border: '1px solid rgba(255,215,0,0.15)',
+        border: '1px solid rgba(255, 215, 0, 0.2)',
         padding: '6px',
-        zIndex: 10
+        zIndex: 10,
+        boxShadow: '0 8px 25px rgba(0, 0, 0, 0.2)'
     },
     navItem: {
         flex: 1,
@@ -810,7 +812,7 @@ const styles = {
         cursor: 'pointer',
         padding: '10px 12px',
         transition: 'all 0.2s ease',
-        opacity: 0.5
+        opacity: 0.6
     },
     navItemActive: {
         flex: 1,
