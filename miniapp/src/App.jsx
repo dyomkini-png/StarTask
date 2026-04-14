@@ -739,17 +739,18 @@ const styles = {
     },
     bottomNav: {
         position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
+        bottom: 16,
+        left: 16,
+        right: 16,
         display: 'flex',
         justifyContent: 'space-around',
         alignItems: 'center',
-        gap: '8px',
-        background: 'rgba(10,10,26,0.95)',
+        gap: '4px',
+        background: 'rgba(20,20,40,0.95)',
         backdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(255,215,0,0.1)',
-        padding: '10px 16px 20px 16px',
+        borderRadius: '60px',
+        border: '1px solid rgba(255,215,0,0.15)',
+        padding: '6px',
         zIndex: 10
     },
     navItem: {
@@ -772,8 +773,8 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '4px',
-        background: 'linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0.05) 100%)',
-        border: '1px solid rgba(255,215,0,0.2)',
+        background: 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,215,0,0.08) 100%)',
+        border: 'none',
         borderRadius: '50px',
         cursor: 'pointer',
         padding: '10px 12px',
@@ -781,7 +782,7 @@ const styles = {
         opacity: 1
     },
     navIcon: {
-        fontSize: '22px'
+        fontSize: '20px'
     },
     navLabel: {
         fontSize: '11px',
