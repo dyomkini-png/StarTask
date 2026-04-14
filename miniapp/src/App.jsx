@@ -200,7 +200,7 @@ function App() {
             <div style={styles.content}>
                 {/* ШАПКА С АВАТАРОМ СПРАВА */}
 <div style={styles.header}>
-    <div style={styles.logoContainer} onClick={() => {
+    <div style={styles.logoContainer} className="clickable" onClick={() => {
         window.Telegram.WebApp.openLink('https://t.me/startask_official');
     }}>
         <div style={styles.logoIcon}>
@@ -216,7 +216,7 @@ function App() {
         </div>
         <h1 style={styles.logo}>StarTask</h1>
     </div>
-    <div style={styles.userInfo} onClick={openProfile}>
+    <div style={styles.userInfo} className="clickable" onClick={openProfile}>
         <div style={styles.userText}>
             <span style={styles.userName}>{user?.first_name || user?.username || 'Пользователь'}</span>
             <span style={styles.userBalance}>⭐ {balance} Stars</span>
@@ -232,7 +232,6 @@ function App() {
         </div>
     </div>
 </div>
-
                 <div style={styles.scrollArea}>
                     {mainTab === 'tasks' && (
                         <>
@@ -841,6 +840,14 @@ styleSheet.textContent = `
     button {
         -webkit-tap-highlight-color: transparent;
         outline: none;
+    }
+    .clickable {
+        -webkit-tap-highlight-color: transparent;
+        cursor: pointer;
+        transition: opacity 0.1s ease;
+    }
+    .clickable:active {
+        opacity: 0.6;
     }
     @keyframes spin {
         0% { transform: rotate(0deg); }
