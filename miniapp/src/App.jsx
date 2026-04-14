@@ -89,18 +89,19 @@ function App() {
     };
 
     const fetchChannelAvatar = async (username, taskId) => {
-        try {
-            const response = await axios.get(`${API_URL}/api/channel/avatar/${username}`);
-            if (response.data.success && response.data.avatar) {
-                setChannelAvatars(prev => ({ ...prev, [taskId]: response.data.avatar }));
-            } else {
-                setChannelAvatars(prev => ({ ...prev, [taskId]: null }));
-            }
-        } catch (error) {
-            console.error('Avatar fetch error:', error);
+    try {
+        const response = await axios.get(`${API_URL}/api/channel/avatar/${username}`);
+        if (response.data.success && response.data.avatar) {
+            setChannelAvatars(prev => ({ ...prev, [taskId]: response.data.avatar }));
+        } else {
+            // Если аватарка не найдена, оставляем null (будет показана цветная заглушка)
             setChannelAvatars(prev => ({ ...prev, [taskId]: null }));
         }
-    };
+    } catch (error) {
+        console.error('Avatar fetch error:', error);
+        setChannelAvatars(prev => ({ ...prev, [taskId]: null }));
+    }
+};
 
     const completeTask = async (taskId, taskUrl, channelUsername) => {
         const tg = window.Telegram.WebApp;
@@ -257,17 +258,17 @@ function App() {
                                             <div key={task.id} style={styles.taskCard}>
                                                 <div style={styles.taskGlow}></div>
                                                 <div style={styles.taskAvatar}>
-                                                    {channelAvatars[task.id] ? (
-                                                        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImgSmall} />
-                                                    ) : (
-                                                        <div style={{
-                                                            ...styles.avatarPlaceholderSmall,
-                                                            background: getChannelColor(task.title)
-                                                        }}>
-                                                            {getChannelInitial(task.title, task.target_url)}
-                                                        </div>
-                                                    )}
-                                                </div>
+    {channelAvatars[task.id] ? (
+        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImgSmall} />
+    ) : (
+        <div style={{
+            ...styles.avatarPlaceholderSmall,
+            background: getChannelColor(task.title)
+        }}>
+            {getChannelInitial(task.title, task.target_url)}
+        </div>
+    )}
+</div>
                                                 <div style={styles.taskContent}>
                                                     <h3 style={styles.taskTitle}>{task.title}</h3>
                                                     <p style={styles.taskDesc}>{task.description}</p>

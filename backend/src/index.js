@@ -146,42 +146,63 @@ app.get('/api/referral/:userId/stats', async (req, res) => {
     }
 });
 
-// ЭНДПОИНТ ДЛЯ АВАТАРОК (парсинг страницы)
+// ПОЛУЧЕНИЕ АВАТАРКИ КАНАЛА (без прав администратора)
 app.get('/api/channel/avatar/:username', async (req, res) => {
     const { username } = req.params;
     
     try {
-        const response = await axios.get(`https://t.me/s/${username}`, {
+        // Прямой запрос к Telegram API без бота (публичные данные)
+        const response = await axios.get(`https://t.me/${username}`, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             },
             timeout: 10000
         });
         
-        const $ = cheerio.load(response.data);
-        const avatarElement = $('.tgme_page_photo_image');
+        const html = response.data;
+        
+        // Ищем аватарку в HTML
         let avatarUrl = null;
         
-        if (avatarElement.length) {
-            let src = avatarElement.attr('src');
-            if (!src) {
-                const style = avatarElement.attr('style');
-                if (style) {
-                    const match = style.match(/url\(['"]?([^'"()]+)['"]?\)/);
-                    if (match) src = match[1];
-                }
+        // Вариант 1: через тег img с классом tgme_page_photo_image
+        const imgMatch = html.match(/<img[^>]*class="tgme_page_photo_image"[^>]*src="([^"]+)"/);
+        if (imgMatch && imgMatch[1]) {
+            avatarUrl = imgMatch[1];
+        }
+        
+        // Вариант 2: через background-image в стилях
+        if (!avatarUrl) {
+            const bgMatch = html.match(/background-image:url\(['"]?([^'"()]+)['"]?\)/);
+            if (bgMatch && bgMatch[1]) {
+                avatarUrl = bgMatch[1];
             }
-            avatarUrl = src ? src.split('?')[0] : null;
+        }
+        
+        // Вариант 3: через CDN Telegram (прямая ссылка)
+        if (!avatarUrl) {
+            // Пробуем получить через публичный API Telegram
+            const tgResponse = await axios.get(`https://t.me/i/userpic/320/${username}.jpg`, {
+                validateStatus: (status) => status < 500
+            });
+            if (tgResponse.status === 200) {
+                avatarUrl = `https://t.me/i/userpic/320/${username}.jpg`;
+            }
         }
         
         if (avatarUrl) {
-            res.json({ success: true, avatar: avatarUrl });
+            // Очищаем URL от параметров
+            avatarUrl = avatarUrl.split('?')[0];
+            console.log(`✅ Avatar found for @${username}: ${avatarUrl}`);
+            return res.json({ success: true, avatar: avatarUrl });
         } else {
-            res.json({ success: false, avatar: null, message: 'Avatar not found' });
+            console.log(`❌ Avatar not found for @${username}`);
+            return res.json({ success: false, avatar: null, message: 'Avatar not found' });
         }
     } catch (error) {
-        console.error('Avatar fetch error:', error.message);
-        res.status(500).json({ success: false, error: 'Failed to fetch channel data' });
+        console.error(`Error fetching avatar for @${username}:`, error.message);
+        
+        // Возвращаем null, но не ошибку (чтобы фронтенд показал заглушку)
+        return res.json({ success: false, avatar: null, message: 'Failed to fetch avatar' });
     }
 });
 
