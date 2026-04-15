@@ -383,16 +383,17 @@ function App() {
                     )}
                 </div>
 
-                <div style={styles.bottomNav}>
-                    <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.navItemActive : styles.navItem}>
+                                {/* КНОПКИ НАВИГАЦИИ (ПРЯМО В КОНТЕНТЕ) */}
+                <div style={styles.navButtons}>
+                    <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.navButtonActive : styles.navButton}>
                         <span style={styles.navIcon}>📋</span>
                         <span style={styles.navLabel}>Задания</span>
                     </button>
-                    <button onClick={() => setMainTab('referral')} style={mainTab === 'referral' ? styles.navItemActive : styles.navItem}>
+                    <button onClick={() => setMainTab('referral')} style={mainTab === 'referral' ? styles.navButtonActive : styles.navButton}>
                         <span style={styles.navIcon}>👥</span>
                         <span style={styles.navLabel}>Партнёры</span>
                     </button>
-                    <button onClick={() => setMainTab('info')} style={mainTab === 'info' ? styles.navItemActive : styles.navItem}>
+                    <button onClick={() => setMainTab('info')} style={mainTab === 'info' ? styles.navButtonActive : styles.navButton}>
                         <span style={styles.navIcon}>ℹ️</span>
                         <span style={styles.navLabel}>О проекте</span>
                     </button>
@@ -430,8 +431,7 @@ const styles = {
     scrollArea: {
         flex: 1,
         overflowY: 'auto',
-        paddingBottom: '20px',
-        marginBottom: '70px'
+        paddingBottom: '20px'
     },
     loadingContainer: {
         minHeight: '100vh',
@@ -782,54 +782,49 @@ const styles = {
         color: 'rgba(255,255,255,0.6)',
         fontSize: '14px'
     },
-            bottomNav: {
-        position: 'fixed',
-        bottom: 16,
-        left: 16,
-        right: 16,
+            navButtons: {
         display: 'flex',
         justifyContent: 'space-around',
         alignItems: 'center',
-        gap: '4px',
-        background: 'transparent',
-        borderRadius: '60px',
-        padding: '6px',
-        zIndex: 10
+        gap: '12px',
+        marginTop: '20px',
+        marginBottom: '10px'
     },
-    navItem: {
+    navButton: {
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '4px',
-        background: 'rgba(20, 20, 40, 0.6)',
-        backdropFilter: 'blur(15px)',
-        WebkitBackdropFilter: 'blur(15px)',
-        border: '1px solid rgba(255, 215, 0, 0.15)',
+        gap: '6px',
+        background: 'rgba(20, 20, 40, 0.7)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 215, 0, 0.2)',
         borderRadius: '50px',
         cursor: 'pointer',
-        padding: '10px 12px',
+        padding: '12px 8px',
         transition: 'all 0.2s ease',
         opacity: 0.7
     },
-    navItemActive: {
+    navButtonActive: {
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '4px',
+        gap: '6px',
         background: 'linear-gradient(135deg, rgba(255,215,0,0.25) 0%, rgba(255,215,0,0.1) 100%)',
-        backdropFilter: 'blur(15px)',
-        WebkitBackdropFilter: 'blur(15px)',
-        border: '1px solid rgba(255, 215, 0, 0.3)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 215, 0, 0.4)',
         borderRadius: '50px',
         cursor: 'pointer',
-        padding: '10px 12px',
+        padding: '12px 8px',
         transition: 'all 0.2s ease',
         opacity: 1
     },
+    
     navIcon: {
-        fontSize: '20px'
+        fontSize: '22px'
     },
     navLabel: {
         fontSize: '11px',
