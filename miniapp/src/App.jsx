@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
@@ -12,7 +12,6 @@ function App() {
     const [activeTab, setActiveTab] = useState('active');
     const [mainTab, setMainTab] = useState('tasks');
     const [channelAvatars, setChannelAvatars] = useState({});
-    const [showProfile, setShowProfile] = useState(false);
 
     useEffect(() => {
         const tg = window.Telegram.WebApp;
@@ -89,19 +88,18 @@ function App() {
     };
 
     const fetchChannelAvatar = async (username, taskId) => {
-    try {
-        const response = await axios.get(`${API_URL}/api/channel/avatar/${username}`);
-        if (response.data.success && response.data.avatar) {
-            setChannelAvatars(prev => ({ ...prev, [taskId]: response.data.avatar }));
-        } else {
-            // Если аватарка не найдена, оставляем null (будет показана цветная заглушка)
+        try {
+            const response = await axios.get(`${API_URL}/api/channel/avatar/${username}`);
+            if (response.data.success && response.data.avatar) {
+                setChannelAvatars(prev => ({ ...prev, [taskId]: response.data.avatar }));
+            } else {
+                setChannelAvatars(prev => ({ ...prev, [taskId]: null }));
+            }
+        } catch (error) {
+            console.error('Avatar fetch error:', error);
             setChannelAvatars(prev => ({ ...prev, [taskId]: null }));
         }
-    } catch (error) {
-        console.error('Avatar fetch error:', error);
-        setChannelAvatars(prev => ({ ...prev, [taskId]: null }));
-    }
-};
+    };
 
     const completeTask = async (taskId, taskUrl, channelUsername) => {
         const tg = window.Telegram.WebApp;
@@ -198,42 +196,45 @@ function App() {
     return (
         <div style={styles.container}>
             <div style={styles.backgroundGradient}></div>
-            <div style={styles.content}>
-                {/* ШАПКА С АВАТАРОМ СПРАВА */}
-<div style={styles.header}>
-    <div style={styles.logoContainer} className="clickable" onClick={() => {
-        window.Telegram.WebApp.openLink('https://t.me/startask_official');
-    }}>
-        <div style={styles.logoIcon}>
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#FFD700" strokeWidth="1.2"/>
-                <defs>
-                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#FFD700"/>
-                        <stop offset="100%" stopColor="#FFA500"/>
-                    </linearGradient>
-                </defs>
-            </svg>
-        </div>
-        <h1 style={styles.logo}>StarTask</h1>
-    </div>
-    <div style={styles.userInfo} className="clickable" onClick={openProfile}>
-        <div style={styles.userText}>
-            <span style={styles.userName}>{user?.first_name || user?.username || 'Пользователь'}</span>
-            <span style={styles.userBalance}>⭐ {balance} Stars</span>
-        </div>
-        <div style={styles.avatar}>
-            {user?.photo_url ? (
-                <img src={user.photo_url} alt="avatar" style={styles.avatarImg} />
-            ) : (
-                <div style={styles.avatarPlaceholder}>
-                    {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
+            
+            {/* ФИКСИРОВАННАЯ ШАПКА */}
+            <div style={styles.header}>
+                <div style={styles.logoContainer} className="clickable" onClick={() => {
+                    window.Telegram.WebApp.openLink('https://t.me/startask_official');
+                }}>
+                    <div style={styles.logoIcon}>
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#FFD700" strokeWidth="1.2"/>
+                            <defs>
+                                <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#FFD700"/>
+                                    <stop offset="100%" stopColor="#FFA500"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h1 style={styles.logo}>StarTask</h1>
                 </div>
-            )}
-        </div>
-    </div>
-</div>
-                <div style={styles.scrollArea}>
+                <div style={styles.userInfo} className="clickable" onClick={openProfile}>
+                    <div style={styles.userText}>
+                        <span style={styles.userName}>{user?.first_name || user?.username || 'Пользователь'}</span>
+                        <span style={styles.userBalance}>⭐ {balance} Stars</span>
+                    </div>
+                    <div style={styles.avatar}>
+                        {user?.photo_url ? (
+                            <img src={user.photo_url} alt="avatar" style={styles.avatarImg} />
+                        ) : (
+                            <div style={styles.avatarPlaceholder}>
+                                {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* ПРОКРУЧИВАЕМЫЙ КОНТЕНТ */}
+            <div style={styles.scrollArea}>
+                <div style={styles.contentWrapper}>
                     {mainTab === 'tasks' && (
                         <>
                             <div style={styles.subTabs}>
@@ -258,17 +259,17 @@ function App() {
                                             <div key={task.id} style={styles.taskCard}>
                                                 <div style={styles.taskGlow}></div>
                                                 <div style={styles.taskAvatar}>
-    {channelAvatars[task.id] ? (
-        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImgSmall} />
-    ) : (
-        <div style={{
-            ...styles.avatarPlaceholderSmall,
-            background: getChannelColor(task.title)
-        }}>
-            {getChannelInitial(task.title, task.target_url)}
-        </div>
-    )}
-</div>
+                                                    {channelAvatars[task.id] ? (
+                                                        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImgSmall} />
+                                                    ) : (
+                                                        <div style={{
+                                                            ...styles.avatarPlaceholderSmall,
+                                                            background: getChannelColor(task.title)
+                                                        }}>
+                                                            {getChannelInitial(task.title, task.target_url)}
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <div style={styles.taskContent}>
                                                     <h3 style={styles.taskTitle}>{task.title}</h3>
                                                     <p style={styles.taskDesc}>{task.description}</p>
@@ -382,22 +383,22 @@ function App() {
                         </div>
                     )}
                 </div>
+            </div>
 
-                                {/* КНОПКИ НАВИГАЦИИ (ПРЯМО В КОНТЕНТЕ) */}
-                <div style={styles.navButtons}>
-                    <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.navButtonActive : styles.navButton}>
-                        <span style={styles.navIcon}>📋</span>
-                        <span style={styles.navLabel}>Задания</span>
-                    </button>
-                    <button onClick={() => setMainTab('referral')} style={mainTab === 'referral' ? styles.navButtonActive : styles.navButton}>
-                        <span style={styles.navIcon}>👥</span>
-                        <span style={styles.navLabel}>Партнёры</span>
-                    </button>
-                    <button onClick={() => setMainTab('info')} style={mainTab === 'info' ? styles.navButtonActive : styles.navButton}>
-                        <span style={styles.navIcon}>ℹ️</span>
-                        <span style={styles.navLabel}>О проекте</span>
-                    </button>
-                </div>
+            {/* ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ */}
+            <div style={styles.bottomNav}>
+                <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.navButtonActive : styles.navButton}>
+                    <span style={styles.navIcon}>📋</span>
+                    <span style={styles.navLabel}>Задания</span>
+                </button>
+                <button onClick={() => setMainTab('referral')} style={mainTab === 'referral' ? styles.navButtonActive : styles.navButton}>
+                    <span style={styles.navIcon}>👥</span>
+                    <span style={styles.navLabel}>Партнёры</span>
+                </button>
+                <button onClick={() => setMainTab('info')} style={mainTab === 'info' ? styles.navButtonActive : styles.navButton}>
+                    <span style={styles.navIcon}>ℹ️</span>
+                    <span style={styles.navLabel}>О проекте</span>
+                </button>
             </div>
         </div>
     );
@@ -408,7 +409,8 @@ const styles = {
         minHeight: '100vh',
         position: 'relative',
         overflowX: 'hidden',
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        background: 'radial-gradient(ellipse at 20% 0%, #1a1a3e 0%, #0a0a1a 100%)'
     },
     backgroundGradient: {
         position: 'fixed',
@@ -419,18 +421,31 @@ const styles = {
         background: 'radial-gradient(ellipse at 20% 0%, #1a1a3e 0%, #0a0a1a 100%)',
         zIndex: -2
     },
-    content: {
-        padding: '20px',
-        position: 'relative',
-        zIndex: 1,
+    // ФИКСИРОВАННАЯ ШАПКА
+    header: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
         display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        boxSizing: 'border-box'
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '16px 20px',
+        background: 'rgba(10, 10, 26, 0.9)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255, 215, 0, 0.15)',
+        zIndex: 100
     },
+    // ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ
     scrollArea: {
-        flex: 1,
+        marginTop: '80px',
+        marginBottom: '70px',
+        padding: '0 16px',
         overflowY: 'auto',
+        height: 'calc(100vh - 150px)'
+    },
+    contentWrapper: {
         paddingBottom: '20px'
     },
     loadingContainer: {
@@ -456,52 +471,42 @@ const styles = {
         fontSize: '14px',
         letterSpacing: '1px'
     },
-    header: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px',
-        paddingTop: '10px',
-        flexShrink: 0
-    },
-        logoContainer: {
+    logoContainer: {
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
         cursor: 'pointer'
     },
     logoIcon: {
-        width: '48px',
-        height: '48px',
+        width: '40px',
+        height: '40px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0.05) 100%)',
-        borderRadius: '18px',
-        border: '1px solid rgba(255,215,0,0.25)',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+        borderRadius: '14px',
+        border: '1px solid rgba(255,215,0,0.25)'
     },
     logo: {
         margin: 0,
-        fontSize: '28px',
+        fontSize: '22px',
         fontWeight: '800',
         background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text',
-        letterSpacing: '-0.8px',
-        fontFamily: "'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        textShadow: '0 2px 10px rgba(255,215,0,0.2)'
+        letterSpacing: '-0.5px',
+        fontFamily: "'Poppins', 'Inter', sans-serif"
     },
     userInfo: {
         display: 'flex',
         alignItems: 'center',
-        gap: '12px',
+        gap: '10px',
         cursor: 'pointer'
     },
     avatar: {
-        width: '48px',
-        height: '48px',
+        width: '40px',
+        height: '40px',
         borderRadius: '50%',
         background: 'rgba(255,215,0,0.1)',
         display: 'flex',
@@ -516,13 +521,13 @@ const styles = {
         objectFit: 'cover'
     },
     avatarPlaceholder: {
-        width: '48px',
-        height: '48px',
+        width: '40px',
+        height: '40px',
         borderRadius: '50%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '24px',
+        fontSize: '20px',
         fontWeight: '600',
         color: '#ffd700',
         background: 'rgba(255,215,0,0.05)'
@@ -549,12 +554,12 @@ const styles = {
         alignItems: 'flex-end'
     },
     userName: {
-        fontSize: '15px',
+        fontSize: '14px',
         fontWeight: '600',
         color: 'white'
     },
     userBalance: {
-        fontSize: '12px',
+        fontSize: '11px',
         color: '#ffd700'
     },
     subTabs: {
@@ -782,47 +787,52 @@ const styles = {
         color: 'rgba(255,255,255,0.6)',
         fontSize: '14px'
     },
-            navButtons: {
+    // ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ
+    bottomNav: {
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
         display: 'flex',
         justifyContent: 'space-around',
         alignItems: 'center',
-        gap: '12px',
-        marginTop: '20px',
-        marginBottom: '10px'
+        gap: '8px',
+        background: 'rgba(10, 10, 26, 0.95)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(255, 215, 0, 0.15)',
+        padding: '12px 20px',
+        paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
+        zIndex: 100
     },
     navButton: {
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '6px',
-        background: 'rgba(20, 20, 40, 0.7)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 215, 0, 0.2)',
-        borderRadius: '50px',
+        gap: '4px',
+        background: 'transparent',
+        border: 'none',
+        borderRadius: '40px',
         cursor: 'pointer',
-        padding: '12px 8px',
+        padding: '8px 12px',
         transition: 'all 0.2s ease',
-        opacity: 0.7
+        opacity: 0.6
     },
     navButtonActive: {
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '6px',
-        background: 'linear-gradient(135deg, rgba(255,215,0,0.25) 0%, rgba(255,215,0,0.1) 100%)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 215, 0, 0.4)',
-        borderRadius: '50px',
+        gap: '4px',
+        background: 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,215,0,0.05) 100%)',
+        border: 'none',
+        borderRadius: '40px',
         cursor: 'pointer',
-        padding: '12px 8px',
+        padding: '8px 12px',
         transition: 'all 0.2s ease',
         opacity: 1
     },
-    
     navIcon: {
         fontSize: '22px'
     },
@@ -835,6 +845,12 @@ const styles = {
 
 const styleSheet = document.createElement("style");
 styleSheet.textContent = `
+    html, body, #root {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #0a0a1a;
+    }
     button {
         -webkit-tap-highlight-color: transparent;
         outline: none;
