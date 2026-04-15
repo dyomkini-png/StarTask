@@ -197,13 +197,13 @@ function App() {
         <div style={styles.container}>
             <div style={styles.backgroundGradient}></div>
             
-            {/* ФИКСИРОВАННАЯ ШАПКА */}
+            {/* ФИКСИРОВАННАЯ ШАПКА (БЕЗ ФОНА) */}
             <div style={styles.header}>
                 <div style={styles.logoContainer} className="clickable" onClick={() => {
                     window.Telegram.WebApp.openLink('https://t.me/startask_official');
                 }}>
                     <div style={styles.logoIcon}>
-                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#FFD700" strokeWidth="1.2"/>
                             <defs>
                                 <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -385,7 +385,7 @@ function App() {
                 </div>
             </div>
 
-            {/* ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ */}
+            {/* ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ (БЕЗ ФОНА) */}
             <div style={styles.bottomNav}>
                 <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.navButtonActive : styles.navButton}>
                     <span style={styles.navIcon}>📋</span>
@@ -421,7 +421,7 @@ const styles = {
         background: 'radial-gradient(ellipse at 20% 0%, #1a1a3e 0%, #0a0a1a 100%)',
         zIndex: -2
     },
-    // ФИКСИРОВАННАЯ ШАПКА
+    // ФИКСИРОВАННАЯ ШАПКА (БЕЗ ФОНА)
     header: {
         position: 'fixed',
         top: 0,
@@ -431,11 +431,97 @@ const styles = {
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '16px 20px',
-        background: 'rgba(10, 10, 26, 0.9)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255, 215, 0, 0.15)',
+        background: 'transparent',
         zIndex: 100
+    },
+    logoContainer: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        cursor: 'pointer'
+    },
+    logoIcon: {
+        width: '36px',
+        height: '36px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(255,215,0,0.1)',
+        borderRadius: '12px',
+        border: '1px solid rgba(255,215,0,0.2)'
+    },
+    logo: {
+        margin: 0,
+        fontSize: '20px',
+        fontWeight: '800',
+        background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+        letterSpacing: '-0.5px'
+    },
+    userInfo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        cursor: 'pointer'
+    },
+    avatar: {
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        background: 'rgba(255,215,0,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        border: '2px solid rgba(255,215,0,0.3)'
+    },
+    avatarImg: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover'
+    },
+    avatarPlaceholder: {
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '20px',
+        fontWeight: '600',
+        color: '#ffd700'
+    },
+    avatarImgSmall: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover'
+    },
+    avatarPlaceholderSmall: {
+        width: '52px',
+        height: '52px',
+        borderRadius: '26px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '24px',
+        fontWeight: 'bold',
+        color: 'white'
+    },
+    userText: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end'
+    },
+    userName: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: 'white'
+    },
+    userBalance: {
+        fontSize: '11px',
+        color: '#ffd700'
     },
     // ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ
     scrollArea: {
@@ -470,97 +556,6 @@ const styles = {
         color: 'rgba(255,255,255,0.6)',
         fontSize: '14px',
         letterSpacing: '1px'
-    },
-    logoContainer: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        cursor: 'pointer'
-    },
-    logoIcon: {
-        width: '40px',
-        height: '40px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0.05) 100%)',
-        borderRadius: '14px',
-        border: '1px solid rgba(255,215,0,0.25)'
-    },
-    logo: {
-        margin: 0,
-        fontSize: '22px',
-        fontWeight: '800',
-        background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-        letterSpacing: '-0.5px',
-        fontFamily: "'Poppins', 'Inter', sans-serif"
-    },
-    userInfo: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        cursor: 'pointer'
-    },
-    avatar: {
-        width: '40px',
-        height: '40px',
-        borderRadius: '50%',
-        background: 'rgba(255,215,0,0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-        border: '2px solid rgba(255,215,0,0.3)'
-    },
-    avatarImg: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover'
-    },
-    avatarPlaceholder: {
-        width: '40px',
-        height: '40px',
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '20px',
-        fontWeight: '600',
-        color: '#ffd700',
-        background: 'rgba(255,215,0,0.05)'
-    },
-    avatarImgSmall: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover'
-    },
-    avatarPlaceholderSmall: {
-        width: '52px',
-        height: '52px',
-        borderRadius: '26px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '24px',
-        fontWeight: 'bold',
-        color: 'white'
-    },
-    userText: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end'
-    },
-    userName: {
-        fontSize: '14px',
-        fontWeight: '600',
-        color: 'white'
-    },
-    userBalance: {
-        fontSize: '11px',
-        color: '#ffd700'
     },
     subTabs: {
         display: 'flex',
@@ -787,7 +782,7 @@ const styles = {
         color: 'rgba(255,255,255,0.6)',
         fontSize: '14px'
     },
-    // ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ
+    // ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ (БЕЗ ФОНА)
     bottomNav: {
         position: 'fixed',
         bottom: 0,
@@ -797,10 +792,7 @@ const styles = {
         justifyContent: 'space-around',
         alignItems: 'center',
         gap: '8px',
-        background: 'rgba(10, 10, 26, 0.95)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(255, 215, 0, 0.15)',
+        background: 'transparent',
         padding: '12px 20px',
         paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
         zIndex: 100
@@ -811,13 +803,15 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '4px',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '40px',
+        background: 'rgba(20, 20, 40, 0.7)',
+        backdropFilter: 'blur(15px)',
+        WebkitBackdropFilter: 'blur(15px)',
+        border: '1px solid rgba(255, 215, 0, 0.2)',
+        borderRadius: '50px',
         cursor: 'pointer',
-        padding: '8px 12px',
+        padding: '10px 12px',
         transition: 'all 0.2s ease',
-        opacity: 0.6
+        opacity: 0.7
     },
     navButtonActive: {
         flex: 1,
@@ -825,16 +819,18 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '4px',
-        background: 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,215,0,0.05) 100%)',
-        border: 'none',
-        borderRadius: '40px',
+        background: 'linear-gradient(135deg, rgba(255,215,0,0.25) 0%, rgba(255,215,0,0.1) 100%)',
+        backdropFilter: 'blur(15px)',
+        WebkitBackdropFilter: 'blur(15px)',
+        border: '1px solid rgba(255, 215, 0, 0.4)',
+        borderRadius: '50px',
         cursor: 'pointer',
-        padding: '8px 12px',
+        padding: '10px 12px',
         transition: 'all 0.2s ease',
         opacity: 1
     },
     navIcon: {
-        fontSize: '22px'
+        fontSize: '20px'
     },
     navLabel: {
         fontSize: '11px',
