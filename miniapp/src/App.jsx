@@ -421,6 +421,7 @@ const styles = {
         background: 'radial-gradient(ellipse at 20% 0%, #1a1a3e 0%, #0a0a1a 100%)',
         zIndex: -2
     },
+    // ФИКСИРОВАННАЯ ШАПКА (ПРОЗРАЧНАЯ)
     header: {
         position: 'fixed',
         top: 0,
@@ -431,13 +432,15 @@ const styles = {
         alignItems: 'center',
         padding: '16px 20px',
         background: 'transparent',
-        zIndex: 100
+        zIndex: 100,
+        pointerEvents: 'none'
     },
     logoContainer: {
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
-        cursor: 'pointer'
+        cursor: 'pointer',
+        pointerEvents: 'auto'
     },
     logoIcon: {
         width: '36px',
@@ -463,7 +466,8 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
-        cursor: 'pointer'
+        cursor: 'pointer',
+        pointerEvents: 'auto'
     },
     avatar: {
         width: '40px',
@@ -522,13 +526,15 @@ const styles = {
         fontSize: '11px',
         color: '#ffd700'
     },
+    // ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ
     scrollArea: {
-        marginTop: '80px',
+        marginTop: '0px',
         marginBottom: '0px',
         padding: '0 16px',
+        paddingTop: '80px',
         paddingBottom: '80px',
         overflowY: 'auto',
-        height: 'calc(100vh - 80px)',
+        height: '100vh',
         boxSizing: 'border-box'
     },
     contentWrapper: {
@@ -782,6 +788,7 @@ const styles = {
         color: 'rgba(255,255,255,0.6)',
         fontSize: '14px'
     },
+    // ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ (ПРОЗРАЧНАЯ)
     bottomNav: {
         position: 'fixed',
         bottom: 0,
