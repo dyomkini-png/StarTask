@@ -197,7 +197,7 @@ function App() {
         <div style={styles.container}>
             <div style={styles.backgroundGradient}></div>
             
-            {/* ФИКСИРОВАННАЯ ШАПКА (БЕЗ ФОНА) */}
+            {/* ФИКСИРОВАННАЯ ШАПКА (ПРОЗРАЧНАЯ) */}
             <div style={styles.header}>
                 <div style={styles.logoContainer} className="clickable" onClick={() => {
                     window.Telegram.WebApp.openLink('https://t.me/startask_official');
@@ -232,8 +232,8 @@ function App() {
                 </div>
             </div>
 
-            {/* ПРОКРУЧИВАЕМЫЙ КОНТЕНТ */}
-            <div style={styles.scrollArea}>
+            {/* ПРОКРУЧИВАЕМЫЙ КОНТЕНТ С МАСКОЙ */}
+            <div style={styles.scrollArea} className="scrollArea">
                 <div style={styles.contentWrapper}>
                     {mainTab === 'tasks' && (
                         <>
@@ -385,7 +385,7 @@ function App() {
                 </div>
             </div>
 
-            {/* ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ (БЕЗ ФОНА) */}
+            {/* ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ (ПРОЗРАЧНАЯ) */}
             <div style={styles.bottomNav}>
                 <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.navButtonActive : styles.navButton}>
                     <span style={styles.navIcon}>📋</span>
@@ -421,7 +421,6 @@ const styles = {
         background: 'radial-gradient(ellipse at 20% 0%, #1a1a3e 0%, #0a0a1a 100%)',
         zIndex: -2
     },
-    // ФИКСИРОВАННАЯ ШАПКА (ПРОЗРАЧНАЯ)
     header: {
         position: 'fixed',
         top: 0,
@@ -526,7 +525,6 @@ const styles = {
         fontSize: '11px',
         color: '#ffd700'
     },
-    // ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ
     scrollArea: {
         marginTop: '0px',
         marginBottom: '0px',
@@ -788,7 +786,6 @@ const styles = {
         color: 'rgba(255,255,255,0.6)',
         fontSize: '14px'
     },
-    // ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ (ПРОЗРАЧНАЯ)
     bottomNav: {
         position: 'fixed',
         bottom: 0,
@@ -867,6 +864,11 @@ styleSheet.textContent = `
     }
     .clickable:active {
         opacity: 0.6;
+    }
+    /* Эффект размытия на границах прокрутки */
+    .scrollArea {
+        mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
     }
     @keyframes spin {
         0% { transform: rotate(0deg); }
