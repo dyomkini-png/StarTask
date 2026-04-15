@@ -421,7 +421,6 @@ const styles = {
         background: 'radial-gradient(ellipse at 20% 0%, #1a1a3e 0%, #0a0a1a 100%)',
         zIndex: -2
     },
-    // ФИКСИРОВАННАЯ ШАПКА (БЕЗ ФОНА)
     header: {
         position: 'fixed',
         top: 0,
@@ -523,13 +522,14 @@ const styles = {
         fontSize: '11px',
         color: '#ffd700'
     },
-    // ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ
     scrollArea: {
         marginTop: '80px',
-        marginBottom: '70px',
+        marginBottom: '0px',
         padding: '0 16px',
+        paddingBottom: '80px',
         overflowY: 'auto',
-        height: 'calc(100vh - 150px)'
+        height: 'calc(100vh - 80px)',
+        boxSizing: 'border-box'
     },
     contentWrapper: {
         paddingBottom: '20px'
@@ -782,7 +782,6 @@ const styles = {
         color: 'rgba(255,255,255,0.6)',
         fontSize: '14px'
     },
-    // ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ (БЕЗ ФОНА)
     bottomNav: {
         position: 'fixed',
         bottom: 0,
@@ -795,7 +794,8 @@ const styles = {
         background: 'transparent',
         padding: '12px 20px',
         paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
-        zIndex: 100
+        zIndex: 100,
+        pointerEvents: 'none'
     },
     navButton: {
         flex: 1,
@@ -803,7 +803,7 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '4px',
-        background: 'rgba(20, 20, 40, 0.7)',
+        background: 'rgba(20, 20, 40, 0.8)',
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',
         border: '1px solid rgba(255, 215, 0, 0.2)',
@@ -811,7 +811,8 @@ const styles = {
         cursor: 'pointer',
         padding: '10px 12px',
         transition: 'all 0.2s ease',
-        opacity: 0.7
+        opacity: 0.8,
+        pointerEvents: 'auto'
     },
     navButtonActive: {
         flex: 1,
@@ -827,7 +828,8 @@ const styles = {
         cursor: 'pointer',
         padding: '10px 12px',
         transition: 'all 0.2s ease',
-        opacity: 1
+        opacity: 1,
+        pointerEvents: 'auto'
     },
     navIcon: {
         fontSize: '20px'
