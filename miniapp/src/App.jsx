@@ -156,7 +156,7 @@ function App() {
     };
 
     const getChannelColor = (taskTitle) => {
-        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#FF9F4A', '#6B5B95'];
+        const colors = ['#FF2D95', '#00D4FF', '#9D4EDD', '#FF6B35', '#00F5FF', '#FF007F', '#7B2FF7'];
         let hash = 0;
         for (let i = 0; i < taskTitle.length; i++) {
             hash = ((hash << 5) - hash) + taskTitle.charCodeAt(i);
@@ -197,18 +197,18 @@ function App() {
         <div style={styles.container}>
             <div style={styles.backgroundGradient}></div>
             
-            {/* ФИКСИРОВАННАЯ ШАПКА (ПРОЗРАЧНАЯ) */}
+            {/* ФИКСИРОВАННАЯ ШАПКА */}
             <div style={styles.header}>
                 <div style={styles.logoContainer} className="clickable" onClick={() => {
                     window.Telegram.WebApp.openLink('https://t.me/startask_official');
                 }}>
                     <div style={styles.logoIcon}>
                         <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#FFD700" strokeWidth="1.2"/>
+                            <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#00D4FF" strokeWidth="1.2"/>
                             <defs>
                                 <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stopColor="#FFD700"/>
-                                    <stop offset="100%" stopColor="#FFA500"/>
+                                    <stop offset="0%" stopColor="#00D4FF"/>
+                                    <stop offset="100%" stopColor="#FF2D95"/>
                                 </linearGradient>
                             </defs>
                         </svg>
@@ -232,7 +232,7 @@ function App() {
                 </div>
             </div>
 
-            {/* ПРОКРУЧИВАЕМЫЙ КОНТЕНТ С МАСКОЙ */}
+            {/* ПРОКРУЧИВАЕМЫЙ КОНТЕНТ */}
             <div style={styles.scrollArea} className="scrollArea">
                 <div style={styles.contentWrapper}>
                     {mainTab === 'tasks' && (
@@ -335,7 +335,7 @@ function App() {
                                 <div style={styles.glassCardGlow}></div>
                                 <div style={styles.infoIcon}>👥</div>
                                 <h3 style={styles.glassTitle}>Партнёрская программа</h3>
-                                <p style={styles.glassText}>Приглашайте друзей и получайте <strong style={{color: '#ffd700'}}>10%</strong> от их заработка!</p>
+                                <p style={styles.glassText}>Приглашайте друзей и получайте <strong style={{color: '#FF2D95'}}>10%</strong> от их заработка!</p>
                                 <div style={styles.referralLinkBox}>
                                     <code style={styles.referralLink}>{getReferralLink()}</code>
                                 </div>
@@ -363,7 +363,7 @@ function App() {
                             <div style={styles.glassCard}>
                                 <div style={styles.infoIcon}>⭐</div>
                                 <h3 style={styles.glassTitle}>Что такое StarTask?</h3>
-                                <p style={styles.glassText}>StarTask — премиальная платформа для заработка Telegram Stars на выполнении простых заданий.</p>
+                                <p style={styles.glassText}>StarTask — неоновая платформа для заработка Telegram Stars на выполнении простых заданий.</p>
                             </div>
                             <div style={styles.glassCard}>
                                 <div style={styles.infoIcon}>💡</div>
@@ -385,7 +385,7 @@ function App() {
                 </div>
             </div>
 
-            {/* ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ (ПРОЗРАЧНАЯ) */}
+            {/* ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ */}
             <div style={styles.bottomNav}>
                 <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.navButtonActive : styles.navButton}>
                     <span style={styles.navIcon}>📋</span>
@@ -410,7 +410,7 @@ const styles = {
         position: 'relative',
         overflowX: 'hidden',
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        background: 'radial-gradient(ellipse at 20% 0%, #1a1a3e 0%, #0a0a1a 100%)'
+        background: 'radial-gradient(ellipse at 20% 0%, #0a0a2a 0%, #050510 100%)'
     },
     backgroundGradient: {
         position: 'fixed',
@@ -418,7 +418,7 @@ const styles = {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'radial-gradient(ellipse at 20% 0%, #1a1a3e 0%, #0a0a1a 100%)',
+        background: 'radial-gradient(ellipse at 20% 0%, #0a0a2a 0%, #050510 100%)',
         zIndex: -2
     },
     header: {
@@ -447,15 +447,16 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(255,215,0,0.1)',
+        background: 'rgba(0, 212, 255, 0.1)',
         borderRadius: '12px',
-        border: '1px solid rgba(255,215,0,0.2)'
+        border: '1px solid rgba(0, 212, 255, 0.3)',
+        boxShadow: '0 0 10px rgba(0, 212, 255, 0.3)'
     },
     logo: {
         margin: 0,
         fontSize: '20px',
         fontWeight: '800',
-        background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+        background: 'linear-gradient(135deg, #00D4FF 0%, #FF2D95 100%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text',
@@ -472,12 +473,13 @@ const styles = {
         width: '40px',
         height: '40px',
         borderRadius: '50%',
-        background: 'rgba(255,215,0,0.1)',
+        background: 'rgba(0, 212, 255, 0.1)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        border: '2px solid rgba(255,215,0,0.3)'
+        border: '2px solid rgba(0, 212, 255, 0.4)',
+        boxShadow: '0 0 10px rgba(0, 212, 255, 0.3)'
     },
     avatarImg: {
         width: '100%',
@@ -493,7 +495,7 @@ const styles = {
         justifyContent: 'center',
         fontSize: '20px',
         fontWeight: '600',
-        color: '#ffd700'
+        color: '#00D4FF'
     },
     avatarImgSmall: {
         width: '100%',
@@ -523,7 +525,7 @@ const styles = {
     },
     userBalance: {
         fontSize: '11px',
-        color: '#ffd700'
+        color: '#00D4FF'
     },
     scrollArea: {
         marginTop: '0px',
@@ -544,17 +546,18 @@ const styles = {
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        background: '#0a0a1a',
+        background: '#050510',
         color: 'white'
     },
     spinner: {
         width: '48px',
         height: '48px',
-        border: '3px solid rgba(255,215,0,0.1)',
-        borderTop: '3px solid #ffd700',
+        border: '3px solid rgba(0, 212, 255, 0.1)',
+        borderTop: '3px solid #00D4FF',
         borderRadius: '50%',
         animation: 'spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite',
-        marginBottom: '20px'
+        marginBottom: '20px',
+        boxShadow: '0 0 15px rgba(0, 212, 255, 0.5)'
     },
     loadingText: {
         color: 'rgba(255,255,255,0.6)',
@@ -582,13 +585,14 @@ const styles = {
     subTabActive: {
         flex: 1,
         padding: '10px',
-        background: 'rgba(255,215,0,0.15)',
+        background: 'rgba(0, 212, 255, 0.15)',
         border: 'none',
         borderRadius: '40px',
-        color: '#ffd700',
+        color: '#00D4FF',
         fontSize: '13px',
         fontWeight: '600',
-        cursor: 'pointer'
+        cursor: 'pointer',
+        boxShadow: '0 0 10px rgba(0, 212, 255, 0.3)'
     },
     tasksContainer: {
         display: 'flex',
@@ -604,7 +608,7 @@ const styles = {
         padding: '16px',
         display: 'flex',
         gap: '14px',
-        border: '1px solid rgba(255,255,255,0.05)',
+        border: '1px solid rgba(0, 212, 255, 0.15)',
         transition: 'transform 0.3s ease, box-shadow 0.3s ease',
         overflow: 'hidden'
     },
@@ -614,7 +618,7 @@ const styles = {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'radial-gradient(circle at 100% 0%, rgba(255,215,0,0.05) 0%, transparent 70%)',
+        background: 'radial-gradient(circle at 100% 0%, rgba(0, 212, 255, 0.08) 0%, transparent 70%)',
         pointerEvents: 'none'
     },
     taskAvatar: {
@@ -651,19 +655,19 @@ const styles = {
     },
     taskReward: {
         fontWeight: 'bold',
-        color: '#ffd700',
-        background: 'rgba(255,215,0,0.1)',
+        color: '#FF2D95',
+        background: 'rgba(255,45,149,0.1)',
         padding: '5px 12px',
         borderRadius: '20px',
         fontSize: '12px',
-        border: '1px solid rgba(255,215,0,0.2)'
+        border: '1px solid rgba(255,45,149,0.3)'
     },
     taskButton: {
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(255,45,149,0.05) 100%)',
+        border: '1px solid rgba(0,212,255,0.3)',
         borderRadius: '40px',
         padding: '7px 18px',
-        color: 'white',
+        color: '#00D4FF',
         fontWeight: '500',
         cursor: 'pointer',
         fontSize: '12px',
@@ -671,8 +675,8 @@ const styles = {
     },
     completedReward: {
         fontWeight: 'bold',
-        color: '#4ECDC4',
-        background: 'rgba(78,205,196,0.1)',
+        color: '#9D4EDD',
+        background: 'rgba(157,78,221,0.1)',
         padding: '5px 12px',
         borderRadius: '20px',
         fontSize: '12px'
@@ -687,7 +691,7 @@ const styles = {
         background: 'rgba(255,255,255,0.03)',
         backdropFilter: 'blur(10px)',
         borderRadius: '28px',
-        border: '1px solid rgba(255,255,255,0.05)'
+        border: '1px solid rgba(0,212,255,0.15)'
     },
     emptyIcon: {
         fontSize: '48px',
@@ -710,7 +714,7 @@ const styles = {
         borderRadius: '28px',
         padding: '24px',
         marginBottom: '16px',
-        border: '1px solid rgba(255,255,255,0.05)',
+        border: '1px solid rgba(0,212,255,0.15)',
         overflow: 'hidden'
     },
     glassCardGlow: {
@@ -719,7 +723,7 @@ const styles = {
         left: '-50%',
         width: '200%',
         height: '200%',
-        background: 'radial-gradient(circle, rgba(255,215,0,0.05) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 70%)',
         pointerEvents: 'none'
     },
     glassTitle: {
@@ -753,20 +757,20 @@ const styles = {
         padding: '12px',
         margin: '16px 0',
         overflowX: 'auto',
-        border: '1px solid rgba(255,215,0,0.1)'
+        border: '1px solid rgba(0,212,255,0.2)'
     },
     referralLink: {
         fontSize: '11px',
         wordBreak: 'break-all',
-        color: '#ffd700'
+        color: '#00D4FF'
     },
     copyButton: {
         width: '100%',
         padding: '12px',
-        background: 'linear-gradient(135deg, rgba(255,215,0,0.15) 0%, rgba(255,215,0,0.05) 100%)',
-        border: '1px solid rgba(255,215,0,0.2)',
+        background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(255,45,149,0.05) 100%)',
+        border: '1px solid rgba(0,212,255,0.3)',
         borderRadius: '40px',
-        color: '#ffd700',
+        color: '#00D4FF',
         fontWeight: '600',
         cursor: 'pointer',
         fontSize: '14px',
@@ -807,15 +811,15 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '4px',
-        background: 'rgba(20, 20, 40, 0.8)',
+        background: 'rgba(10, 10, 30, 0.8)',
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',
-        border: '1px solid rgba(255, 215, 0, 0.2)',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
         borderRadius: '50px',
         cursor: 'pointer',
         padding: '10px 12px',
         transition: 'all 0.2s ease',
-        opacity: 0.8,
+        opacity: 0.7,
         pointerEvents: 'auto'
     },
     navButtonActive: {
@@ -824,16 +828,17 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '4px',
-        background: 'linear-gradient(135deg, rgba(255,215,0,0.25) 0%, rgba(255,215,0,0.1) 100%)',
+        background: 'linear-gradient(135deg, rgba(0,212,255,0.2) 0%, rgba(255,45,149,0.1) 100%)',
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',
-        border: '1px solid rgba(255, 215, 0, 0.4)',
+        border: '1px solid rgba(0, 212, 255, 0.5)',
         borderRadius: '50px',
         cursor: 'pointer',
         padding: '10px 12px',
         transition: 'all 0.2s ease',
         opacity: 1,
-        pointerEvents: 'auto'
+        pointerEvents: 'auto',
+        boxShadow: '0 0 15px rgba(0, 212, 255, 0.3)'
     },
     navIcon: {
         fontSize: '20px'
@@ -851,7 +856,7 @@ styleSheet.textContent = `
         margin: 0;
         padding: 0;
         height: 100%;
-        background: #0a0a1a;
+        background: #050510;
     }
     button {
         -webkit-tap-highlight-color: transparent;
@@ -865,7 +870,6 @@ styleSheet.textContent = `
     .clickable:active {
         opacity: 0.6;
     }
-    /* Эффект размытия на границах прокрутки */
     .scrollArea {
         mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
         -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
@@ -873,11 +877,6 @@ styleSheet.textContent = `
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
-    }
-    @keyframes glow {
-        0% { transform: translate(-50%, -50%) rotate(0deg); opacity: 0.5; }
-        50% { opacity: 1; }
-        100% { transform: translate(-50%, -50%) rotate(360deg); opacity: 0.5; }
     }
     button:hover {
         transform: translateY(-2px);
