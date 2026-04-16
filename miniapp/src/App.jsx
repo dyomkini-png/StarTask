@@ -811,15 +811,15 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '4px',
-        background: 'rgba(20, 20, 45, 0.7)',
-        backdropFilter: 'blur(15px)',
-        WebkitBackdropFilter: 'blur(15px)',
-        border: '1px solid rgba(0, 212, 255, 0.25)',
+        background: 'rgba(15, 15, 35, 0.95)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(0, 212, 255, 0.3)',
         borderRadius: '50px',
         cursor: 'pointer',
         padding: '10px 12px',
         transition: 'all 0.2s ease',
-        opacity: 0.8,
+        opacity: 0.9,
         pointerEvents: 'auto'
     },
     navButtonActive: {
@@ -828,17 +828,17 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '4px',
-        background: 'linear-gradient(135deg, rgba(0,212,255,0.25) 0%, rgba(255,45,149,0.15) 100%)',
-        backdropFilter: 'blur(15px)',
-        WebkitBackdropFilter: 'blur(15px)',
-        border: '1px solid rgba(0, 212, 255, 0.6)',
+        background: 'linear-gradient(135deg, rgba(0,212,255,0.3) 0%, rgba(255,45,149,0.2) 100%)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(0, 212, 255, 0.7)',
         borderRadius: '50px',
         cursor: 'pointer',
         padding: '10px 12px',
         transition: 'all 0.2s ease',
         opacity: 1,
         pointerEvents: 'auto',
-        boxShadow: '0 0 12px rgba(0, 212, 255, 0.4)'
+        boxShadow: '0 0 15px rgba(0, 212, 255, 0.4)'
     },
     navIcon: {
         fontSize: '20px'
