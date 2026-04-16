@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
@@ -6,12 +6,22 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.ap
 function App() {
     const [user, setUser] = useState(null);
     const [balance, setBalance] = useState(0);
+    const [tonBalance, setTonBalance] = useState(0);
     const [activeTasks, setActiveTasks] = useState([]);
     const [completedTasks, setCompletedTasks] = useState([]);
+    const [myQuests, setMyQuests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('active');
     const [mainTab, setMainTab] = useState('tasks');
     const [channelAvatars, setChannelAvatars] = useState({});
+    const [showProfile, setShowProfile] = useState(false);
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    
+    // Refs для формы создания задания
+    const titleInput = useRef(null);
+    const descInput = useRef(null);
+    const rewardInput = useRef(null);
+    const channelInput = useRef(null);
 
     useEffect(() => {
         const tg = window.Telegram.WebApp;
@@ -44,7 +54,9 @@ function App() {
             localStorage.setItem('token', response.data.token);
             
             fetchBalance(response.data.user.id);
+            fetchTonBalance(response.data.user.id);
             fetchTasks(response.data.user.id);
+            fetchMyQuests(response.data.user.id);
         } catch (error) {
             console.error('Auth error:', error);
         } finally {
@@ -61,6 +73,15 @@ function App() {
         }
     };
 
+    const fetchTonBalance = async (userId) => {
+        try {
+            const response = await axios.get(`${API_URL}/api/user/${userId}/ton-balance`);
+            setTonBalance(response.data.balance);
+        } catch (error) {
+            console.error('TON Balance error:', error);
+        }
+    };
+
     const fetchTasks = async (userId) => {
         try {
             const response = await axios.get(`${API_URL}/api/quests`);
@@ -69,7 +90,7 @@ function App() {
             const completionsResponse = await axios.get(`${API_URL}/api/user/${userId}/completions`);
             const completedIds = completionsResponse.data.map(c => c.quest_id);
             
-            const active = allTasks.filter(task => !completedIds.includes(task.id));
+            const active = allTasks.filter(task => !completedIds.includes(task.id) && task.advertiser_id !== userId);
             const completed = allTasks.filter(task => completedIds.includes(task.id));
             
             setActiveTasks(active);
@@ -84,6 +105,15 @@ function App() {
             }
         } catch (error) {
             console.error('Tasks error:', error);
+        }
+    };
+
+    const fetchMyQuests = async (userId) => {
+        try {
+            const response = await axios.get(`${API_URL}/api/user/${userId}/quests`);
+            setMyQuests(response.data);
+        } catch (error) {
+            console.error('My quests error:', error);
         }
     };
 
@@ -147,6 +177,56 @@ function App() {
         }, 5000);
     };
 
+    const createQuest = async () => {
+        const tg = window.Telegram.WebApp;
+        const title = titleInput.current?.value;
+        const description = descInput.current?.value;
+        const reward = parseInt(rewardInput.current?.value);
+        const targetUrl = channelInput.current?.value;
+        
+        if (!title || !description || !reward || !targetUrl) {
+            tg.showPopup({
+                title: 'Ошибка',
+                message: 'Заполните все поля',
+                buttons: [{ type: 'ok' }]
+            });
+            return;
+        }
+        
+        try {
+            const response = await axios.post(`${API_URL}/api/create-quest`, {
+                userId: user.id,
+                title,
+                description,
+                reward,
+                targetUrl
+            });
+            
+            if (response.data.success) {
+                tg.showPopup({
+                    title: '✅ Задание создано!',
+                    message: 'Оно появится в ленте после проверки',
+                    buttons: [{ type: 'ok' }]
+                });
+                setShowCreateForm(false);
+                fetchMyQuests(user.id);
+                fetchTasks(user.id);
+                
+                // Очищаем поля
+                titleInput.current.value = '';
+                descInput.current.value = '';
+                rewardInput.current.value = '';
+                channelInput.current.value = '';
+            }
+        } catch (error) {
+            tg.showPopup({
+                title: 'Ошибка',
+                message: error.response?.data?.error || 'Не удалось создать задание',
+                buttons: [{ type: 'ok' }]
+            });
+        }
+    };
+
     const getChannelInitial = (taskTitle, targetUrl) => {
         if (taskTitle.includes('StarTask')) return '⭐';
         if (taskTitle.includes('канал')) return '📢';
@@ -176,14 +256,6 @@ function App() {
         });
     };
 
-    const openProfile = () => {
-        window.Telegram.WebApp.showPopup({
-            title: '👤 Профиль',
-            message: `Имя: ${user?.first_name || '—'} ${user?.last_name || ''}\nUsername: @${user?.username || '—'}\nID: ${user?.telegram_id || '—'}\nБаланс: ${balance} ⭐`,
-            buttons: [{ type: 'ok', text: 'Закрыть' }]
-        });
-    };
-
     if (loading) {
         return (
             <div style={styles.loadingContainer}>
@@ -193,11 +265,123 @@ function App() {
         );
     }
 
+    // СТРАНИЦА ПРОФИЛЯ
+    if (showProfile) {
+        return (
+            <div style={styles.container}>
+                <div style={styles.backgroundGradient}></div>
+                <div style={styles.header}>
+                    <div style={styles.logoContainer} className="clickable" onClick={() => setShowProfile(false)}>
+                        <div style={styles.logoIcon}>
+                            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#00D4FF" strokeWidth="1.2"/>
+                                <defs>
+                                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stopColor="#00D4FF"/>
+                                        <stop offset="100%" stopColor="#FF2D95"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <h1 style={styles.logo}>Профиль</h1>
+                    </div>
+                    <button className="clickable" onClick={() => setShowProfile(false)} style={styles.closeProfileBtn}>
+                        ✕
+                    </button>
+                </div>
+
+                <div style={styles.profileContent}>
+                    <div style={styles.profileAvatar}>
+                        {user?.photo_url ? (
+                            <img src={user.photo_url} alt="avatar" style={styles.profileAvatarImg} />
+                        ) : (
+                            <div style={styles.profileAvatarPlaceholder}>
+                                {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
+                            </div>
+                        )}
+                    </div>
+                    <h2 style={styles.profileName}>{user?.first_name || user?.username}</h2>
+                    <p style={styles.profileUsername}>@{user?.username}</p>
+                    <p style={styles.profileId}>ID: {user?.telegram_id}</p>
+                    
+                    <div style={styles.profileBalances}>
+                        <div style={styles.profileBalanceCard}>
+                            <span>⭐ Stars</span>
+                            <strong>{balance}</strong>
+                        </div>
+                        <div style={styles.profileBalanceCard}>
+                            <span>₿ TON</span>
+                            <strong>{tonBalance}</strong>
+                        </div>
+                    </div>
+
+                    <button onClick={() => setShowCreateForm(true)} style={styles.createQuestBtn}>
+                        ✨ Создать задание
+                    </button>
+
+                    {myQuests.length > 0 && (
+                        <div style={styles.myQuestsSection}>
+                            <h3 style={styles.myQuestsTitle}>Мои задания</h3>
+                            {myQuests.map(quest => (
+                                <div key={quest.id} style={styles.myQuestCard}>
+                                    <div style={styles.myQuestIcon}>📢</div>
+                                    <div style={styles.myQuestContent}>
+                                        <h4>{quest.title}</h4>
+                                        <p>{quest.description}</p>
+                                        <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* ФОРМА СОЗДАНИЯ ЗАДАНИЯ */}
+                {showCreateForm && (
+                    <div style={styles.modalOverlay}>
+                        <div style={styles.createForm}>
+                            <div style={styles.formHeader}>
+                                <h3>✨ Создать задание</h3>
+                                <button onClick={() => setShowCreateForm(false)} style={styles.closeBtn}>✕</button>
+                            </div>
+                            <input 
+                                type="text" 
+                                placeholder="Ссылка на канал (t.me/...)" 
+                                style={styles.formInput}
+                                ref={channelInput}
+                            />
+                            <input 
+                                type="text" 
+                                placeholder="Название задания" 
+                                style={styles.formInput}
+                                ref={titleInput}
+                            />
+                            <textarea 
+                                placeholder="Описание задания" 
+                                style={styles.formTextarea}
+                                ref={descInput}
+                            />
+                            <input 
+                                type="number" 
+                                placeholder="Награда (Stars)" 
+                                style={styles.formInput}
+                                ref={rewardInput}
+                            />
+                            <button onClick={createQuest} style={styles.submitBtn}>
+                                ➕ Создать
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // ОСНОВНАЯ СТРАНИЦА
     return (
         <div style={styles.container}>
             <div style={styles.backgroundGradient}></div>
             
-            {/* ФИКСИРОВАННАЯ ШАПКА */}
             <div style={styles.header}>
                 <div style={styles.logoContainer} className="clickable" onClick={() => {
                     window.Telegram.WebApp.openLink('https://t.me/startask_official');
@@ -215,10 +399,13 @@ function App() {
                     </div>
                     <h1 style={styles.logo}>StarTask</h1>
                 </div>
-                <div style={styles.userInfo} className="clickable" onClick={openProfile}>
+                <div style={styles.userInfo} className="clickable" onClick={() => setShowProfile(true)}>
                     <div style={styles.userText}>
                         <span style={styles.userName}>{user?.first_name || user?.username || 'Пользователь'}</span>
-                        <span style={styles.userBalance}>⭐ {balance} Stars</span>
+                        <div style={styles.userBalances}>
+                            <span style={styles.userBalance}>⭐ {balance}</span>
+                            <span style={styles.userTonBalance}>₿ {tonBalance}</span>
+                        </div>
                     </div>
                     <div style={styles.avatar}>
                         {user?.photo_url ? (
@@ -232,7 +419,6 @@ function App() {
                 </div>
             </div>
 
-            {/* ПРОКРУЧИВАЕМЫЙ КОНТЕНТ */}
             <div style={styles.scrollArea} className="scrollArea">
                 <div style={styles.contentWrapper}>
                     {mainTab === 'tasks' && (
@@ -385,7 +571,6 @@ function App() {
                 </div>
             </div>
 
-            {/* ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ */}
             <div style={styles.bottomNav}>
                 <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.navButtonActive : styles.navButton}>
                     <span style={styles.navIcon}>📋</span>
@@ -469,6 +654,28 @@ const styles = {
         cursor: 'pointer',
         pointerEvents: 'auto'
     },
+    userText: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end'
+    },
+    userBalances: {
+        display: 'flex',
+        gap: '8px'
+    },
+    userName: {
+        fontSize: '14px',
+        fontWeight: '600',
+        color: 'white'
+    },
+    userBalance: {
+        fontSize: '11px',
+        color: '#00D4FF'
+    },
+    userTonBalance: {
+        fontSize: '11px',
+        color: '#9D4EDD'
+    },
     avatar: {
         width: '40px',
         height: '40px',
@@ -512,20 +719,6 @@ const styles = {
         fontSize: '24px',
         fontWeight: 'bold',
         color: 'white'
-    },
-    userText: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end'
-    },
-    userName: {
-        fontSize: '14px',
-        fontWeight: '600',
-        color: 'white'
-    },
-    userBalance: {
-        fontSize: '11px',
-        color: '#00D4FF'
     },
     scrollArea: {
         marginTop: '0px',
@@ -847,6 +1040,192 @@ const styles = {
         fontSize: '9px',
         fontWeight: '500',
         color: 'white'
+    },
+    // СТИЛИ ДЛЯ СТРАНИЦЫ ПРОФИЛЯ
+    closeProfileBtn: {
+        background: 'rgba(255,255,255,0.1)',
+        border: '1px solid rgba(0,212,255,0.3)',
+        borderRadius: '30px',
+        color: 'white',
+        fontSize: '18px',
+        cursor: 'pointer',
+        pointerEvents: 'auto',
+        width: '36px',
+        height: '36px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    profileContent: {
+        marginTop: '80px',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+    },
+    profileAvatar: {
+        width: '100px',
+        height: '100px',
+        borderRadius: '50%',
+        background: 'rgba(0,212,255,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        border: '3px solid rgba(0,212,255,0.5)',
+        marginBottom: '16px'
+    },
+    profileAvatarImg: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover'
+    },
+    profileAvatarPlaceholder: {
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '48px',
+        fontWeight: '600',
+        color: '#00D4FF'
+    },
+    profileName: {
+        fontSize: '24px',
+        fontWeight: '700',
+        color: 'white',
+        marginBottom: '4px'
+    },
+    profileUsername: {
+        fontSize: '14px',
+        color: 'rgba(255,255,255,0.6)',
+        marginBottom: '4px'
+    },
+    profileId: {
+        fontSize: '12px',
+        color: 'rgba(255,255,255,0.4)',
+        marginBottom: '20px'
+    },
+    profileBalances: {
+        display: 'flex',
+        gap: '20px',
+        marginBottom: '30px'
+    },
+    profileBalanceCard: {
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: '20px',
+        padding: '12px 24px',
+        textAlign: 'center',
+        minWidth: '100px'
+    },
+    createQuestBtn: {
+        background: 'linear-gradient(135deg, rgba(0,212,255,0.2) 0%, rgba(255,45,149,0.1) 100%)',
+        border: '1px solid rgba(0,212,255,0.5)',
+        borderRadius: '40px',
+        padding: '14px 28px',
+        color: '#00D4FF',
+        fontWeight: '600',
+        cursor: 'pointer',
+        fontSize: '16px',
+        marginBottom: '30px',
+        width: '100%'
+    },
+    myQuestsSection: {
+        width: '100%'
+    },
+    myQuestsTitle: {
+        fontSize: '18px',
+        fontWeight: '600',
+        color: 'white',
+        marginBottom: '16px'
+    },
+    myQuestCard: {
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: '16px',
+        padding: '12px',
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '12px'
+    },
+    myQuestIcon: {
+        fontSize: '32px'
+    },
+    myQuestContent: {
+        flex: 1
+    },
+    myQuestReward: {
+        fontSize: '12px',
+        color: '#FF2D95'
+    },
+    // МОДАЛЬНОЕ ОКНО ДЛЯ ФОРМЫ
+    modalOverlay: {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0,0,0,0.8)',
+        backdropFilter: 'blur(5px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 200
+    },
+    createForm: {
+        background: 'rgba(20,20,40,0.95)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '24px',
+        padding: '24px',
+        width: '320px',
+        border: '1px solid rgba(0,212,255,0.3)'
+    },
+    formHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px'
+    },
+    closeBtn: {
+        background: 'none',
+        border: 'none',
+        color: 'white',
+        fontSize: '24px',
+        cursor: 'pointer'
+    },
+    formInput: {
+        width: '100%',
+        padding: '12px',
+        marginBottom: '12px',
+        background: 'rgba(255,255,255,0.1)',
+        border: '1px solid rgba(0,212,255,0.3)',
+        borderRadius: '12px',
+        color: 'white',
+        fontSize: '14px',
+        boxSizing: 'border-box'
+    },
+    formTextarea: {
+        width: '100%',
+        padding: '12px',
+        marginBottom: '12px',
+        background: 'rgba(255,255,255,0.1)',
+        border: '1px solid rgba(0,212,255,0.3)',
+        borderRadius: '12px',
+        color: 'white',
+        fontSize: '14px',
+        minHeight: '80px',
+        boxSizing: 'border-box',
+        fontFamily: 'inherit'
+    },
+    submitBtn: {
+        width: '100%',
+        padding: '12px',
+        background: 'linear-gradient(135deg, rgba(0,212,255,0.3) 0%, rgba(255,45,149,0.2) 100%)',
+        border: '1px solid rgba(0,212,255,0.5)',
+        borderRadius: '40px',
+        color: '#00D4FF',
+        fontWeight: '600',
+        cursor: 'pointer',
+        fontSize: '16px'
     }
 };
 
@@ -867,7 +1246,7 @@ styleSheet.textContent = `
         cursor: pointer;
         transition: opacity 0.1s ease;
     }
-    .clickable:active
+    .clickable:active {
         opacity: 0.6;
     }
     .scrollArea {

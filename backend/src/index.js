@@ -293,6 +293,18 @@ app.get('/api/user/:userId/completions', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+// ПОЛУЧЕНИЕ ЗАДАНИЙ, СОЗДАННЫХ ПОЛЬЗОВАТЕЛЕМ
+app.get('/api/user/:userId/quests', async (req, res) => {
+    try {
+        const quests = await db.query(
+            'SELECT * FROM quests WHERE advertiser_id = $1 ORDER BY created_at DESC',
+            [req.params.userId]
+        );
+        res.json(quests.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
