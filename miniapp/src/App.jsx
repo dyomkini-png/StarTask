@@ -811,15 +811,15 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '4px',
-        background: 'rgba(10, 10, 30, 0.8)',
+        background: 'rgba(20, 20, 45, 0.7)',
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
+        border: '1px solid rgba(0, 212, 255, 0.25)',
         borderRadius: '50px',
         cursor: 'pointer',
         padding: '10px 12px',
         transition: 'all 0.2s ease',
-        opacity: 0.7,
+        opacity: 0.8,
         pointerEvents: 'auto'
     },
     navButtonActive: {
@@ -828,17 +828,17 @@ const styles = {
         flexDirection: 'column',
         alignItems: 'center',
         gap: '4px',
-        background: 'linear-gradient(135deg, rgba(0,212,255,0.2) 0%, rgba(255,45,149,0.1) 100%)',
+        background: 'linear-gradient(135deg, rgba(0,212,255,0.25) 0%, rgba(255,45,149,0.15) 100%)',
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',
-        border: '1px solid rgba(0, 212, 255, 0.5)',
+        border: '1px solid rgba(0, 212, 255, 0.6)',
         borderRadius: '50px',
         cursor: 'pointer',
         padding: '10px 12px',
         transition: 'all 0.2s ease',
         opacity: 1,
         pointerEvents: 'auto',
-        boxShadow: '0 0 15px rgba(0, 212, 255, 0.3)'
+        boxShadow: '0 0 12px rgba(0, 212, 255, 0.4)'
     },
     navIcon: {
         fontSize: '20px'
@@ -867,7 +867,7 @@ styleSheet.textContent = `
         cursor: pointer;
         transition: opacity 0.1s ease;
     }
-    .clickable:active {
+    .clickable:active
         opacity: 0.6;
     }
     .scrollArea {
