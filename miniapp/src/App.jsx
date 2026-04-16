@@ -798,10 +798,10 @@ const styles = {
         display: 'flex',
         justifyContent: 'space-around',
         alignItems: 'center',
-        gap: '8px',
+        gap: '6px',
         background: 'transparent',
-        padding: '12px 20px',
-        paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
+        padding: '8px 16px',
+        paddingBottom: 'calc(8px + env(safe-area-inset-bottom))',
         zIndex: 100,
         pointerEvents: 'none'
     },
@@ -810,14 +810,14 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '4px',
+        gap: '2px',
         background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(255,45,149,0.08) 100%)',
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',
         border: '1px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: '50px',
+        borderRadius: '40px',
         cursor: 'pointer',
-        padding: '10px 12px',
+        padding: '6px 8px',
         transition: 'all 0.2s ease',
         opacity: 0.8,
         pointerEvents: 'auto'
@@ -827,24 +827,24 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '4px',
+        gap: '2px',
         background: 'linear-gradient(135deg, rgba(0,212,255,0.25) 0%, rgba(255,45,149,0.15) 100%)',
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',
         border: '1px solid rgba(0, 212, 255, 0.7)',
-        borderRadius: '50px',
+        borderRadius: '40px',
         cursor: 'pointer',
-        padding: '10px 12px',
+        padding: '6px 8px',
         transition: 'all 0.2s ease',
         opacity: 1,
         pointerEvents: 'auto',
-        boxShadow: '0 0 15px rgba(0, 212, 255, 0.4)'
+        boxShadow: '0 0 12px rgba(0, 212, 255, 0.4)'
     },
     navIcon: {
-        fontSize: '20px'
+        fontSize: '16px'
     },
     navLabel: {
-        fontSize: '11px',
+        fontSize: '9px',
         fontWeight: '500',
         color: 'white'
     }
