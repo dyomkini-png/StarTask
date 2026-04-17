@@ -25,21 +25,26 @@ const AdminPanel = ({ onClose, userId }) => {
     
     const approveQuest = async (questId) => {
         console.log('Sending approve request:', { questId, adminId: userId });
-    try {
-        const response = await axios.post(`${API_URL}/api/admin/approve-quest/${questId}`, {
-            adminId: Number(userId)
-        });
-        console.log('Approve response:', response.data);
         try {
-            await axios.post(`${API_URL}/api/admin/approve-quest/${questId}`, {
+            const response = await axios.post(`${API_URL}/api/admin/approve-quest/${questId}`, {
                 adminId: Number(userId)
             });
-            fetchPendingQuests();
-            window.Telegram.WebApp.showPopup({
-                title: '✅ Одобрено',
-                message: 'Задание опубликовано',
-                buttons: [{ type: 'ok' }]
-            });
+            console.log('Approve response:', response.data);
+            
+            if (response.data.success) {
+                fetchPendingQuests();
+                window.Telegram.WebApp.showPopup({
+                    title: '✅ Одобрено',
+                    message: response.data.message || 'Задание опубликовано',
+                    buttons: [{ type: 'ok' }]
+                });
+            } else {
+                window.Telegram.WebApp.showPopup({
+                    title: 'Ошибка',
+                    message: response.data.error || 'Не удалось одобрить задание',
+                    buttons: [{ type: 'ok' }]
+                });
+            }
         } catch (error) {
             console.error('Error approving quest:', error);
             window.Telegram.WebApp.showPopup({
@@ -57,18 +62,25 @@ const AdminPanel = ({ onClose, userId }) => {
             buttons: [{ type: 'ok', text: 'Отправить' }, { type: 'cancel', text: 'Отмена' }]
         }, async () => {
             try {
-                await axios.post(`${API_URL}/api/admin/reject-quest/${questId}`, {
-                    adminId: userId,
+                const response = await axios.post(`${API_URL}/api/admin/reject-quest/${questId}`, {
+                    adminId: Number(userId),
                     reason: 'Не соответствует правилам платформы'
                 });
-                fetchPendingQuests();
-                window.Telegram.WebApp.showPopup({
-                    title: '❌ Отклонено',
-                    message: 'Задание отклонено',
-                    buttons: [{ type: 'ok' }]
-                });
+                if (response.data.success) {
+                    fetchPendingQuests();
+                    window.Telegram.WebApp.showPopup({
+                        title: '❌ Отклонено',
+                        message: 'Задание отклонено',
+                        buttons: [{ type: 'ok' }]
+                    });
+                }
             } catch (error) {
                 console.error('Error rejecting quest:', error);
+                window.Telegram.WebApp.showPopup({
+                    title: 'Ошибка',
+                    message: error.response?.data?.error || 'Не удалось отклонить задание',
+                    buttons: [{ type: 'ok' }]
+                });
             }
         });
     };
