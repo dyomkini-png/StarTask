@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
-// АДМИН-ПАНЕЛЬ (только для вас)
-const AdminPanel = ({ onClose }) => {
-    const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
+
+// АДМИН-ПАНЕЛЬ (компонент внутри файла, чтобы иметь доступ к API_URL)
+const AdminPanel = ({ onClose, userId }) => {
     const [pendingQuests, setPendingQuests] = useState([]);
     const [loading, setLoading] = useState(true);
     
@@ -25,7 +26,7 @@ const AdminPanel = ({ onClose }) => {
     const approveQuest = async (questId) => {
         try {
             await axios.post(`${API_URL}/api/admin/approve-quest/${questId}`, {
-                adminId: window.Telegram.WebApp.initDataUnsafe?.user?.id
+                adminId: userId
             });
             fetchPendingQuests();
             window.Telegram.WebApp.showPopup({
@@ -35,6 +36,11 @@ const AdminPanel = ({ onClose }) => {
             });
         } catch (error) {
             console.error('Error approving quest:', error);
+            window.Telegram.WebApp.showPopup({
+                title: 'Ошибка',
+                message: error.response?.data?.error || 'Не удалось одобрить задание',
+                buttons: [{ type: 'ok' }]
+            });
         }
     };
     
@@ -44,10 +50,9 @@ const AdminPanel = ({ onClose }) => {
             message: 'Укажите причину отклонения:',
             buttons: [{ type: 'ok', text: 'Отправить' }, { type: 'cancel', text: 'Отмена' }]
         }, async () => {
-            // В реальном проекте здесь нужно получить текст причины
             try {
                 await axios.post(`${API_URL}/api/admin/reject-quest/${questId}`, {
-                    adminId: window.Telegram.WebApp.initDataUnsafe?.user?.id,
+                    adminId: userId,
                     reason: 'Не соответствует правилам платформы'
                 });
                 fetchPendingQuests();
@@ -62,13 +67,19 @@ const AdminPanel = ({ onClose }) => {
         });
     };
     
-    if (loading) return <div style={styles.loadingContainer}>Загрузка...</div>;
+    if (loading) return (
+        <div style={styles.modalOverlay}>
+            <div style={styles.adminPanel}>
+                <p style={{ color: 'white', textAlign: 'center' }}>Загрузка...</p>
+            </div>
+        </div>
+    );
     
     return (
         <div style={styles.modalOverlay}>
             <div style={styles.adminPanel}>
                 <div style={styles.formHeader}>
-                    <h3>🛡️ Модерация заданий</h3>
+                    <h3 style={{ color: 'white' }}>🛡️ Модерация заданий</h3>
                     <button onClick={onClose} style={styles.closeBtn}>✕</button>
                 </div>
                 {pendingQuests.length === 0 ? (
@@ -103,8 +114,6 @@ const AdminPanel = ({ onClose }) => {
         </div>
     );
 };
-
-const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
 
 function App() {
     const [user, setUser] = useState(null);
@@ -309,7 +318,7 @@ function App() {
             if (response.data.success) {
                 tg.showPopup({
                     title: '✅ Задание создано!',
-                    message: 'Оно появится в ленте после проверки',
+                    message: response.data.message || 'Оно появится в ленте после проверки',
                     buttons: [{ type: 'ok' }]
                 });
                 setShowCreateForm(false);
@@ -423,14 +432,13 @@ function App() {
                         ✨ Создать задание
                     </button>
                     
-                    {user?.telegram_id === 850997324 && ( // замените на ваш ID
-    <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
-        🛡️ Админ-панель
-    </button>
-)}
-{showAdminPanel && (
-    <AdminPanel onClose={() => setShowAdminPanel(false)} />
-)}
+                    {/* АДМИН-ПАНЕЛЬ — ВИДНА ТОЛЬКО АДМИНУ */}
+                    {user?.telegram_id === 850997324 && ( // ⚠️ З
+                        <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
+                            🛡️ Админ-панель
+                        </button>
+                    )}
+                    
                     {myQuests.length > 0 && (
                         <div style={styles.myQuestsSection}>
                             <h3 style={styles.myQuestsTitle}>Мои задания</h3>
@@ -453,7 +461,7 @@ function App() {
                     <div style={styles.modalOverlay}>
                         <div style={styles.createForm}>
                             <div style={styles.formHeader}>
-                                <h3>✨ Создать задание</h3>
+                                <h3 style={{ color: 'white' }}>✨ Создать задание</h3>
                                 <button onClick={() => setShowCreateForm(false)} style={styles.closeBtn}>✕</button>
                             </div>
                             <input 
@@ -484,6 +492,11 @@ function App() {
                             </button>
                         </div>
                     </div>
+                )}
+
+                {/* АДМИН-ПАНЕЛЬ */}
+                {showAdminPanel && (
+                    <AdminPanel onClose={() => setShowAdminPanel(false)} userId={user?.telegram_id} />
                 )}
             </div>
         );
@@ -1153,7 +1166,6 @@ const styles = {
         fontWeight: '500',
         color: 'white'
     },
-    // СТИЛИ ДЛЯ СТРАНИЦЫ ПРОФИЛЯ
     closeProfileBtn: {
         background: 'rgba(255,255,255,0.1)',
         border: '1px solid rgba(0,212,255,0.3)',
@@ -1269,7 +1281,6 @@ const styles = {
         fontSize: '12px',
         color: '#FF2D95'
     },
-    // МОДАЛЬНОЕ ОКНО ДЛЯ ФОРМЫ
     modalOverlay: {
         position: 'fixed',
         top: 0,
@@ -1375,15 +1386,16 @@ const styles = {
         fontSize: '12px'
     },
     adminBtn: {
-        width: '100%',
-        padding: '12px',
         background: 'rgba(255,45,149,0.2)',
         border: '1px solid rgba(255,45,149,0.5)',
         borderRadius: '40px',
+        padding: '12px 20px',
         color: '#FF2D95',
         fontWeight: '600',
         cursor: 'pointer',
-        marginTop: '20px'
+        fontSize: '14px',
+        width: '100%',
+        marginBottom: '16px'
     }
 };
 
