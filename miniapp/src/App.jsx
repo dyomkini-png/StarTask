@@ -24,9 +24,15 @@ const AdminPanel = ({ onClose, userId }) => {
     };
     
     const approveQuest = async (questId) => {
+        console.log('Sending approve request:', { questId, adminId: userId });
+    try {
+        const response = await axios.post(`${API_URL}/api/admin/approve-quest/${questId}`, {
+            adminId: Number(userId)
+        });
+        console.log('Approve response:', response.data);
         try {
             await axios.post(`${API_URL}/api/admin/approve-quest/${questId}`, {
-                adminId: userId
+                adminId: Number(userId)
             });
             fetchPendingQuests();
             window.Telegram.WebApp.showPopup({
