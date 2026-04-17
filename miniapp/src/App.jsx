@@ -438,7 +438,7 @@ function App() {
                     </button>
                     
                     {/* АДМИН-ПАНЕЛЬ — ВИДНА ТОЛЬКО АДМИНУ */}
-                    {user?.telegram_id === 850997324 && ( 
+                    {true && ( 
                         <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
                             🛡️ Админ-панель
                         </button>
