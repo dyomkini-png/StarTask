@@ -3,6 +3,7 @@ import axios from 'axios';
 
 // АДМИН-ПАНЕЛЬ (только для вас)
 const AdminPanel = ({ onClose }) => {
+    const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
     const [pendingQuests, setPendingQuests] = useState([]);
     const [loading, setLoading] = useState(true);
     
@@ -118,6 +119,7 @@ function App() {
     const [channelAvatars, setChannelAvatars] = useState({});
     const [showProfile, setShowProfile] = useState(false);
     const [showCreateForm, setShowCreateForm] = useState(false);
+    const [showAdminPanel, setShowAdminPanel] = useState(false);
     
     // Refs для формы создания задания
     const titleInput = useRef(null);
@@ -425,6 +427,9 @@ function App() {
     <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
         🛡️ Админ-панель
     </button>
+)}
+{showAdminPanel && (
+    <AdminPanel onClose={() => setShowAdminPanel(false)} />
 )}
                     {myQuests.length > 0 && (
                         <div style={styles.myQuestsSection}>
