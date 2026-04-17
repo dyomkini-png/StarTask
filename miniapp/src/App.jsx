@@ -421,7 +421,7 @@ function App() {
                         ✨ Создать задание
                     </button>
                     
-                    {user?.telegram_id === 123456789 && ( // замените на ваш ID
+                    {user?.telegram_id === 850997324 && ( // замените на ваш ID
     <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
         🛡️ Админ-панель
     </button>
