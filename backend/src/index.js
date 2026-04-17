@@ -268,42 +268,55 @@ app.get('/api/referral/:userId/stats', async (req, res) => {
     }
 });
 
-// ========== АВАТАРКИ КАНАЛОВ ==========
+// ========== АВАТАРКИ КАНАЛОВ (УЛУЧШЕННАЯ ВЕРСИЯ) ==========
 app.get('/api/channel/avatar/:username', async (req, res) => {
     const { username } = req.params;
     
     try {
+        // Пробуем получить через официальный API Telegram (публичные данные)
         const response = await axios.get(`https://t.me/s/${username}`, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             },
-            timeout: 10000
+            timeout: 15000
         });
         
-        const $ = cheerio.load(response.data);
-        const avatarElement = $('.tgme_page_photo_image');
+        const html = response.data;
         let avatarUrl = null;
         
-        if (avatarElement.length) {
-            let src = avatarElement.attr('src');
-            if (!src) {
-                const style = avatarElement.attr('style');
-                if (style) {
-                    const match = style.match(/url\(['"]?([^'"()]+)['"]?\)/);
-                    if (match) src = match[1];
-                }
+        // Способ 1: ищем в теге meta og:image
+        const ogMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/);
+        if (ogMatch && ogMatch[1]) {
+            avatarUrl = ogMatch[1];
+        }
+        
+        // Способ 2: ищем в теге img с классом tgme_page_photo_image
+        if (!avatarUrl) {
+            const imgMatch = html.match(/<img[^>]*class="tgme_page_photo_image"[^>]*src="([^"]+)"/);
+            if (imgMatch && imgMatch[1]) {
+                avatarUrl = imgMatch[1];
             }
-            avatarUrl = src ? src.split('?')[0] : null;
+        }
+        
+        // Способ 3: ищем в стилях background-image
+        if (!avatarUrl) {
+            const bgMatch = html.match(/background-image:url\(['"]?([^'"()]+)['"]?\)/);
+            if (bgMatch && bgMatch[1]) {
+                avatarUrl = bgMatch[1];
+            }
         }
         
         if (avatarUrl) {
-            res.json({ success: true, avatar: avatarUrl });
+            avatarUrl = avatarUrl.split('?')[0];
+            console.log(`✅ Avatar found for @${username}: ${avatarUrl}`);
+            return res.json({ success: true, avatar: avatarUrl });
         } else {
-            res.json({ success: false, avatar: null, message: 'Avatar not found' });
+            console.log(`❌ Avatar not found for @${username}`);
+            return res.json({ success: false, avatar: null, message: 'Avatar not found' });
         }
     } catch (error) {
-        console.error('Avatar fetch error:', error.message);
-        res.status(500).json({ success: false, error: 'Failed to fetch channel data' });
+        console.error(`Error fetching avatar for @${username}:`, error.message);
+        return res.status(500).json({ success: false, error: 'Failed to fetch channel data' });
     }
 });
 // ========== АДМИН-ПАНЕЛЬ ==========
