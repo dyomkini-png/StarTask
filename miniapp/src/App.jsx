@@ -433,11 +433,11 @@ function App() {
                     </button>
                     
                     {/* АДМИН-ПАНЕЛЬ — ВИДНА ТОЛЬКО АДМИНУ */}
-                    {Number(user?.telegram_id) === 850997324 && ( 
-                        <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
-                            🛡️ Админ-панель
-                        </button>
-                    )}
+                    {user?.telegram_id && String(user.telegram_id) === "850997324" && (
+    <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
+        🛡️ Админ-панель
+    </button>
+)}
                     
                     {myQuests.length > 0 && (
                         <div style={styles.myQuestsSection}>
