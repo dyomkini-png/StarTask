@@ -23,6 +23,7 @@ async function initDB() {
             telegram_id TEXT UNIQUE,
             username TEXT,
             stars_balance INTEGER DEFAULT 0,
+            ton_balance DECIMAL(20,9) DEFAULT 0,
             total_earned INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT NOW()
         );
@@ -33,6 +34,7 @@ async function initDB() {
             title TEXT,
             description TEXT,
             reward INTEGER,
+            reward_type TEXT DEFAULT 'stars',
             type TEXT,
             target_url TEXT,
             budget INTEGER,
@@ -62,6 +64,7 @@ async function initDB() {
 }
 initDB();
 
+// ========== АВТОРИЗАЦИЯ ==========
 app.post('/api/auth', async (req, res) => {
     const { telegramId, username } = req.body;
     try {
@@ -81,15 +84,26 @@ app.post('/api/auth', async (req, res) => {
     }
 });
 
+// ========== БАЛАНСЫ ==========
 app.get('/api/user/:userId/balance', async (req, res) => {
     try {
-        const user = await db.query('SELECT stars_balance, total_earned FROM users WHERE id = $1', [req.params.userId]);
+        const user = await db.query('SELECT stars_balance FROM users WHERE id = $1', [req.params.userId]);
         res.json({ balance: user.rows[0]?.stars_balance || 0 });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
+app.get('/api/user/:userId/ton-balance', async (req, res) => {
+    try {
+        const user = await db.query('SELECT ton_balance FROM users WHERE id = $1', [req.params.userId]);
+        res.json({ balance: user.rows[0]?.ton_balance || 0 });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ========== ЗАДАНИЯ ==========
 app.get('/api/quests', async (req, res) => {
     try {
         const quests = await db.query(
@@ -105,25 +119,134 @@ app.get('/api/quests', async (req, res) => {
     }
 });
 
-app.post('/api/quests', async (req, res) => {
-    const { advertiserId, title, description, reward, type, targetUrl, budget } = req.body;
+// ЗАДАНИЯ, СОЗДАННЫЕ ПОЛЬЗОВАТЕЛЕМ
+app.get('/api/user/:userId/quests', async (req, res) => {
     try {
-        const advertiser = await db.query('SELECT stars_balance FROM users WHERE id = $1', [advertiserId]);
-        if (advertiser.rows[0].stars_balance < budget) {
-            return res.status(400).json({ error: 'Insufficient Stars balance' });
-        }
-        const quest = await db.query(
-            `INSERT INTO quests (advertiser_id, title, description, reward, type, target_url, budget, remaining) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-            [advertiserId, title, description, reward, type, targetUrl, budget, budget]
+        const quests = await db.query(
+            'SELECT * FROM quests WHERE advertiser_id = $1 ORDER BY created_at DESC',
+            [req.params.userId]
         );
-        await db.query('UPDATE users SET stars_balance = stars_balance - $1 WHERE id = $2', [budget, advertiserId]);
-        res.json(quest.rows[0]);
+        res.json(quests.rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
+// ВЫПОЛНЕННЫЕ ЗАДАНИЯ ПОЛЬЗОВАТЕЛЯ
+app.get('/api/user/:userId/completions', async (req, res) => {
+    try {
+        const completions = await db.query(
+            'SELECT quest_id FROM completions WHERE user_id = $1 AND status = $2',
+            [req.params.userId, 'completed']
+        );
+        res.json(completions.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// СОЗДАНИЕ ЗАДАНИЯ
+app.post('/api/create-quest', async (req, res) => {
+    const { userId, title, description, reward, targetUrl } = req.body;
+    
+    console.log('📝 Create quest request:', { userId, title, description, reward, targetUrl });
+    
+    if (!userId || !title || !description || !reward || !targetUrl) {
+        return res.status(400).json({ error: 'Все поля обязательны' });
+    }
+    
+    try {
+        const user = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
+        if (user.rows.length === 0) {
+            return res.status(404).json({ error: 'Пользователь не найден' });
+        }
+        
+        const newQuest = await db.query(
+            `INSERT INTO quests (advertiser_id, title, description, reward, reward_type, type, target_url, budget, remaining, status) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+            [userId, title, description, reward, 'stars', 'subscription', targetUrl, 10000, 10000, 'active']
+        );
+        
+        console.log('✅ Quest created:', newQuest.rows[0]);
+        res.json({ success: true, quest: newQuest.rows[0] });
+    } catch (error) {
+        console.error('Create quest error:', error);
+        res.status(500).json({ error: 'Ошибка создания задания: ' + error.message });
+    }
+});
+
+// ПРОВЕРКА ПОДПИСКИ И НАЧИСЛЕНИЕ НАГРАДЫ
+app.post('/api/check-subscription', async (req, res) => {
+    const { userId, channelUsername, questId } = req.body;
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    
+    if (!BOT_TOKEN) {
+        return res.status(500).json({ error: 'BOT_TOKEN not configured' });
+    }
+    
+    try {
+        const user = await db.query('SELECT telegram_id FROM users WHERE id = $1', [userId]);
+        if (!user.rows[0]) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const telegramId = user.rows[0].telegram_id;
+        const quest = await db.query('SELECT * FROM quests WHERE id = $1', [questId]);
+        
+        if (quest.rows.length === 0) {
+            return res.status(404).json({ error: 'Quest not found' });
+        }
+        
+        const existingCompletion = await db.query(
+            'SELECT * FROM completions WHERE user_id = $1 AND quest_id = $2 AND status = $3',
+            [userId, questId, 'completed']
+        );
+        
+        if (existingCompletion.rows.length > 0) {
+            return res.json({ success: false, message: 'Вы уже выполнили это задание' });
+        }
+        
+        const response = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember`, {
+            params: {
+                chat_id: `@${channelUsername}`,
+                user_id: telegramId
+            }
+        });
+        
+        const status = response.data.result.status;
+        const isMember = ['creator', 'administrator', 'member'].includes(status);
+        
+        if (isMember) {
+            const reward = quest.rows[0].reward;
+            const rewardType = quest.rows[0].reward_type || 'stars';
+            
+            if (rewardType === 'ton') {
+                await db.query('UPDATE users SET ton_balance = ton_balance + $1 WHERE id = $2', [reward, userId]);
+            } else {
+                await db.query('UPDATE users SET stars_balance = stars_balance + $1 WHERE id = $2', [reward, userId]);
+            }
+            
+            await db.query('UPDATE quests SET remaining = remaining - $1 WHERE id = $2', [reward, questId]);
+            await db.query(
+                'INSERT INTO completions (user_id, quest_id, screenshot_url, status) VALUES ($1, $2, $3, $4)',
+                [userId, questId, 'auto_verified', 'completed']
+            );
+            
+            const currencySymbol = rewardType === 'ton' ? 'TON' : '⭐';
+            return res.json({ success: true, message: `✅ Вы получили ${reward} ${currencySymbol}!` });
+        } else {
+            return res.json({ success: false, message: '❌ Вы не подписались на канал' });
+        }
+    } catch (error) {
+        console.error('Subscription check error:', error);
+        if (error.response?.data?.description?.includes('bot is not a member')) {
+            return res.status(500).json({ error: 'Бот не добавлен в администраторы канала' });
+        }
+        res.status(500).json({ error: 'Failed to check subscription' });
+    }
+});
+
+// ========== РЕФЕРАЛЫ ==========
 app.post('/api/referral/create', async (req, res) => {
     const { userId } = req.body;
     const link = `https://t.me/StarTaskBot?start=ref_${userId}`;
@@ -146,163 +269,42 @@ app.get('/api/referral/:userId/stats', async (req, res) => {
     }
 });
 
-// ПОЛУЧЕНИЕ АВАТАРКИ КАНАЛА (без прав администратора)
+// ========== АВАТАРКИ КАНАЛОВ ==========
 app.get('/api/channel/avatar/:username', async (req, res) => {
     const { username } = req.params;
     
     try {
-        // Прямой запрос к Telegram API без бота (публичные данные)
-        const response = await axios.get(`https://t.me/${username}`, {
+        const response = await axios.get(`https://t.me/s/${username}`, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             },
             timeout: 10000
         });
         
-        const html = response.data;
-        
-        // Ищем аватарку в HTML
+        const $ = cheerio.load(response.data);
+        const avatarElement = $('.tgme_page_photo_image');
         let avatarUrl = null;
         
-        // Вариант 1: через тег img с классом tgme_page_photo_image
-        const imgMatch = html.match(/<img[^>]*class="tgme_page_photo_image"[^>]*src="([^"]+)"/);
-        if (imgMatch && imgMatch[1]) {
-            avatarUrl = imgMatch[1];
-        }
-        
-        // Вариант 2: через background-image в стилях
-        if (!avatarUrl) {
-            const bgMatch = html.match(/background-image:url\(['"]?([^'"()]+)['"]?\)/);
-            if (bgMatch && bgMatch[1]) {
-                avatarUrl = bgMatch[1];
+        if (avatarElement.length) {
+            let src = avatarElement.attr('src');
+            if (!src) {
+                const style = avatarElement.attr('style');
+                if (style) {
+                    const match = style.match(/url\(['"]?([^'"()]+)['"]?\)/);
+                    if (match) src = match[1];
+                }
             }
-        }
-        
-        // Вариант 3: через CDN Telegram (прямая ссылка)
-        if (!avatarUrl) {
-            // Пробуем получить через публичный API Telegram
-            const tgResponse = await axios.get(`https://t.me/i/userpic/320/${username}.jpg`, {
-                validateStatus: (status) => status < 500
-            });
-            if (tgResponse.status === 200) {
-                avatarUrl = `https://t.me/i/userpic/320/${username}.jpg`;
-            }
+            avatarUrl = src ? src.split('?')[0] : null;
         }
         
         if (avatarUrl) {
-            // Очищаем URL от параметров
-            avatarUrl = avatarUrl.split('?')[0];
-            console.log(`✅ Avatar found for @${username}: ${avatarUrl}`);
-            return res.json({ success: true, avatar: avatarUrl });
+            res.json({ success: true, avatar: avatarUrl });
         } else {
-            console.log(`❌ Avatar not found for @${username}`);
-            return res.json({ success: false, avatar: null, message: 'Avatar not found' });
+            res.json({ success: false, avatar: null, message: 'Avatar not found' });
         }
     } catch (error) {
-        console.error(`Error fetching avatar for @${username}:`, error.message);
-        
-        // Возвращаем null, но не ошибку (чтобы фронтенд показал заглушку)
-        return res.json({ success: false, avatar: null, message: 'Failed to fetch avatar' });
-    }
-});
-
-// НОВЫЙ ЭНДПОИНТ: ПРОВЕРКА ПОДПИСКИ И НАЧИСЛЕНИЕ НАГРАДЫ
-app.post('/api/check-subscription', async (req, res) => {
-    const { userId, channelUsername, questId } = req.body;
-    const BOT_TOKEN = process.env.BOT_TOKEN;
-    
-    if (!BOT_TOKEN) {
-        return res.status(500).json({ error: 'BOT_TOKEN not configured' });
-    }
-    
-    try {
-        // Получаем telegram_id пользователя из базы
-        const user = await db.query('SELECT telegram_id FROM users WHERE id = $1', [userId]);
-        if (!user.rows[0]) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-        
-        const telegramId = user.rows[0].telegram_id;
-        
-        // Получаем информацию о квесте
-        const quest = await db.query('SELECT * FROM quests WHERE id = $1', [questId]);
-        if (quest.rows.length === 0) {
-            return res.status(404).json({ error: 'Quest not found' });
-        }
-        
-        // Проверяем, не выполнял ли пользователь это задание ранее
-        const existingCompletion = await db.query(
-            'SELECT * FROM completions WHERE user_id = $1 AND quest_id = $2 AND status = $3',
-            [userId, questId, 'completed']
-        );
-        
-        if (existingCompletion.rows.length > 0) {
-            return res.json({ success: false, message: 'Вы уже выполнили это задание' });
-        }
-        
-        // Проверяем, подписан ли пользователь на канал
-        const response = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember`, {
-            params: {
-                chat_id: `@${channelUsername}`,
-                user_id: telegramId
-            }
-        });
-        
-        const status = response.data.result.status;
-        const isMember = ['creator', 'administrator', 'member'].includes(status);
-        
-        if (isMember) {
-            const reward = quest.rows[0].reward;
-            
-            // Начисляем Stars пользователю
-            await db.query('UPDATE users SET stars_balance = stars_balance + $1 WHERE id = $2', [reward, userId]);
-            
-            // Уменьшаем бюджет квеста
-            await db.query('UPDATE quests SET remaining = remaining - $1 WHERE id = $2', [reward, questId]);
-            
-            // Записываем выполнение
-            await db.query(
-                'INSERT INTO completions (user_id, quest_id, screenshot_url, status) VALUES ($1, $2, $3, $4)',
-                [userId, questId, 'auto_verified', 'completed']
-            );
-            
-            return res.json({ success: true, message: `✅ Вы получили ${reward} Stars!` });
-        } else {
-            return res.json({ success: false, message: '❌ Вы не подписаны на канал. Подпишитесь и попробуйте снова.' });
-        }
-    } catch (error) {
-        console.error('Subscription check error:', error);
-        
-        // Если бот не является администратором канала
-        if (error.response?.data?.description?.includes('bot is not a member')) {
-            return res.status(500).json({ error: 'Бот не добавлен в администраторы канала' });
-        }
-        
-        res.status(500).json({ error: 'Failed to check subscription' });
-    }
-});
-// ПОЛУЧЕНИЕ ВЫПОЛНЕННЫХ ЗАДАНИЙ ПОЛЬЗОВАТЕЛЯ
-app.get('/api/user/:userId/completions', async (req, res) => {
-    try {
-        const completions = await db.query(
-            'SELECT quest_id FROM completions WHERE user_id = $1 AND status = $2',
-            [req.params.userId, 'completed']
-        );
-        res.json(completions.rows);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-// ПОЛУЧЕНИЕ ЗАДАНИЙ, СОЗДАННЫХ ПОЛЬЗОВАТЕЛЕМ
-app.get('/api/user/:userId/quests', async (req, res) => {
-    try {
-        const quests = await db.query(
-            'SELECT * FROM quests WHERE advertiser_id = $1 ORDER BY created_at DESC',
-            [req.params.userId]
-        );
-        res.json(quests.rows);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Avatar fetch error:', error.message);
+        res.status(500).json({ success: false, error: 'Failed to fetch channel data' });
     }
 });
 
