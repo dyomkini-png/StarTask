@@ -146,10 +146,9 @@ app.get('/api/user/:userId/completions', async (req, res) => {
 });
 
 // СОЗДАНИЕ ЗАДАНИЯ
+// СОЗДАНИЕ ЗАДАНИЯ (статус pending, ждёт модерации)
 app.post('/api/create-quest', async (req, res) => {
     const { userId, title, description, reward, targetUrl } = req.body;
-    
-    console.log('📝 Create quest request:', { userId, title, description, reward, targetUrl });
     
     if (!userId || !title || !description || !reward || !targetUrl) {
         return res.status(400).json({ error: 'Все поля обязательны' });
@@ -161,14 +160,14 @@ app.post('/api/create-quest', async (req, res) => {
             return res.status(404).json({ error: 'Пользователь не найден' });
         }
         
+        // Создаём задание со статусом 'pending'
         const newQuest = await db.query(
             `INSERT INTO quests (advertiser_id, title, description, reward, reward_type, type, target_url, budget, remaining, status) 
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-            [userId, title, description, reward, 'stars', 'subscription', targetUrl, 10000, 10000, 'active']
+            [userId, title, description, reward, 'stars', 'subscription', targetUrl, 10000, 10000, 'pending']
         );
         
-        console.log('✅ Quest created:', newQuest.rows[0]);
-        res.json({ success: true, quest: newQuest.rows[0] });
+        res.json({ success: true, message: 'Задание отправлено на модерацию', quest: newQuest.rows[0] });
     } catch (error) {
         console.error('Create quest error:', error);
         res.status(500).json({ error: 'Ошибка создания задания: ' + error.message });
@@ -305,6 +304,68 @@ app.get('/api/channel/avatar/:username', async (req, res) => {
     } catch (error) {
         console.error('Avatar fetch error:', error.message);
         res.status(500).json({ success: false, error: 'Failed to fetch channel data' });
+    }
+});
+// ========== АДМИН-ПАНЕЛЬ ==========
+
+// Получение всех заданий на модерацию
+app.get('/api/admin/pending-quests', async (req, res) => {
+    try {
+        const quests = await db.query(
+            `SELECT q.*, u.username as creator_name, u.telegram_id as creator_telegram_id
+             FROM quests q
+             JOIN users u ON q.advertiser_id = u.id
+             WHERE q.status = 'pending'
+             ORDER BY q.created_at ASC`
+        );
+        res.json(quests.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Одобрение задания
+app.post('/api/admin/approve-quest/:questId', async (req, res) => {
+    const { questId } = req.params;
+    const { adminId } = req.body;
+    
+    // Проверка, что adminId — это мой Telegram ID
+    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID; 
+    
+    if (adminId !== parseInt(ADMIN_ID)) {
+        return res.status(403).json({ error: 'Доступ запрещён' });
+    }
+    
+    try {
+        await db.query(
+            'UPDATE quests SET status = $1 WHERE id = $2',
+            ['active', questId]
+        );
+        res.json({ success: true, message: 'Задание одобрено и опубликовано' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Отклонение задания
+app.post('/api/admin/reject-quest/:questId', async (req, res) => {
+    const { questId } = req.params;
+    const { adminId, reason } = req.body;
+    
+    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
+    
+    if (adminId !== parseInt(ADMIN_ID)) {
+        return res.status(403).json({ error: 'Доступ запрещён' });
+    }
+    
+    try {
+        await db.query(
+            'UPDATE quests SET status = $1 WHERE id = $2',
+            ['rejected', questId]
+        );
+        res.json({ success: true, message: 'Задание отклонено' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 

@@ -1,6 +1,108 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
+// АДМИН-ПАНЕЛЬ (только для вас)
+const AdminPanel = ({ onClose }) => {
+    const [pendingQuests, setPendingQuests] = useState([]);
+    const [loading, setLoading] = useState(true);
+    
+    useEffect(() => {
+        fetchPendingQuests();
+    }, []);
+    
+    const fetchPendingQuests = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/api/admin/pending-quests`);
+            setPendingQuests(response.data);
+        } catch (error) {
+            console.error('Error fetching pending quests:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    const approveQuest = async (questId) => {
+        try {
+            await axios.post(`${API_URL}/api/admin/approve-quest/${questId}`, {
+                adminId: window.Telegram.WebApp.initDataUnsafe?.user?.id
+            });
+            fetchPendingQuests();
+            window.Telegram.WebApp.showPopup({
+                title: '✅ Одобрено',
+                message: 'Задание опубликовано',
+                buttons: [{ type: 'ok' }]
+            });
+        } catch (error) {
+            console.error('Error approving quest:', error);
+        }
+    };
+    
+    const rejectQuest = async (questId) => {
+        window.Telegram.WebApp.showPopup({
+            title: '❌ Отклонить',
+            message: 'Укажите причину отклонения:',
+            buttons: [{ type: 'ok', text: 'Отправить' }, { type: 'cancel', text: 'Отмена' }]
+        }, async () => {
+            // В реальном проекте здесь нужно получить текст причины
+            try {
+                await axios.post(`${API_URL}/api/admin/reject-quest/${questId}`, {
+                    adminId: window.Telegram.WebApp.initDataUnsafe?.user?.id,
+                    reason: 'Не соответствует правилам платформы'
+                });
+                fetchPendingQuests();
+                window.Telegram.WebApp.showPopup({
+                    title: '❌ Отклонено',
+                    message: 'Задание отклонено',
+                    buttons: [{ type: 'ok' }]
+                });
+            } catch (error) {
+                console.error('Error rejecting quest:', error);
+            }
+        });
+    };
+    
+    if (loading) return <div style={styles.loadingContainer}>Загрузка...</div>;
+    
+    return (
+        <div style={styles.modalOverlay}>
+            <div style={styles.adminPanel}>
+                <div style={styles.formHeader}>
+                    <h3>🛡️ Модерация заданий</h3>
+                    <button onClick={onClose} style={styles.closeBtn}>✕</button>
+                </div>
+                {pendingQuests.length === 0 ? (
+                    <p style={{ color: 'white', textAlign: 'center' }}>Нет заданий на модерацию</p>
+                ) : (
+                    pendingQuests.map(quest => (
+                        <div key={quest.id} style={styles.adminQuestCard}>
+                            <div>
+                                <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
+                                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
+                                    {quest.description}
+                                </p>
+                                <p style={{ fontSize: '11px', color: '#FF2D95' }}>
+                                    +{quest.reward} ⭐ | от @{quest.creator_name}
+                                </p>
+                                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                                    Ссылка: {quest.target_url}
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                <button onClick={() => approveQuest(quest.id)} style={styles.approveBtn}>
+                                    ✅ Одобрить
+                                </button>
+                                <button onClick={() => rejectQuest(quest.id)} style={styles.rejectBtn}>
+                                    ❌ Отклонить
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+};
+
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
 
 function App() {
@@ -318,7 +420,12 @@ function App() {
                     <button onClick={() => setShowCreateForm(true)} style={styles.createQuestBtn}>
                         ✨ Создать задание
                     </button>
-
+                    
+                    {user?.telegram_id === 123456789 && ( // замените на ваш ID
+    <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
+        🛡️ Админ-панель
+    </button>
+)}
                     {myQuests.length > 0 && (
                         <div style={styles.myQuestsSection}>
                             <h3 style={styles.myQuestsTitle}>Мои задания</h3>
@@ -1226,6 +1333,52 @@ const styles = {
         fontWeight: '600',
         cursor: 'pointer',
         fontSize: '16px'
+    },
+    adminPanel: {
+        background: 'rgba(10,10,30,0.98)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '28px',
+        padding: '20px',
+        width: '90%',
+        maxWidth: '400px',
+        maxHeight: '80vh',
+        overflowY: 'auto',
+        border: '1px solid rgba(0,212,255,0.3)'
+    },
+    adminQuestCard: {
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: '16px',
+        padding: '12px',
+        marginBottom: '12px'
+    },
+    approveBtn: {
+        background: 'rgba(0,212,255,0.2)',
+        border: '1px solid rgba(0,212,255,0.5)',
+        borderRadius: '20px',
+        padding: '6px 12px',
+        color: '#00D4FF',
+        cursor: 'pointer',
+        fontSize: '12px'
+    },
+    rejectBtn: {
+        background: 'rgba(255,45,149,0.2)',
+        border: '1px solid rgba(255,45,149,0.5)',
+        borderRadius: '20px',
+        padding: '6px 12px',
+        color: '#FF2D95',
+        cursor: 'pointer',
+        fontSize: '12px'
+    },
+    adminBtn: {
+        width: '100%',
+        padding: '12px',
+        background: 'rgba(255,45,149,0.2)',
+        border: '1px solid rgba(255,45,149,0.5)',
+        borderRadius: '40px',
+        color: '#FF2D95',
+        fontWeight: '600',
+        cursor: 'pointer',
+        marginTop: '20px'
     }
 };
 
