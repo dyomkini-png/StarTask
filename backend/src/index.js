@@ -119,7 +119,7 @@ app.get('/api/quests', async (req, res) => {
     }
 });
 
-// ЗАДАНИЯ, СОЗДАННЫЕ ПОЛЬЗОВАТЕЛЕМ
+// ПОЛУЧЕНИЕ ЗАДАНИЙ ПОЛЬЗОВАТЕЛЯ ПО СТАТУСАМ
 app.get('/api/user/:userId/quests', async (req, res) => {
     try {
         const quests = await db.query(

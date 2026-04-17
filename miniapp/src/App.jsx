@@ -7,7 +7,8 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.ap
 const AdminPanel = ({ onClose, userId }) => {
     const [pendingQuests, setPendingQuests] = useState([]);
     const [loading, setLoading] = useState(true);
-    
+    const [questStatusFilter, setQuestStatusFilter] = useState('pending');
+
     useEffect(() => {
         fetchPendingQuests();
     }, []);
@@ -458,21 +459,54 @@ function App() {
 )}
                     
                     {myQuests.length > 0 && (
-                        <div style={styles.myQuestsSection}>
-                            <h3 style={styles.myQuestsTitle}>Мои задания</h3>
-                            {myQuests.map(quest => (
-                                <div key={quest.id} style={styles.myQuestCard}>
-                                    <div style={styles.myQuestIcon}>📢</div>
-                                    <div style={styles.myQuestContent}>
-                                        <h4>{quest.title}</h4>
-                                        <p>{quest.description}</p>
-                                        <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
-                                    </div>
-                                </div>
-                            ))}
+    <div style={styles.myQuestsSection}>
+        <h3 style={styles.myQuestsTitle}>Мои задания</h3>
+        
+        {/* Вкладки статусов */}
+        <div style={styles.questStatusTabs}>
+            <button 
+                onClick={() => setQuestStatusFilter('pending')} 
+                style={questStatusFilter === 'pending' ? styles.questStatusTabActive : styles.questStatusTab}>
+                ⏳ На модерации ({myQuests.filter(q => q.status === 'pending').length})
+            </button>
+            <button 
+                onClick={() => setQuestStatusFilter('active')} 
+                style={questStatusFilter === 'active' ? styles.questStatusTabActive : styles.questStatusTab}>
+                ✅ Принято ({myQuests.filter(q => q.status === 'active').length})
+            </button>
+            <button 
+                onClick={() => setQuestStatusFilter('rejected')} 
+                style={questStatusFilter === 'rejected' ? styles.questStatusTabActive : styles.questStatusTab}>
+                ❌ Отклонено ({myQuests.filter(q => q.status === 'rejected').length})
+            </button>
+        </div>
+        
+        {/* Список заданий по выбранному статусу */}
+        {myQuests.filter(q => q.status === questStatusFilter).length === 0 ? (
+            <div style={styles.emptyMyQuests}>
+                <p>Нет заданий в этой категории</p>
+            </div>
+        ) : (
+            myQuests.filter(q => q.status === questStatusFilter).map(quest => (
+                <div key={quest.id} style={styles.myQuestCard}>
+                    <div style={styles.myQuestIcon}>📢</div>
+                    <div style={styles.myQuestContent}>
+                        <h4>{quest.title}</h4>
+                        <p>{quest.description}</p>
+                        <div style={styles.myQuestFooter}>
+                            <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
+                            <span style={styles.myQuestStatus}>
+                                {quest.status === 'pending' && '⏳ На модерации'}
+                                {quest.status === 'active' && '✅ Опубликовано'}
+                                {quest.status === 'rejected' && '❌ Отклонено'}
+                            </span>
                         </div>
-                    )}
+                    </div>
                 </div>
+            ))
+        )}
+    </div>
+)}
 
                 {/* ФОРМА СОЗДАНИЯ ЗАДАНИЯ */}
                 {showCreateForm && (
@@ -1414,6 +1448,55 @@ const styles = {
         fontSize: '14px',
         width: '100%',
         marginBottom: '16px'
+    },
+        questStatusTabs: {
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '16px',
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: '40px',
+        padding: '4px'
+    },
+    questStatusTab: {
+        flex: 1,
+        padding: '8px',
+        background: 'transparent',
+        border: 'none',
+        borderRadius: '40px',
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: '11px',
+        cursor: 'pointer'
+    },
+    questStatusTabActive: {
+        flex: 1,
+        padding: '8px',
+        background: 'rgba(0, 212, 255, 0.15)',
+        border: 'none',
+        borderRadius: '40px',
+        color: '#00D4FF',
+        fontSize: '11px',
+        fontWeight: '600',
+        cursor: 'pointer'
+    },
+    myQuestFooter: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: '8px'
+    },
+    myQuestStatus: {
+        fontSize: '11px',
+        padding: '3px 8px',
+        borderRadius: '20px',
+        background: 'rgba(0,0,0,0.3)'
+    },
+    emptyMyQuests: {
+        textAlign: 'center',
+        padding: '30px',
+        background: 'rgba(255,255,255,0.03)',
+        borderRadius: '16px',
+        color: 'rgba(255,255,255,0.4)',
+        fontSize: '13px'
     }
 };
 
