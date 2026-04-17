@@ -417,6 +417,11 @@ function App() {
                     <p style={styles.profileUsername}>@{user?.username}</p>
                     <p style={styles.profileId}>ID: {user?.telegram_id}</p>
                     
+                    {/* ВРЕМЕННАЯ ДИАГНОСТИКА */}
+    <p style={{ color: '#FF2D95', fontSize: '12px', marginTop: '10px' }}>
+        Твой ID: {user?.telegram_id} | Ожидаемый админ ID: 850997324
+    </p>
+
                     <div style={styles.profileBalances}>
                         <div style={styles.profileBalanceCard}>
                             <span>⭐ Stars</span>
