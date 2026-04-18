@@ -205,35 +205,22 @@ const AdminPanel = ({ onClose, userId }) => {
     <button onClick={async () => {
         const tg = window.Telegram.WebApp;
         
-        // ШАГ 1: Подтверждение
         tg.showPopup({
             title: '⚠️ Снять задание',
             message: `ID: ${quest.id}\nЗадание будет скрыто из ленты. Продолжить?`,
             buttons: [{ type: 'ok', text: '✅ Да' }, { type: 'cancel', text: '❌ Нет' }]
         }, async (buttonId) => {
-            tg.showPopup({ title: '🔍 ШАГ 1', message: `Выбрана кнопка: ${buttonId}`, buttons: [{ type: 'ok' }] });
-            
-            if (buttonId === 'ok') {
-                tg.showPopup({ title: '🔍 ШАГ 2', message: 'Начинаем отправку запроса...', buttons: [{ type: 'ok' }] });
+            // Исправлено: кнопка "ok" возвращает 0
+            if (buttonId === 0 || buttonId === 'ok') {
+                tg.showPopup({ title: '⏳ Отправка...', message: 'Ждите', buttons: [] });
                 
                 try {
-                    tg.showPopup({ title: '🔍 ШАГ 3', message: `URL: ${API_URL}/api/admin/deactivate-quest/${quest.id}`, buttons: [{ type: 'ok' }] });
-                    
                     const response = await fetch(`${API_URL}/api/admin/deactivate-quest/${quest.id}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ adminId: Number(userId) })
                     });
-                    
-                    tg.showPopup({ title: '🔍 ШАГ 4', message: `Статус ответа: ${response.status}`, buttons: [{ type: 'ok' }] });
-                    
                     const data = await response.json();
-                    
-                    tg.showPopup({
-                        title: '🔍 ШАГ 5 - ОТВЕТ',
-                        message: JSON.stringify(data),
-                        buttons: [{ type: 'ok' }]
-                    });
                     
                     if (data.success) {
                         await fetchActiveQuests();
@@ -242,12 +229,10 @@ const AdminPanel = ({ onClose, userId }) => {
                         tg.showPopup({ title: '❌ Ошибка', message: data.error || 'Не удалось', buttons: [{ type: 'ok' }] });
                     }
                 } catch (err) {
-                    tg.showPopup({
-                        title: '❌ ОШИБКА',
-                        message: err.message,
-                        buttons: [{ type: 'ok' }]
-                    });
+                    tg.showPopup({ title: '❌ Ошибка', message: err.message, buttons: [{ type: 'ok' }] });
                 }
+            } else {
+                tg.showPopup({ title: 'Отмена', message: 'Действие отменено', buttons: [{ type: 'ok' }] });
             }
         });
     }} style={styles.deactivateBtn}>
