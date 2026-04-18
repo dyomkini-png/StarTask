@@ -69,46 +69,29 @@ const AdminPanel = ({ onClose, userId }) => {
         }
     };
     
-    const rejectQuest = (questId) => {
-        setCurrentQuestId(questId);
-        
-        const buttons = rejectReasons.map(reason => ({
-            id: reason,
-            type: 'default',
-            text: reason.length > 30 ? reason.substring(0, 27) + '...' : reason
-        }));
-        buttons.push({ id: 'cancel', type: 'cancel', text: 'Отмена' });
-        
-        window.Telegram.WebApp.showPopup({
-            title: '❌ Отклонить задание',
-            message: 'Выберите причину отклонения:',
-            buttons: buttons
-        }, async (buttonId) => {
-            if (buttonId !== 'cancel') {
-                try {
-                    const response = await axios.post(`${API_URL}/api/admin/reject-quest/${questId}`, {
-                        adminId: Number(userId),
-                        reason: buttonId
-                    });
-                    if (response.data.success) {
-                        fetchPendingQuests();
-                        window.Telegram.WebApp.showPopup({
-                            title: '❌ Отклонено',
-                            message: 'Задание отклонено',
-                            buttons: [{ type: 'ok' }]
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error rejecting quest:', error);
-                    window.Telegram.WebApp.showPopup({
-                        title: 'Ошибка',
-                        message: error.response?.data?.error || 'Не удалось отклонить задание',
-                        buttons: [{ type: 'ok' }]
-                    });
-                }
-            }
+    const rejectQuest = async (questId) => {
+    try {
+        const response = await axios.post(`${API_URL}/api/admin/reject-quest/${questId}`, {
+            adminId: Number(userId),
+            reason: 'Не соответствует правилам платформы'
         });
-    };
+        if (response.data.success) {
+            fetchPendingQuests();
+            window.Telegram.WebApp.showPopup({
+                title: '❌ Отклонено',
+                message: 'Задание отклонено',
+                buttons: [{ type: 'ok' }]
+            });
+        }
+    } catch (error) {
+        console.error('Error rejecting quest:', error);
+        window.Telegram.WebApp.showPopup({
+            title: 'Ошибка',
+            message: error.response?.data?.error || 'Не удалось отклонить задание',
+            buttons: [{ type: 'ok' }]
+        });
+    }
+};
     
     const deactivateQuest = (questId) => {
         window.Telegram.WebApp.showPopup({
