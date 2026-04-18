@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
 
-// АДМИН-ПАНЕЛЬ (компонент внутри файла, чтобы иметь доступ к API_URL)
+// АДМИН-ПАНЕЛЬ (компонент внутри файла)
 const AdminPanel = ({ onClose, userId }) => {
     const [pendingQuests, setPendingQuests] = useState([]);
     const [activeQuests, setActiveQuests] = useState([]);
@@ -215,53 +215,6 @@ const AdminPanel = ({ onClose, userId }) => {
             </div>
         </div>
     );
-};    
-    if (loading) return (
-        <div style={styles.modalOverlay}>
-            <div style={styles.adminPanel}>
-                <p style={{ color: 'white', textAlign: 'center' }}>Загрузка...</p>
-            </div>
-        </div>
-    );
-    
-    return (
-        <div style={styles.modalOverlay}>
-            <div style={styles.adminPanel}>
-                <div style={styles.formHeader}>
-                    <h3 style={{ color: 'white' }}>🛡️ Модерация заданий</h3>
-                    <button onClick={onClose} style={styles.closeBtn}>✕</button>
-                </div>
-                {pendingQuests.length === 0 ? (
-                    <p style={{ color: 'white', textAlign: 'center' }}>Нет заданий на модерацию</p>
-                ) : (
-                    pendingQuests.map(quest => (
-                        <div key={quest.id} style={styles.adminQuestCard}>
-                            <div>
-                                <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
-                                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
-                                    {quest.description}
-                                </p>
-                                <p style={{ fontSize: '11px', color: '#FF2D95' }}>
-                                    +{quest.reward} ⭐ | от @{quest.creator_name}
-                                </p>
-                                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                                    Ссылка: {quest.target_url}
-                                </p>
-                            </div>
-                            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                                <button onClick={() => approveQuest(quest.id)} style={styles.approveBtn}>
-                                    ✅ Одобрить
-                                </button>
-                                <button onClick={() => rejectQuest(quest.id)} style={styles.rejectBtn}>
-                                    ❌ Отклонить
-                                </button>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-        </div>
-    );
 };
 
 function App() {
@@ -280,7 +233,6 @@ function App() {
     const [showAdminPanel, setShowAdminPanel] = useState(false);
     const [questStatusFilter, setQuestStatusFilter] = useState('pending');
     
-    // Refs для формы создания задания
     const titleInput = useRef(null);
     const descInput = useRef(null);
     const rewardInput = useRef(null);
@@ -475,7 +427,6 @@ function App() {
                 fetchMyQuests(user.id);
                 fetchTasks(user.id);
                 
-                // Очищаем поля
                 titleInput.current.value = '';
                 descInput.current.value = '';
                 rewardInput.current.value = '';
@@ -528,7 +479,6 @@ function App() {
         );
     }
 
-    // СТРАНИЦА ПРОФИЛЯ
     if (showProfile) {
         return (
             <div style={styles.container}>
@@ -582,7 +532,6 @@ function App() {
                         ✨ Создать задание
                     </button>
                     
-                    {/* АДМИН-ПАНЕЛЬ — ВИДНА ТОЛЬКО АДМИНУ */}
                     {user?.telegram_id && String(user.telegram_id) === "850997324" && (
                         <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
                             🛡️ Админ-панель
@@ -632,7 +581,6 @@ function App() {
                     )}
                 </div>
 
-                {/* ФОРМА СОЗДАНИЯ ЗАДАНИЯ */}
                 {showCreateForm && (
                     <div style={styles.modalOverlay}>
                         <div style={styles.createForm}>
@@ -640,37 +588,15 @@ function App() {
                                 <h3 style={{ color: 'white' }}>✨ Создать задание</h3>
                                 <button onClick={() => setShowCreateForm(false)} style={styles.closeBtn}>✕</button>
                             </div>
-                            <input 
-                                type="text" 
-                                placeholder="Ссылка на канал (t.me/...)" 
-                                style={styles.formInput}
-                                ref={channelInput}
-                            />
-                            <input 
-                                type="text" 
-                                placeholder="Название задания" 
-                                style={styles.formInput}
-                                ref={titleInput}
-                            />
-                            <textarea 
-                                placeholder="Описание задания" 
-                                style={styles.formTextarea}
-                                ref={descInput}
-                            />
-                            <input 
-                                type="number" 
-                                placeholder="Награда (Stars)" 
-                                style={styles.formInput}
-                                ref={rewardInput}
-                            />
-                            <button onClick={createQuest} style={styles.submitBtn}>
-                                ➕ Создать
-                            </button>
+                            <input type="text" placeholder="Ссылка на канал (t.me/...)" style={styles.formInput} ref={channelInput} />
+                            <input type="text" placeholder="Название задания" style={styles.formInput} ref={titleInput} />
+                            <textarea placeholder="Описание задания" style={styles.formTextarea} ref={descInput} />
+                            <input type="number" placeholder="Награда (Stars)" style={styles.formInput} ref={rewardInput} />
+                            <button onClick={createQuest} style={styles.submitBtn}>➕ Создать</button>
                         </div>
                     </div>
                 )}
 
-                {/* АДМИН-ПАНЕЛЬ */}
                 {showAdminPanel && (
                     <AdminPanel onClose={() => setShowAdminPanel(false)} userId={user?.telegram_id} />
                 )}
@@ -678,7 +604,6 @@ function App() {
         );
     }
 
-    // ОСНОВНАЯ СТРАНИЦА
     return (
         <div style={styles.container}>
             <div style={styles.backgroundGradient}></div>
@@ -762,10 +687,7 @@ function App() {
                                                     <p style={styles.taskDesc}>{task.description}</p>
                                                     <div style={styles.taskFooter}>
                                                         <span style={styles.taskReward}>+{task.reward} ⭐</span>
-                                                        <button 
-                                                            onClick={() => completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1])} 
-                                                            style={styles.taskButton}
-                                                        >
+                                                        <button onClick={() => completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1])} style={styles.taskButton}>
                                                             Выполнить →
                                                         </button>
                                                     </div>
@@ -1573,6 +1495,45 @@ const styles = {
         width: '100%',
         marginBottom: '16px'
     },
+    adminTabs: {
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '20px',
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: '40px',
+        padding: '4px'
+    },
+    adminTab: {
+        flex: 1,
+        padding: '10px',
+        background: 'transparent',
+        border: 'none',
+        borderRadius: '40px',
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: '13px',
+        cursor: 'pointer'
+    },
+    adminTabActive: {
+        flex: 1,
+        padding: '10px',
+        background: 'rgba(0, 212, 255, 0.15)',
+        border: 'none',
+        borderRadius: '40px',
+        color: '#00D4FF',
+        fontSize: '13px',
+        fontWeight: '600',
+        cursor: 'pointer'
+    },
+    deactivateBtn: {
+        background: 'rgba(255,45,149,0.2)',
+        border: '1px solid rgba(255,45,149,0.5)',
+        borderRadius: '20px',
+        padding: '6px 12px',
+        color: '#FF2D95',
+        cursor: 'pointer',
+        fontSize: '12px',
+        width: '100%'
+    },
     questStatusTabs: {
         display: 'flex',
         gap: '8px',
@@ -1621,45 +1582,6 @@ const styles = {
         borderRadius: '16px',
         color: 'rgba(255,255,255,0.4)',
         fontSize: '13px'
-    },
-        adminTabs: {
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '20px',
-        background: 'rgba(255,255,255,0.05)',
-        borderRadius: '40px',
-        padding: '4px'
-    },
-    adminTab: {
-        flex: 1,
-        padding: '10px',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '40px',
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: '13px',
-        cursor: 'pointer'
-    },
-    adminTabActive: {
-        flex: 1,
-        padding: '10px',
-        background: 'rgba(0, 212, 255, 0.15)',
-        border: 'none',
-        borderRadius: '40px',
-        color: '#00D4FF',
-        fontSize: '13px',
-        fontWeight: '600',
-        cursor: 'pointer'
-    },
-    deactivateBtn: {
-        background: 'rgba(255,45,149,0.2)',
-        border: '1px solid rgba(255,45,149,0.5)',
-        borderRadius: '20px',
-        padding: '6px 12px',
-        color: '#FF2D95',
-        cursor: 'pointer',
-        fontSize: '12px',
-        width: '100%'
     }
 };
 
