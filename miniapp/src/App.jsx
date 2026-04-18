@@ -244,7 +244,6 @@ const AdminPanel = ({ onClose, userId }) => {
                 </div>
             </div>
             
-            {/* Модальное окно выбора причины отклонения */}
             {showRejectModal && (
                 <div style={styles.modalOverlay}>
                     <div style={styles.rejectModal}>
@@ -1653,6 +1652,55 @@ const styles = {
         fontSize: '12px',
         width: '100%'
     },
+    questStatusTabs: {
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '16px',
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: '40px',
+        padding: '4px'
+    },
+    questStatusTab: {
+        flex: 1,
+        padding: '8px',
+        background: 'transparent',
+        border: 'none',
+        borderRadius: '40px',
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: '11px',
+        cursor: 'pointer'
+    },
+    questStatusTabActive: {
+        flex: 1,
+        padding: '8px',
+        background: 'rgba(0, 212, 255, 0.15)',
+        border: 'none',
+        borderRadius: '40px',
+        color: '#00D4FF',
+        fontSize: '11px',
+        fontWeight: '600',
+        cursor: 'pointer'
+    },
+    myQuestFooter: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: '8px'
+    },
+    myQuestStatus: {
+        fontSize: '11px',
+        padding: '3px 8px',
+        borderRadius: '20px',
+        background: 'rgba(0,0,0,0.3)'
+    },
+    emptyMyQuests: {
+        textAlign: 'center',
+        padding: '30px',
+        background: 'rgba(255,255,255,0.03)',
+        borderRadius: '16px',
+        color: 'rgba(255,255,255,0.4)',
+        fontSize: '13px'
+    },
     rejectModal: {
     background: 'rgba(20,20,40,0.98)',
     backdropFilter: 'blur(20px)',
@@ -1685,77 +1733,6 @@ rejectTextarea: {
     resize: 'vertical',
     boxSizing: 'border-box',
     minHeight: '80px'
-},
-    questStatusTabs: {
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '16px',
-        background: 'rgba(255,255,255,0.05)',
-        borderRadius: '40px',
-        padding: '4px'
-    },
-    questStatusTab: {
-        flex: 1,
-        padding: '8px',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '40px',
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: '11px',
-        cursor: 'pointer'
-    },
-        rejectModal: {
-        background: 'rgba(20,20,40,0.98)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '24px',
-        padding: '24px',
-        width: '320px',
-        border: '1px solid rgba(0,212,255,0.3)'
-    },
-    rejectTextarea: {
-        width: '100%',
-        padding: '12px',
-        marginBottom: '16px',
-        background: 'rgba(255,255,255,0.1)',
-        border: '1px solid rgba(0,212,255,0.3)',
-        borderRadius: '12px',
-        color: 'white',
-        fontSize: '14px',
-        fontFamily: 'inherit',
-        resize: 'vertical',
-        boxSizing: 'border-box'
-    },
-    questStatusTabActive: {
-        flex: 1,
-        padding: '8px',
-        background: 'rgba(0, 212, 255, 0.15)',
-        border: 'none',
-        borderRadius: '40px',
-        color: '#00D4FF',
-        fontSize: '11px',
-        fontWeight: '600',
-        cursor: 'pointer'
-    },
-    myQuestFooter: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: '8px'
-    },
-    myQuestStatus: {
-        fontSize: '11px',
-        padding: '3px 8px',
-        borderRadius: '20px',
-        background: 'rgba(0,0,0,0.3)'
-    },
-    emptyMyQuests: {
-        textAlign: 'center',
-        padding: '30px',
-        background: 'rgba(255,255,255,0.03)',
-        borderRadius: '16px',
-        color: 'rgba(255,255,255,0.4)',
-        fontSize: '13px'
-    }
 };
 
 const styleSheet = document.createElement("style");
