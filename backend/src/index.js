@@ -342,10 +342,9 @@ app.post('/api/admin/approve-quest/:questId', async (req, res) => {
     const { questId } = req.params;
     const { adminId } = req.body;
     
-    // Проверка, что adminId — это мой Telegram ID
-    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID; 
+    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
     
-    if (adminId !== parseInt(ADMIN_ID)) {
+    if (String(adminId) !== String(ADMIN_ID)) {
         return res.status(403).json({ error: 'Доступ запрещён' });
     }
     
@@ -367,7 +366,7 @@ app.post('/api/admin/reject-quest/:questId', async (req, res) => {
     
     const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
     
-    if (adminId !== parseInt(ADMIN_ID)) {
+    if (String(adminId) !== String(ADMIN_ID)) {
         return res.status(403).json({ error: 'Доступ запрещён' });
     }
     
@@ -389,7 +388,7 @@ app.post('/api/admin/deactivate-quest/:questId', async (req, res) => {
     
     const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
     
-    if (adminId !== parseInt(ADMIN_ID)) {
+    if (String(adminId) !== String(ADMIN_ID)) {
         return res.status(403).json({ error: 'Доступ запрещён' });
     }
     
@@ -405,11 +404,13 @@ app.post('/api/admin/deactivate-quest/:questId', async (req, res) => {
 });
 
 // ПОЛУЧЕНИЕ ВСЕХ АКТИВНЫХ ЗАДАНИЙ (для админа)
+// ПОЛУЧЕНИЕ ВСЕХ АКТИВНЫХ ЗАДАНИЙ (для админа)
 app.get('/api/admin/active-quests', async (req, res) => {
     const { adminId } = req.query;
     const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
     
-    if (adminId !== parseInt(ADMIN_ID)) {
+    // Приводим оба значения к строке для сравнения
+    if (String(adminId) !== String(ADMIN_ID)) {
         return res.status(403).json({ error: 'Доступ запрещён' });
     }
     
