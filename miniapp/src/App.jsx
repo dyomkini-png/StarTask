@@ -636,7 +636,7 @@ function App() {
                                     <p>Нет заданий в этой категории</p>
                                 </div>
                             ) : (
-                                {myQuests.filter(q => q.status === questStatusFilter).map(quest => (
+                                myQuests.filter(q => q.status === questStatusFilter).map(quest => (
     <div key={quest.id} style={styles.myQuestCard}>
         <div style={styles.myQuestIcon}>📢</div>
         <div style={styles.myQuestContent}>
