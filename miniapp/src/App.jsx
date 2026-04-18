@@ -201,38 +201,49 @@ const AdminPanel = ({ onClose, userId }) => {
                                             Выполнено: {quest.budget - quest.remaining} / {quest.budget}
                                         </p>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-    <button onClick={async () => {
+                                   <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+    <button onClick={() => {
         const tg = window.Telegram.WebApp;
         
+        // Показываем подтверждение
         tg.showPopup({
             title: '⚠️ Снять задание',
             message: `ID: ${quest.id}\nЗадание будет скрыто из ленты. Продолжить?`,
             buttons: [{ type: 'ok', text: '✅ Да' }, { type: 'cancel', text: '❌ Нет' }]
-        }, async (buttonId) => {
-            // В Telegram WebApp кнопка "ok" возвращает пустую строку ""
-            if (buttonId === "") {
-                tg.showPopup({ title: '⏳ Отправка...', message: 'Ждите', buttons: [] });
-                
-                try {
-                    const response = await fetch(`${API_URL}/api/admin/deactivate-quest/${quest.id}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ adminId: Number(userId) })
-                    });
-                    const data = await response.json();
-                    
+        }, (buttonId) => {
+            // В Telegram WebApp кнопка "ok" возвращает 0 или пустую строку
+            // Проверяем оба варианта и просто отсутствие отмены
+            if (buttonId !== 'cancel' && buttonId !== 1) {
+                // Отправляем запрос
+                fetch(`${API_URL}/api/admin/deactivate-quest/${quest.id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminId: Number(userId) })
+                })
+                .then(response => response.json())
+                .then(data => {
                     if (data.success) {
-                        await fetchActiveQuests();
-                        tg.showPopup({ title: '✅ Снято', message: 'Задание скрыто из ленты', buttons: [{ type: 'ok' }] });
+                        fetchActiveQuests();
+                        tg.showPopup({
+                            title: '✅ Снято',
+                            message: 'Задание скрыто из ленты пользователей',
+                            buttons: [{ type: 'ok' }]
+                        });
                     } else {
-                        tg.showPopup({ title: '❌ Ошибка', message: data.error || 'Не удалось', buttons: [{ type: 'ok' }] });
+                        tg.showPopup({
+                            title: '❌ Ошибка',
+                            message: data.error || 'Не удалось снять задание',
+                            buttons: [{ type: 'ok' }]
+                        });
                     }
-                } catch (err) {
-                    tg.showPopup({ title: '❌ Ошибка', message: err.message, buttons: [{ type: 'ok' }] });
-                }
-            } else {
-                tg.showPopup({ title: 'Отмена', message: 'Действие отменено', buttons: [{ type: 'ok' }] });
+                })
+                .catch(err => {
+                    tg.showPopup({
+                        title: '❌ Ошибка',
+                        message: err.message,
+                        buttons: [{ type: 'ok' }]
+                    });
+                });
             }
         });
     }} style={styles.deactivateBtn}>
