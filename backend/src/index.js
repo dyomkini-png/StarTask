@@ -359,7 +359,7 @@ app.post('/api/admin/approve-quest/:questId', async (req, res) => {
     }
 });
 
-// Отклонение задания
+// Отклонение задания с причиной
 app.post('/api/admin/reject-quest/:questId', async (req, res) => {
     const { questId } = req.params;
     const { adminId, reason } = req.body;
@@ -372,8 +372,8 @@ app.post('/api/admin/reject-quest/:questId', async (req, res) => {
     
     try {
         await db.query(
-            'UPDATE quests SET status = $1 WHERE id = $2',
-            ['rejected', questId]
+            'UPDATE quests SET status = $1, rejection_reason = $2 WHERE id = $3',
+            ['rejected', reason || 'Не указана', questId]
         );
         res.json({ success: true, message: 'Задание отклонено' });
     } catch (error) {
