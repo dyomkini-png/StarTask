@@ -218,6 +218,14 @@ const AdminPanel = ({ onClose, userId }) => {
                         body: JSON.stringify({ adminId: Number(userId) })
                     });
                     const data = await response.json();
+                    
+                    // ПОКАЗЫВАЕМ ОТВЕТ СЕРВЕРА
+                    tg.showPopup({
+                        title: '📦 Ответ сервера',
+                        message: JSON.stringify(data, null, 2),
+                        buttons: [{ type: 'ok' }]
+                    });
+                    
                     if (data.success) {
                         await fetchActiveQuests();
                         tg.showPopup({ title: '✅ Снято', message: 'Задание скрыто из ленты', buttons: [{ type: 'ok' }] });
@@ -225,15 +233,18 @@ const AdminPanel = ({ onClose, userId }) => {
                         tg.showPopup({ title: '❌ Ошибка', message: data.error || 'Не удалось', buttons: [{ type: 'ok' }] });
                     }
                 } catch (err) {
-                    tg.showPopup({ title: '❌ Ошибка', message: err.message, buttons: [{ type: 'ok' }] });
+                    tg.showPopup({
+                        title: '❌ Ошибка запроса',
+                        message: err.message,
+                        buttons: [{ type: 'ok' }]
+                    });
                 }
             }
         });
     }} style={styles.deactivateBtn}>
         ❌ Снять с публикации
     </button>
-</div>
-                                </div>
+</div>                                </div>
                             ))
                         )}
                     </>
