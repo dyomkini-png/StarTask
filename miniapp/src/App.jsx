@@ -9,6 +9,9 @@ const AdminPanel = ({ onClose, userId }) => {
     const [loading, setLoading] = useState(true);
     const [adminTab, setAdminTab] = useState('pending');
     const [currentQuestId, setCurrentQuestId] = useState(null);
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [selectedRejectReason, setSelectedRejectReason] = useState('');
+    const [customRejectReason, setCustomRejectReason] = useState('');
     
     const rejectReasons = [
         'Не соответствует правилам платформы',
@@ -69,29 +72,50 @@ const AdminPanel = ({ onClose, userId }) => {
         }
     };
     
-    const rejectQuest = async (questId) => {
-    try {
-        const response = await axios.post(`${API_URL}/api/admin/reject-quest/${questId}`, {
-            adminId: Number(userId),
-            reason: 'Не соответствует правилам платформы'
-        });
-        if (response.data.success) {
-            fetchPendingQuests();
+    const openRejectModal = (questId) => {
+        setCurrentQuestId(questId);
+        setSelectedRejectReason('');
+        setCustomRejectReason('');
+        setShowRejectModal(true);
+    };
+    
+    const handleRejectSubmit = async () => {
+        const finalReason = selectedRejectReason === 'Другая причина' 
+            ? customRejectReason 
+            : selectedRejectReason;
+            
+        if (!finalReason) {
             window.Telegram.WebApp.showPopup({
-                title: '❌ Отклонено',
-                message: 'Задание отклонено',
+                title: 'Ошибка',
+                message: 'Пожалуйста, выберите или укажите причину отклонения',
+                buttons: [{ type: 'ok' }]
+            });
+            return;
+        }
+        
+        try {
+            const response = await axios.post(`${API_URL}/api/admin/reject-quest/${currentQuestId}`, {
+                adminId: Number(userId),
+                reason: finalReason
+            });
+            if (response.data.success) {
+                fetchPendingQuests();
+                setShowRejectModal(false);
+                window.Telegram.WebApp.showPopup({
+                    title: '❌ Отклонено',
+                    message: 'Задание отклонено',
+                    buttons: [{ type: 'ok' }]
+                });
+            }
+        } catch (error) {
+            console.error('Error rejecting quest:', error);
+            window.Telegram.WebApp.showPopup({
+                title: 'Ошибка',
+                message: error.response?.data?.error || 'Не удалось отклонить задание',
                 buttons: [{ type: 'ok' }]
             });
         }
-    } catch (error) {
-        console.error('Error rejecting quest:', error);
-        window.Telegram.WebApp.showPopup({
-            title: 'Ошибка',
-            message: error.response?.data?.error || 'Не удалось отклонить задание',
-            buttons: [{ type: 'ok' }]
-        });
-    }
-};
+    };
     
     const deactivateQuest = (questId) => {
         window.Telegram.WebApp.showPopup({
@@ -135,54 +159,145 @@ const AdminPanel = ({ onClose, userId }) => {
     }
     
     return (
-        <div style={styles.modalOverlay}>
-            <div style={styles.adminPanel}>
-                <div style={styles.formHeader}>
-                    <h3 style={{ color: 'white' }}>🛡️ Админ-панель</h3>
-                    <button onClick={onClose} style={styles.closeBtn}>✕</button>
-                </div>
-                
-                <div style={styles.adminTabs}>
-                    <button onClick={() => setAdminTab('pending')} style={adminTab === 'pending' ? styles.adminTabActive : styles.adminTab}>
-                        ⏳ На модерации ({pendingQuests.length})
-                    </button>
-                    <button onClick={() => setAdminTab('active')} style={adminTab === 'active' ? styles.adminTabActive : styles.adminTab}>
-                        ✅ Активные ({activeQuests.length})
-                    </button>
-                </div>
-                
-                {adminTab === 'pending' && (
-                    <>
-                        {pendingQuests.length === 0 ? (
-                            <p style={{ color: 'white', textAlign: 'center' }}>Нет заданий на модерацию</p>
-                        ) : (
-                            pendingQuests.map(quest => (
-                                <div key={quest.id} style={styles.adminQuestCard}>
-                                    <div>
-                                        <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
-                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
-                                            {quest.description}
-                                        </p>
-                                        <p style={{ fontSize: '11px', color: '#FF2D95' }}>
-                                            +{quest.reward} ⭐ | от @{quest.creator_name}
-                                        </p>
-                                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                                            Ссылка: {quest.target_url}
-                                        </p>
+        <>
+            <div style={styles.modalOverlay}>
+                <div style={styles.adminPanel}>
+                    <div style={styles.formHeader}>
+                        <h3 style={{ color: 'white' }}>🛡️ Админ-панель</h3>
+                        <button onClick={onClose} style={styles.closeBtn}>✕</button>
+                    </div>
+                    
+                    <div style={styles.adminTabs}>
+                        <button onClick={() => setAdminTab('pending')} style={adminTab === 'pending' ? styles.adminTabActive : styles.adminTab}>
+                            ⏳ На модерации ({pendingQuests.length})
+                        </button>
+                        <button onClick={() => setAdminTab('active')} style={adminTab === 'active' ? styles.adminTabActive : styles.adminTab}>
+                            ✅ Активные ({activeQuests.length})
+                        </button>
+                    </div>
+                    
+                    {adminTab === 'pending' && (
+                        <>
+                            {pendingQuests.length === 0 ? (
+                                <p style={{ color: 'white', textAlign: 'center' }}>Нет заданий на модерацию</p>
+                            ) : (
+                                pendingQuests.map(quest => (
+                                    <div key={quest.id} style={styles.adminQuestCard}>
+                                        <div>
+                                            <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
+                                            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
+                                                {quest.description}
+                                            </p>
+                                            <p style={{ fontSize: '11px', color: '#FF2D95' }}>
+                                                +{quest.reward} ⭐ | от @{quest.creator_name}
+                                            </p>
+                                            <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                                                Ссылка: {quest.target_url}
+                                            </p>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                            <button onClick={() => approveQuest(quest.id)} style={styles.approveBtn}>
+                                                ✅ Одобрить
+                                            </button>
+                                            <button onClick={() => openRejectModal(quest.id)} style={styles.rejectBtn}>
+                                                ❌ Отклонить
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                                        <button onClick={() => approveQuest(quest.id)} style={styles.approveBtn}>
-                                            ✅ Одобрить
-                                        </button>
-                                        <button onClick={() => rejectQuest(quest.id)} style={styles.rejectBtn}>
-                                            ❌ Отклонить
-                                        </button>
+                                ))
+                            )}
+                        </>
+                    )}
+                    
+                    {adminTab === 'active' && (
+                        <>
+                            {activeQuests.length === 0 ? (
+                                <p style={{ color: 'white', textAlign: 'center' }}>Нет активных заданий</p>
+                            ) : (
+                                activeQuests.map(quest => (
+                                    <div key={quest.id} style={styles.adminQuestCard}>
+                                        <div>
+                                            <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
+                                            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
+                                                {quest.description}
+                                            </p>
+                                            <p style={{ fontSize: '11px', color: '#FF2D95' }}>
+                                                +{quest.reward} ⭐ | от @{quest.creator_name}
+                                            </p>
+                                            <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                                                Ссылка: {quest.target_url}
+                                            </p>
+                                            <p style={{ fontSize: '10px', color: '#4ECDC4' }}>
+                                                Выполнено: {quest.budget - quest.remaining} / {quest.budget}
+                                            </p>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                            <button onClick={() => deactivateQuest(quest.id)} style={styles.deactivateBtn}>
+                                                ❌ Снять с публикации
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            ))
+                                ))
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+            
+            {/* Модальное окно выбора причины отклонения */}
+            {showRejectModal && (
+                <div style={styles.modalOverlay}>
+                    <div style={styles.rejectModal}>
+                        <div style={styles.formHeader}>
+                            <h3 style={{ color: 'white' }}>❌ Причина отклонения</h3>
+                            <button onClick={() => setShowRejectModal(false)} style={styles.closeBtn}>✕</button>
+                        </div>
+                        
+                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', marginBottom: '16px' }}>
+                            Выберите причину из списка или укажите свою:
+                        </p>
+                        
+                        <select 
+                            value={selectedRejectReason}
+                            onChange={(e) => setSelectedRejectReason(e.target.value)}
+                            style={styles.rejectSelect}
+                        >
+                            <option value="">-- Выберите причину --</option>
+                            {rejectReasons.map((reason, index) => (
+                                <option key={index} value={reason}>{reason}</option>
+                            ))}
+                        </select>
+                        
+                        {selectedRejectReason === 'Другая причина' && (
+                            <textarea
+                                placeholder="Укажите причину отклонения..."
+                                value={customRejectReason}
+                                onChange={(e) => setCustomRejectReason(e.target.value)}
+                                style={styles.rejectTextarea}
+                                rows={3}
+                            />
                         )}
-                    </>
-                )}
+                        
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                            <button 
+                                onClick={() => setShowRejectModal(false)} 
+                                style={{...styles.rejectBtn, flex: 1}}
+                            >
+                                Отмена
+                            </button>
+                            <button 
+                                onClick={handleRejectSubmit} 
+                                style={{...styles.approveBtn, flex: 1, background: 'rgba(255,45,149,0.3)', color: '#FF2D95' }}
+                            >
+                                Отклонить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+};
                 
                 {adminTab === 'active' && (
                     <>
@@ -1538,6 +1653,39 @@ const styles = {
         fontSize: '12px',
         width: '100%'
     },
+    rejectModal: {
+    background: 'rgba(20,20,40,0.98)',
+    backdropFilter: 'blur(20px)',
+    borderRadius: '24px',
+    padding: '24px',
+    width: '320px',
+    border: '1px solid rgba(0,212,255,0.3)'
+},
+rejectSelect: {
+    width: '100%',
+    padding: '12px',
+    marginBottom: '16px',
+    background: 'rgba(255,255,255,0.1)',
+    border: '1px solid rgba(0,212,255,0.3)',
+    borderRadius: '12px',
+    color: 'white',
+    fontSize: '14px',
+    boxSizing: 'border-box',
+    cursor: 'pointer'
+},
+rejectTextarea: {
+    width: '100%',
+    padding: '12px',
+    background: 'rgba(255,255,255,0.1)',
+    border: '1px solid rgba(0,212,255,0.3)',
+    borderRadius: '12px',
+    color: 'white',
+    fontSize: '14px',
+    fontFamily: 'inherit',
+    resize: 'vertical',
+    boxSizing: 'border-box',
+    minHeight: '80px'
+},
     questStatusTabs: {
         display: 'flex',
         gap: '8px',
