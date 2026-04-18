@@ -8,18 +8,17 @@ const AdminPanel = ({ onClose, userId }) => {
     const [activeQuests, setActiveQuests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [adminTab, setAdminTab] = useState('pending');
-    const [showRejectModal, setShowRejectModal] = useState(false);
-    const [rejectReason, setRejectReason] = useState('');
     const [currentQuestId, setCurrentQuestId] = useState(null);
+    
     const rejectReasons = [
-    '❌ Не соответствует правилам платформы',
-    '📢 Ссылка на канал недействительна',
-    '🎯 Неправильный тип задания',
-    '📝 Описание не соответствует действительности',
-    '💰 Слишком высокая/низкая награда',
-    '🔄 Дубликат существующего задания',
-    '🚫 Другая причина'
-];
+        'Не соответствует правилам платформы',
+        'Ссылка на канал недействительна',
+        'Неправильный тип задания',
+        'Описание не соответствует действительности',
+        'Слишком высокая/низкая награда',
+        'Дубликат существующего задания',
+        'Другая причина'
+    ];
 
     useEffect(() => {
         fetchPendingQuests();
@@ -71,49 +70,47 @@ const AdminPanel = ({ onClose, userId }) => {
     };
     
     const rejectQuest = (questId) => {
-    setCurrentQuestId(questId);
-    
-    // Создаём кнопки из списка причин
-    const buttons = rejectReasons.map(reason => ({
-        id: reason,
-        type: 'default',
-        text: reason.length > 30 ? reason.substring(0, 27) + '...' : reason
-    }));
-    
-    // Добавляем кнопку отмены
-    buttons.push({ id: 'cancel', type: 'cancel', text: 'Отмена' });
-    
-    window.Telegram.WebApp.showPopup({
-        title: '❌ Отклонить задание',
-        message: 'Выберите причину отклонения:',
-        buttons: buttons
-    }, async (buttonId) => {
-        if (buttonId !== 'cancel') {
-            try {
-                const response = await axios.post(`${API_URL}/api/admin/reject-quest/${questId}`, {
-                    adminId: Number(userId),
-                    reason: buttonId
-                });
-                if (response.data.success) {
-                    fetchPendingQuests();
+        setCurrentQuestId(questId);
+        
+        const buttons = rejectReasons.map(reason => ({
+            id: reason,
+            type: 'default',
+            text: reason.length > 30 ? reason.substring(0, 27) + '...' : reason
+        }));
+        buttons.push({ id: 'cancel', type: 'cancel', text: 'Отмена' });
+        
+        window.Telegram.WebApp.showPopup({
+            title: '❌ Отклонить задание',
+            message: 'Выберите причину отклонения:',
+            buttons: buttons
+        }, async (buttonId) => {
+            if (buttonId !== 'cancel') {
+                try {
+                    const response = await axios.post(`${API_URL}/api/admin/reject-quest/${questId}`, {
+                        adminId: Number(userId),
+                        reason: buttonId
+                    });
+                    if (response.data.success) {
+                        fetchPendingQuests();
+                        window.Telegram.WebApp.showPopup({
+                            title: '❌ Отклонено',
+                            message: 'Задание отклонено',
+                            buttons: [{ type: 'ok' }]
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error rejecting quest:', error);
                     window.Telegram.WebApp.showPopup({
-                        title: '❌ Отклонено',
-                        message: 'Задание отклонено',
+                        title: 'Ошибка',
+                        message: error.response?.data?.error || 'Не удалось отклонить задание',
                         buttons: [{ type: 'ok' }]
                     });
                 }
-            } catch (error) {
-                console.error('Error rejecting quest:', error);
-                window.Telegram.WebApp.showPopup({
-                    title: 'Ошибка',
-                    message: error.response?.data?.error || 'Не удалось отклонить задание',
-                    buttons: [{ type: 'ok' }]
-                });
             }
-        }
-    });
-};    
-    const deactivateQuest = async (questId) => {
+        });
+    };
+    
+    const deactivateQuest = (questId) => {
         window.Telegram.WebApp.showPopup({
             title: '⚠️ Снять с публикации',
             message: 'Задание будет скрыто из ленты пользователей. Продолжить?',
@@ -144,15 +141,12 @@ const AdminPanel = ({ onClose, userId }) => {
         });
     };
     
-        if (loading) {
+    if (loading) {
         return (
             <div style={styles.modalOverlay}>
                 <div style={styles.adminPanel}>
                     <p style={{ color: 'white', textAlign: 'center' }}>Загрузка...</p>
                 </div>
-                                    </div>
-    </div>
-)}
             </div>
         );
     }
@@ -229,45 +223,12 @@ const AdminPanel = ({ onClose, userId }) => {
                                             Выполнено: {quest.budget - quest.remaining} / {quest.budget}
                                         </p>
                                     </div>
-                                   <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-    <button onClick={() => {
-        const tg = window.Telegram.WebApp;
-        
-        // Отправляем запрос напрямую, без лишних проверок
-        fetch(`${API_URL}/api/admin/deactivate-quest/${quest.id}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminId: Number(userId) })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Обновляем список активных заданий
-                fetchActiveQuests();
-                tg.showPopup({
-                    title: '✅ Снято',
-                    message: 'Задание скрыто из ленты пользователей',
-                    buttons: [{ type: 'ok' }]
-                });
-            } else {
-                tg.showPopup({
-                    title: '❌ Ошибка',
-                    message: data.error || 'Не удалось снять задание',
-                    buttons: [{ type: 'ok' }]
-                });
-            }
-        })
-        .catch(err => {
-            tg.showPopup({
-                title: '❌ Ошибка',
-                message: err.message,
-                buttons: [{ type: 'ok' }]
-            });
-        });
-    }} style={styles.deactivateBtn}>
-        ❌ Снять с публикации
-    </button>
-</div>                                </div>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                        <button onClick={() => deactivateQuest(quest.id)} style={styles.deactivateBtn}>
+                                            ❌ Снять с публикации
+                                        </button>
+                                    </div>
+                                </div>
                             ))
                         )}
                     </>
