@@ -197,47 +197,37 @@ const AdminPanel = ({ onClose, userId }) => {
                 )}
                 
                 {adminTab === 'active' && (
-                    <>
-                        {activeQuests.length === 0 ? (
-                            <p style={{ color: 'white', textAlign: 'center' }}>Нет активных заданий</p>
-                        ) : (
-                            activeQuests.map(quest => (
-                                <div key={quest.id} style={styles.adminQuestCard}>
-                                    <div>
-                                        <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
-                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
-                                            {quest.description}
-                                        </p>
-                                        <p style={{ fontSize: '11px', color: '#FF2D95' }}>
-                                            +{quest.reward} ⭐ | от @{quest.creator_name}
-                                        </p>
-                                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                                            Ссылка: {quest.target_url}
-                                        </p>
-                                        <p style={{ fontSize: '10px', color: '#4ECDC4' }}>
-                                            Выполнено: {quest.budget - quest.remaining} / {quest.budget}
-                                        </p>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                                       <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-    <button onClick={() => {
-        window.Telegram.WebApp.showPopup({
-            title: 'Тест',
-            message: 'Кнопка сработала! ID: ' + quest.id,
-            buttons: [{ type: 'ok' }]
-        });
-    }} style={styles.deactivateBtn}>
-        🧪 ТЕСТ КНОПКИ
-    </button>
-</div>                                </div>
-                            ))
-                        )}
-                    </>
-                )}
-            </div>
-        </div>
-    );
-};
+    <>
+        {activeQuests.length === 0 ? (
+            <p style={{ color: 'white', textAlign: 'center' }}>Нет активных заданий</p>
+        ) : (
+            activeQuests.map(quest => (
+                <div key={quest.id} style={styles.adminQuestCard}>
+                    <div>
+                        <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
+                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
+                            {quest.description}
+                        </p>
+                        <p style={{ fontSize: '11px', color: '#FF2D95' }}>
+                            +{quest.reward} ⭐ | от @{quest.creator_name}
+                        </p>
+                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                            Ссылка: {quest.target_url}
+                        </p>
+                        <p style={{ fontSize: '10px', color: '#4ECDC4' }}>
+                            Выполнено: {quest.budget - quest.remaining} / {quest.budget}
+                        </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                        <button onClick={() => deactivateQuest(quest.id)} style={styles.deactivateBtn}>
+                            ❌ Снять с публикации
+                        </button>
+                    </div>
+                </div>
+            ))
+        )}
+    </>
+)}
 
 function App() {
     const [user, setUser] = useState(null);
