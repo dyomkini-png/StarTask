@@ -7,8 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.ap
 const AdminPanel = ({ onClose, userId }) => {
     const [pendingQuests, setPendingQuests] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [questStatusFilter, setQuestStatusFilter] = useState('pending');
-
+    
     useEffect(() => {
         fetchPendingQuests();
     }, []);
@@ -148,6 +147,7 @@ function App() {
     const [showProfile, setShowProfile] = useState(false);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [showAdminPanel, setShowAdminPanel] = useState(false);
+    const [questStatusFilter, setQuestStatusFilter] = useState('pending');
     
     // Refs для формы создания задания
     const titleInput = useRef(null);
@@ -453,60 +453,53 @@ function App() {
                     
                     {/* АДМИН-ПАНЕЛЬ — ВИДНА ТОЛЬКО АДМИНУ */}
                     {user?.telegram_id && String(user.telegram_id) === "850997324" && (
-    <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
-        🛡️ Админ-панель
-    </button>
-)}
+                        <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
+                            🛡️ Админ-панель
+                        </button>
+                    )}
                     
                     {myQuests.length > 0 && (
-    <div style={styles.myQuestsSection}>
-        <h3 style={styles.myQuestsTitle}>Мои задания</h3>
-        
-        {/* Вкладки статусов */}
-        <div style={styles.questStatusTabs}>
-            <button 
-                onClick={() => setQuestStatusFilter('pending')} 
-                style={questStatusFilter === 'pending' ? styles.questStatusTabActive : styles.questStatusTab}>
-                ⏳ На модерации ({myQuests.filter(q => q.status === 'pending').length})
-            </button>
-            <button 
-                onClick={() => setQuestStatusFilter('active')} 
-                style={questStatusFilter === 'active' ? styles.questStatusTabActive : styles.questStatusTab}>
-                ✅ Принято ({myQuests.filter(q => q.status === 'active').length})
-            </button>
-            <button 
-                onClick={() => setQuestStatusFilter('rejected')} 
-                style={questStatusFilter === 'rejected' ? styles.questStatusTabActive : styles.questStatusTab}>
-                ❌ Отклонено ({myQuests.filter(q => q.status === 'rejected').length})
-            </button>
-        </div>
-        
-        {/* Список заданий по выбранному статусу */}
-        {myQuests.filter(q => q.status === questStatusFilter).length === 0 ? (
-            <div style={styles.emptyMyQuests}>
-                <p>Нет заданий в этой категории</p>
-            </div>
-        ) : (
-            myQuests.filter(q => q.status === questStatusFilter).map(quest => (
-                <div key={quest.id} style={styles.myQuestCard}>
-                    <div style={styles.myQuestIcon}>📢</div>
-                    <div style={styles.myQuestContent}>
-                        <h4>{quest.title}</h4>
-                        <p>{quest.description}</p>
-                        <div style={styles.myQuestFooter}>
-                            <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
-                            <span style={styles.myQuestStatus}>
-                                {quest.status === 'pending' && '⏳ На модерации'}
-                                {quest.status === 'active' && '✅ Опубликовано'}
-                                {quest.status === 'rejected' && '❌ Отклонено'}
-                            </span>
+                        <div style={styles.myQuestsSection}>
+                            <h3 style={styles.myQuestsTitle}>Мои задания</h3>
+                            
+                            <div style={styles.questStatusTabs}>
+                                <button onClick={() => setQuestStatusFilter('pending')} style={questStatusFilter === 'pending' ? styles.questStatusTabActive : styles.questStatusTab}>
+                                    ⏳ На модерации ({myQuests.filter(q => q.status === 'pending').length})
+                                </button>
+                                <button onClick={() => setQuestStatusFilter('active')} style={questStatusFilter === 'active' ? styles.questStatusTabActive : styles.questStatusTab}>
+                                    ✅ Принято ({myQuests.filter(q => q.status === 'active').length})
+                                </button>
+                                <button onClick={() => setQuestStatusFilter('rejected')} style={questStatusFilter === 'rejected' ? styles.questStatusTabActive : styles.questStatusTab}>
+                                    ❌ Отклонено ({myQuests.filter(q => q.status === 'rejected').length})
+                                </button>
+                            </div>
+                            
+                            {myQuests.filter(q => q.status === questStatusFilter).length === 0 ? (
+                                <div style={styles.emptyMyQuests}>
+                                    <p>Нет заданий в этой категории</p>
+                                </div>
+                            ) : (
+                                myQuests.filter(q => q.status === questStatusFilter).map(quest => (
+                                    <div key={quest.id} style={styles.myQuestCard}>
+                                        <div style={styles.myQuestIcon}>📢</div>
+                                        <div style={styles.myQuestContent}>
+                                            <h4>{quest.title}</h4>
+                                            <p>{quest.description}</p>
+                                            <div style={styles.myQuestFooter}>
+                                                <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
+                                                <span style={styles.myQuestStatus}>
+                                                    {quest.status === 'pending' && '⏳ На модерации'}
+                                                    {quest.status === 'active' && '✅ Опубликовано'}
+                                                    {quest.status === 'rejected' && '❌ Отклонено'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
-                    </div>
+                    )}
                 </div>
-            ))
-        )}
-    </div>
-)}
 
                 {/* ФОРМА СОЗДАНИЯ ЗАДАНИЯ */}
                 {showCreateForm && (
@@ -1499,6 +1492,7 @@ const styles = {
         fontSize: '13px'
     }
 };
+
 const styleSheet = document.createElement("style");
 styleSheet.textContent = `
     html, body, #root {
