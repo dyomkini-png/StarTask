@@ -386,19 +386,29 @@ app.post('/api/admin/deactivate-quest/:questId', async (req, res) => {
     const { questId } = req.params;
     const { adminId } = req.body;
     
+    console.log('📥 Deactivate quest:', { questId, adminId });
+
     const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
     
     if (String(adminId) !== String(ADMIN_ID)) {
+        console.log('❌ Access denied');
         return res.status(403).json({ error: 'Доступ запрещён' });
     }
     
     try {
-        await db.query(
-            'UPDATE quests SET status = $1 WHERE id = $2',
+        const result = await db.query(
+            'UPDATE quests SET status = $1 WHERE id = $2 RETURNING *',
             ['inactive', questId]
         );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Задание не найдено' });
+        }
+        
+        console.log('✅ Quest deactivated:', result.rows[0]);
         res.json({ success: true, message: 'Задание снято с публикации' });
     } catch (error) {
+        console.error('Error deactivating quest:', error);
         res.status(500).json({ error: error.message });
     }
 });
