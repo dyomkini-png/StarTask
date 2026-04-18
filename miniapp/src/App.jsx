@@ -1672,7 +1672,7 @@ const styles = {
         width: '100%',
         padding: '12px',
         marginBottom: '16px',
-        background: 'rgba(255,255,255,0.1)',
+        background: 'rgba(20,20,40,0.95)',
         border: '1px solid rgba(0,212,255,0.3)',
         borderRadius: '12px',
         color: 'white',
@@ -1702,6 +1702,14 @@ styleSheet.textContent = `
         padding: 0;
         height: 100%;
         background: #050510;
+    }
+    select, select option {
+    background: rgba(20, 20, 40, 0.95);
+    color: white;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    }
+    select option {
+        padding: 8px;
     }
     button {
         -webkit-tap-highlight-color: transparent;
