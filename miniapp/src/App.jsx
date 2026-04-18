@@ -219,11 +219,17 @@ const AdminPanel = ({ onClose, userId }) => {
                                         </p>
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                                        <button onClick={() => deactivateQuest(quest.id)} style={styles.deactivateBtn}>
-                                            ❌ Снять с публикации
-                                        </button>
-                                    </div>
-                                </div>
+                                       <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+    <button onClick={() => {
+        window.Telegram.WebApp.showPopup({
+            title: 'Тест',
+            message: 'Кнопка сработала! ID: ' + quest.id,
+            buttons: [{ type: 'ok' }]
+        });
+    }} style={styles.deactivateBtn}>
+        🧪 ТЕСТ КНОПКИ
+    </button>
+</div>                                </div>
                             ))
                         )}
                     </>
