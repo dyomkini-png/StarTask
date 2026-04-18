@@ -8,7 +8,10 @@ const AdminPanel = ({ onClose, userId }) => {
     const [activeQuests, setActiveQuests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [adminTab, setAdminTab] = useState('pending');
-    
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [rejectReason, setRejectReason] = useState('');
+    const [currentQuestId, setCurrentQuestId] = useState(null);
+
     useEffect(() => {
         fetchPendingQuests();
         fetchActiveQuests();
@@ -58,50 +61,44 @@ const AdminPanel = ({ onClose, userId }) => {
         }
     };
     
-    const rejectQuest = async (questId) => {
-    const tg = window.Telegram.WebApp;
+    const rejectQuest = (questId) => {
+    setCurrentQuestId(questId);
+    setRejectReason('');
+    setShowRejectModal(true);
+};
+
+const confirmReject = async () => {
+    if (!rejectReason.trim()) {
+        window.Telegram.WebApp.showPopup({
+            title: 'Ошибка',
+            message: 'Укажите причину отклонения',
+            buttons: [{ type: 'ok' }]
+        });
+        return;
+    }
     
-    // Показываем попап для ввода причины
-    tg.showPopup({
-        title: '❌ Отклонить задание',
-        message: 'Введите причину отклонения:',
-        buttons: [{ type: 'ok', text: 'Отправить' }, { type: 'cancel', text: 'Отмена' }]
-    }, async (buttonId) => {
-        if (buttonId === 'ok' || buttonId === 0 || buttonId === '') {
-            // Запрашиваем текст причины через второй попап (упрощённо)
-            tg.showPopup({
-                title: 'Причина отклонения',
-                message: 'Напишите причину (макс 200 символов):',
-                buttons: [{ type: 'ok', text: 'Отправить' }]
-            }, async () => {
-                // В реальном проекте здесь нужно поле ввода
-                // Пока используем заглушку
-                const reason = 'Не соответствует правилам платформы';
-                
-                try {
-                    const response = await axios.post(`${API_URL}/api/admin/reject-quest/${questId}`, {
-                        adminId: Number(userId),
-                        reason: reason
-                    });
-                    if (response.data.success) {
-                        fetchPendingQuests();
-                        tg.showPopup({
-                            title: '❌ Отклонено',
-                            message: 'Задание отклонено',
-                            buttons: [{ type: 'ok' }]
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error rejecting quest:', error);
-                    tg.showPopup({
-                        title: 'Ошибка',
-                        message: error.response?.data?.error || 'Не удалось отклонить задание',
-                        buttons: [{ type: 'ok' }]
-                    });
-                }
+    try {
+        const response = await axios.post(`${API_URL}/api/admin/reject-quest/${currentQuestId}`, {
+            adminId: Number(userId),
+            reason: rejectReason
+        });
+        if (response.data.success) {
+            fetchPendingQuests();
+            setShowRejectModal(false);
+            window.Telegram.WebApp.showPopup({
+                title: '❌ Отклонено',
+                message: 'Задание отклонено',
+                buttons: [{ type: 'ok' }]
             });
         }
-    });
+    } catch (error) {
+        console.error('Error rejecting quest:', error);
+        window.Telegram.WebApp.showPopup({
+            title: 'Ошибка',
+            message: error.response?.data?.error || 'Не удалось отклонить задание',
+            buttons: [{ type: 'ok' }]
+        });
+    }
 };    
     const deactivateQuest = async (questId) => {
         window.Telegram.WebApp.showPopup({
@@ -139,6 +136,23 @@ const AdminPanel = ({ onClose, userId }) => {
             <div style={styles.modalOverlay}>
                 <div style={styles.adminPanel}>
                     <p style={{ color: 'white', textAlign: 'center' }}>Загрузка...</p>
+                    {showRejectModal && (
+    <div style={styles.modalOverlay}>
+        <div style={styles.rejectModal}>
+            <div style={styles.formHeader}>
+                <h3 style={{ color: 'white' }}>❌ Отклонить задание</h3>
+                <button onClick={() => setShowRejectModal(false)} style={styles.closeBtn}>✕</button>
+            </div>
+            <textarea
+                placeholder="Укажите причину отклонения..."
+                style={styles.rejectTextarea}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={4}
+            />
+            <button onClick={confirmReject} style={styles.submitBtn}>
+                Отправить
+            </button>
                 </div>
             </div>
         );
@@ -1598,6 +1612,27 @@ const styles = {
         color: 'rgba(255,255,255,0.5)',
         fontSize: '11px',
         cursor: 'pointer'
+    },
+        rejectModal: {
+        background: 'rgba(20,20,40,0.98)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '24px',
+        padding: '24px',
+        width: '320px',
+        border: '1px solid rgba(0,212,255,0.3)'
+    },
+    rejectTextarea: {
+        width: '100%',
+        padding: '12px',
+        marginBottom: '16px',
+        background: 'rgba(255,255,255,0.1)',
+        border: '1px solid rgba(0,212,255,0.3)',
+        borderRadius: '12px',
+        color: 'white',
+        fontSize: '14px',
+        fontFamily: 'inherit',
+        resize: 'vertical',
+        boxSizing: 'border-box'
     },
     questStatusTabActive: {
         flex: 1,
