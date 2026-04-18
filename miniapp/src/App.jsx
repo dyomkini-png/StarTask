@@ -3,7 +3,6 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
 
-// АДМИН-ПАНЕЛЬ (компонент внутри файла)
 const AdminPanel = ({ onClose, userId }) => {
     const [pendingQuests, setPendingQuests] = useState([]);
     const [activeQuests, setActiveQuests] = useState([]);
@@ -90,52 +89,36 @@ const AdminPanel = ({ onClose, userId }) => {
     };
     
     const deactivateQuest = async (questId) => {
-    window.Telegram.WebApp.showPopup({
-        title: '⚠️ Снять с публикации',
-        message: 'Задание будет скрыто из ленты пользователей. Продолжить?',
-        buttons: [{ type: 'ok', text: 'Да, снять' }, { type: 'cancel', text: 'Отмена' }]
-    }, async (buttonId) => {
-        if (buttonId === 'ok') {
-            // Показываем, что начали обработку
-            window.Telegram.WebApp.showPopup({
-                title: '⏳ Обработка',
-                message: 'Отправляем запрос на сервер...',
-                buttons: [{ type: 'ok' }]
-            });
-            
-            try {
-                console.log('Sending request to:', `${API_URL}/api/admin/deactivate-quest/${questId}`);
-                const response = await axios.post(`${API_URL}/api/admin/deactivate-quest/${questId}`, {
-                    adminId: Number(userId)
-                });
-                
-                console.log('Response:', response.data);
-                
-                if (response.data.success) {
-                    await fetchActiveQuests();
-                    window.Telegram.WebApp.showPopup({
-                        title: '✅ Снято',
-                        message: 'Задание скрыто из ленты пользователей',
-                        buttons: [{ type: 'ok' }]
+        window.Telegram.WebApp.showPopup({
+            title: '⚠️ Снять с публикации',
+            message: 'Задание будет скрыто из ленты пользователей. Продолжить?',
+            buttons: [{ type: 'ok', text: 'Да, снять' }, { type: 'cancel', text: 'Отмена' }]
+        }, async (buttonId) => {
+            if (buttonId === 'ok') {
+                try {
+                    const response = await axios.post(`${API_URL}/api/admin/deactivate-quest/${questId}`, {
+                        adminId: Number(userId)
                     });
-                } else {
+                    if (response.data.success) {
+                        await fetchActiveQuests();
+                        window.Telegram.WebApp.showPopup({
+                            title: '✅ Снято',
+                            message: 'Задание скрыто из ленты пользователей',
+                            buttons: [{ type: 'ok' }]
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error deactivating quest:', error);
                     window.Telegram.WebApp.showPopup({
-                        title: '❌ Ошибка',
-                        message: response.data.error || 'Не удалось снять задание',
+                        title: 'Ошибка',
+                        message: error.response?.data?.error || 'Не удалось снять задание',
                         buttons: [{ type: 'ok' }]
                     });
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                window.Telegram.WebApp.showPopup({
-                    title: '❌ Ошибка запроса',
-                    message: error.message || 'Не удалось отправить запрос',
-                    buttons: [{ type: 'ok' }]
-                });
             }
-        }
-    });
-};    
+        });
+    };
+    
     if (loading) {
         return (
             <div style={styles.modalOverlay}>
@@ -197,37 +180,41 @@ const AdminPanel = ({ onClose, userId }) => {
                 )}
                 
                 {adminTab === 'active' && (
-    <>
-        {activeQuests.length === 0 ? (
-            <p style={{ color: 'white', textAlign: 'center' }}>Нет активных заданий</p>
-        ) : (
-            activeQuests.map(quest => (
-                <div key={quest.id} style={styles.adminQuestCard}>
-                    <div>
-                        <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
-                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
-                            {quest.description}
-                        </p>
-                        <p style={{ fontSize: '11px', color: '#FF2D95' }}>
-                            +{quest.reward} ⭐ | от @{quest.creator_name}
-                        </p>
-                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                            Ссылка: {quest.target_url}
-                        </p>
-                        <p style={{ fontSize: '10px', color: '#4ECDC4' }}>
-                            Выполнено: {quest.budget - quest.remaining} / {quest.budget}
-                        </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                        <button onClick={() => deactivateQuest(quest.id)} style={styles.deactivateBtn}>
-                            ❌ Снять с публикации
-                        </button>
-                    </div>
-                </div>
-            ))
-        )}
-    </>
-)}
+                    <>
+                        {activeQuests.length === 0 ? (
+                            <p style={{ color: 'white', textAlign: 'center' }}>Нет активных заданий</p>
+                        ) : (
+                            activeQuests.map(quest => (
+                                <div key={quest.id} style={styles.adminQuestCard}>
+                                    <div>
+                                        <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
+                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
+                                            {quest.description}
+                                        </p>
+                                        <p style={{ fontSize: '11px', color: '#FF2D95' }}>
+                                            +{quest.reward} ⭐ | от @{quest.creator_name}
+                                        </p>
+                                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                                            Ссылка: {quest.target_url}
+                                        </p>
+                                        <p style={{ fontSize: '10px', color: '#4ECDC4' }}>
+                                            Выполнено: {quest.budget - quest.remaining} / {quest.budget}
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                        <button onClick={() => deactivateQuest(quest.id)} style={styles.deactivateBtn}>
+                                            ❌ Снять с публикации
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};
 
 function App() {
     const [user, setUser] = useState(null);
