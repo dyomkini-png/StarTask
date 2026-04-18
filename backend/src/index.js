@@ -360,6 +360,7 @@ app.post('/api/admin/approve-quest/:questId', async (req, res) => {
 });
 
 // Отклонение задания с причиной
+// Отклонение задания (с сохранением причины)
 app.post('/api/admin/reject-quest/:questId', async (req, res) => {
     const { questId } = req.params;
     const { adminId, reason } = req.body;
