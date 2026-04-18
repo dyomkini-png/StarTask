@@ -90,35 +90,42 @@ const AdminPanel = ({ onClose, userId }) => {
     };
     
     const deactivateQuest = async (questId) => {
-        window.Telegram.WebApp.showPopup({
-            title: '⚠️ Снять с публикации',
-            message: 'Задание будет скрыто из ленты пользователей. Продолжить?',
-            buttons: [{ type: 'ok', text: 'Да, снять' }, { type: 'cancel', text: 'Отмена' }]
-        }, async (buttonId) => {
-            if (buttonId === 'ok') {
-                try {
-                    const response = await axios.post(`${API_URL}/api/admin/deactivate-quest/${questId}`, {
-                        adminId: Number(userId)
+    window.Telegram.WebApp.showPopup({
+        title: '⚠️ Снять с публикации',
+        message: 'Задание будет скрыто из ленты пользователей. Продолжить?',
+        buttons: [{ type: 'ok', text: 'Да, снять' }, { type: 'cancel', text: 'Отмена' }]
+    }, async (buttonId) => {
+        if (buttonId === 'ok') {
+            try {
+                const response = await axios.post(`${API_URL}/api/admin/deactivate-quest/${questId}`, {
+                    adminId: Number(userId)
+                });
+                console.log('Deactivate response:', response.data);
+                if (response.data.success) {
+                    await fetchActiveQuests();  // Обновляем список активных заданий
+                    window.Telegram.WebApp.showPopup({
+                        title: '✅ Снято',
+                        message: 'Задание скрыто из ленты пользователей',
+                        buttons: [{ type: 'ok' }]
                     });
-                    if (response.data.success) {
-                        fetchActiveQuests();
-                        window.Telegram.WebApp.showPopup({
-                            title: '✅ Снято',
-                            message: 'Задание скрыто из ленты пользователей',
-                            buttons: [{ type: 'ok' }]
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error deactivating quest:', error);
+                } else {
                     window.Telegram.WebApp.showPopup({
                         title: 'Ошибка',
-                        message: error.response?.data?.error || 'Не удалось снять задание',
+                        message: response.data.error || 'Не удалось снять задание',
                         buttons: [{ type: 'ok' }]
                     });
                 }
+            } catch (error) {
+                console.error('Error deactivating quest:', error);
+                window.Telegram.WebApp.showPopup({
+                    title: 'Ошибка',
+                    message: error.response?.data?.error || 'Не удалось снять задание',
+                    buttons: [{ type: 'ok' }]
+                });
             }
-        });
-    };
+        }
+    });
+};
     
     if (loading) {
         return (
