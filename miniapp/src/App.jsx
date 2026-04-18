@@ -210,10 +210,15 @@ const AdminPanel = ({ onClose, userId }) => {
             message: `ID: ${quest.id}\nЗадание будет скрыто из ленты. Продолжить?`,
             buttons: [{ type: 'ok', text: '✅ Да' }, { type: 'cancel', text: '❌ Нет' }]
         }, async (buttonId) => {
-            // Исправлено: кнопка "ok" возвращает 0
+            // Показываем, что вернула кнопка
+            tg.showPopup({
+                title: '🔍 Диагностика',
+                message: `buttonId = ${buttonId} (тип: ${typeof buttonId})`,
+                buttons: [{ type: 'ok' }]
+            });
+            
             if (buttonId === 0 || buttonId === 'ok') {
-                tg.showPopup({ title: '⏳ Отправка...', message: 'Ждите', buttons: [] });
-                
+                tg.showPopup({ title: '✅ Успех', message: 'Отправляем запрос...', buttons: [{ type: 'ok' }] });
                 try {
                     const response = await fetch(`${API_URL}/api/admin/deactivate-quest/${quest.id}`, {
                         method: 'POST',
@@ -221,18 +226,15 @@ const AdminPanel = ({ onClose, userId }) => {
                         body: JSON.stringify({ adminId: Number(userId) })
                     });
                     const data = await response.json();
-                    
                     if (data.success) {
                         await fetchActiveQuests();
                         tg.showPopup({ title: '✅ Снято', message: 'Задание скрыто из ленты', buttons: [{ type: 'ok' }] });
-                    } else {
-                        tg.showPopup({ title: '❌ Ошибка', message: data.error || 'Не удалось', buttons: [{ type: 'ok' }] });
                     }
                 } catch (err) {
                     tg.showPopup({ title: '❌ Ошибка', message: err.message, buttons: [{ type: 'ok' }] });
                 }
             } else {
-                tg.showPopup({ title: 'Отмена', message: 'Действие отменено', buttons: [{ type: 'ok' }] });
+                tg.showPopup({ title: '❌ Отмена', message: 'Действие отменено', buttons: [{ type: 'ok' }] });
             }
         });
     }} style={styles.deactivateBtn}>
