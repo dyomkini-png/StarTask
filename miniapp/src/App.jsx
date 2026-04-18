@@ -131,29 +131,32 @@ const confirmReject = async () => {
         });
     };
     
-    if (loading) {
+        if (loading) {
         return (
             <div style={styles.modalOverlay}>
                 <div style={styles.adminPanel}>
                     <p style={{ color: 'white', textAlign: 'center' }}>Загрузка...</p>
-                    {showRejectModal && (
-    <div style={styles.modalOverlay}>
-        <div style={styles.rejectModal}>
-            <div style={styles.formHeader}>
-                <h3 style={{ color: 'white' }}>❌ Отклонить задание</h3>
-                <button onClick={() => setShowRejectModal(false)} style={styles.closeBtn}>✕</button>
-            </div>
-            <textarea
-                placeholder="Укажите причину отклонения..."
-                style={styles.rejectTextarea}
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                rows={4}
-            />
-            <button onClick={confirmReject} style={styles.submitBtn}>
-                Отправить
-            </button>
                 </div>
+                            {showRejectModal && (
+                    <div style={styles.modalOverlay}>
+                        <div style={styles.rejectModal}>
+                            <div style={styles.formHeader}>
+                                <h3 style={{ color: 'white' }}>❌ Отклонить задание</h3>
+                                <button onClick={() => setShowRejectModal(false)} style={styles.closeBtn}>✕</button>
+                            </div>
+                            <textarea
+                                placeholder="Укажите причину отклонения..."
+                                style={styles.rejectTextarea}
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                rows={4}
+                            />
+                            <button onClick={confirmReject} style={styles.submitBtn}>
+                                Отправить
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
