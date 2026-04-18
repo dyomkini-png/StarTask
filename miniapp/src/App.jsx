@@ -1449,7 +1449,7 @@ const styles = {
         width: '100%',
         marginBottom: '16px'
     },
-        questStatusTabs: {
+    questStatusTabs: {
         display: 'flex',
         gap: '8px',
         marginBottom: '16px',
@@ -1499,7 +1499,6 @@ const styles = {
         fontSize: '13px'
     }
 };
-
 const styleSheet = document.createElement("style");
 styleSheet.textContent = `
     html, body, #root {
