@@ -96,13 +96,23 @@ const AdminPanel = ({ onClose, userId }) => {
         buttons: [{ type: 'ok', text: 'Да, снять' }, { type: 'cancel', text: 'Отмена' }]
     }, async (buttonId) => {
         if (buttonId === 'ok') {
+            // Показываем, что начали обработку
+            window.Telegram.WebApp.showPopup({
+                title: '⏳ Обработка',
+                message: 'Отправляем запрос на сервер...',
+                buttons: [{ type: 'ok' }]
+            });
+            
             try {
+                console.log('Sending request to:', `${API_URL}/api/admin/deactivate-quest/${questId}`);
                 const response = await axios.post(`${API_URL}/api/admin/deactivate-quest/${questId}`, {
                     adminId: Number(userId)
                 });
-                console.log('Deactivate response:', response.data);
+                
+                console.log('Response:', response.data);
+                
                 if (response.data.success) {
-                    await fetchActiveQuests();  // Обновляем список активных заданий
+                    await fetchActiveQuests();
                     window.Telegram.WebApp.showPopup({
                         title: '✅ Снято',
                         message: 'Задание скрыто из ленты пользователей',
@@ -110,23 +120,22 @@ const AdminPanel = ({ onClose, userId }) => {
                     });
                 } else {
                     window.Telegram.WebApp.showPopup({
-                        title: 'Ошибка',
+                        title: '❌ Ошибка',
                         message: response.data.error || 'Не удалось снять задание',
                         buttons: [{ type: 'ok' }]
                     });
                 }
             } catch (error) {
-                console.error('Error deactivating quest:', error);
+                console.error('Error:', error);
                 window.Telegram.WebApp.showPopup({
-                    title: 'Ошибка',
-                    message: error.response?.data?.error || 'Не удалось снять задание',
+                    title: '❌ Ошибка запроса',
+                    message: error.message || 'Не удалось отправить запрос',
                     buttons: [{ type: 'ok' }]
                 });
             }
         }
     });
-};
-    
+};    
     if (loading) {
         return (
             <div style={styles.modalOverlay}>
