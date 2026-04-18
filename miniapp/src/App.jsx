@@ -202,10 +202,37 @@ const AdminPanel = ({ onClose, userId }) => {
                                         </p>
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                                        <button onClick={() => deactivateQuest(quest.id)} style={styles.deactivateBtn}>
-                                            ❌ Снять с публикации
-                                        </button>
-                                    </div>
+    <button onClick={async () => {
+        const tg = window.Telegram.WebApp;
+        tg.showPopup({
+            title: '⚠️ Снять задание',
+            message: `ID: ${quest.id}\nЗадание будет скрыто из ленты. Продолжить?`,
+            buttons: [{ type: 'ok', text: '✅ Да, снять' }, { type: 'cancel', text: '❌ Отмена' }]
+        }, async (buttonId) => {
+            if (buttonId === 'ok') {
+                tg.showPopup({ title: '⏳ Отправка...', message: 'Ждите', buttons: [] });
+                try {
+                    const response = await fetch(`${API_URL}/api/admin/deactivate-quest/${quest.id}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ adminId: Number(userId) })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        await fetchActiveQuests();
+                        tg.showPopup({ title: '✅ Снято', message: 'Задание скрыто из ленты', buttons: [{ type: 'ok' }] });
+                    } else {
+                        tg.showPopup({ title: '❌ Ошибка', message: data.error || 'Не удалось', buttons: [{ type: 'ok' }] });
+                    }
+                } catch (err) {
+                    tg.showPopup({ title: '❌ Ошибка', message: err.message, buttons: [{ type: 'ok' }] });
+                }
+            }
+        });
+    }} style={styles.deactivateBtn}>
+        ❌ Снять с публикации
+    </button>
+</div>
                                 </div>
                             ))
                         )}
