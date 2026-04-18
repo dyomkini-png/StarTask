@@ -120,13 +120,15 @@ const AdminPanel = ({ onClose, userId }) => {
         });
     };
     
-    if (loading) return (
-        <div style={styles.modalOverlay}>
-            <div style={styles.adminPanel}>
-                <p style={{ color: 'white', textAlign: 'center' }}>Загрузка...</p>
+    if (loading) {
+        return (
+            <div style={styles.modalOverlay}>
+                <div style={styles.adminPanel}>
+                    <p style={{ color: 'white', textAlign: 'center' }}>Загрузка...</p>
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
     
     return (
         <div style={styles.modalOverlay}>
@@ -136,7 +138,6 @@ const AdminPanel = ({ onClose, userId }) => {
                     <button onClick={onClose} style={styles.closeBtn}>✕</button>
                 </div>
                 
-                {/* Вкладки */}
                 <div style={styles.adminTabs}>
                     <button onClick={() => setAdminTab('pending')} style={adminTab === 'pending' ? styles.adminTabActive : styles.adminTab}>
                         ⏳ На модерации ({pendingQuests.length})
@@ -146,7 +147,6 @@ const AdminPanel = ({ onClose, userId }) => {
                     </button>
                 </div>
                 
-                {/* Задания на модерации */}
                 {adminTab === 'pending' && (
                     <>
                         {pendingQuests.length === 0 ? (
@@ -180,7 +180,6 @@ const AdminPanel = ({ onClose, userId }) => {
                     </>
                 )}
                 
-                {/* Активные задания (управление) */}
                 {adminTab === 'active' && (
                     <>
                         {activeQuests.length === 0 ? (
@@ -216,8 +215,7 @@ const AdminPanel = ({ onClose, userId }) => {
             </div>
         </div>
     );
-};
-    
+};    
     if (loading) return (
         <div style={styles.modalOverlay}>
             <div style={styles.adminPanel}>
