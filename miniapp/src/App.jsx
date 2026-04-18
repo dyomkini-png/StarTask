@@ -177,69 +177,65 @@ const AdminPanel = ({ onClose, userId }) => {
                     </div>
                     
                     {adminTab === 'pending' && (
-                        <>
-                            {pendingQuests.length === 0 ? (
-                                <p style={{ color: 'white', textAlign: 'center' }}>Нет заданий на модерацию</p>
-                            ) : (
-                                pendingQuests.map(quest => (
-                                    <div key={quest.id} style={styles.adminQuestCard}>
-                                        <div>
-                                            <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
-                                            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
-                                                {quest.description}
-                                            </p>
-                                            <p style={{ fontSize: '11px', color: '#FF2D95' }}>
-                                                +{quest.reward} ⭐ | от @{quest.creator_name}
-                                            </p>
-                                            <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                                                Ссылка: {quest.target_url}
-                                            </p>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                                            <button onClick={() => approveQuest(quest.id)} style={styles.approveBtn}>
-                                                ✅ Одобрить
-                                            </button>
-                                            <button onClick={() => openRejectModal(quest.id)} style={styles.rejectBtn}>
-                                                ❌ Отклонить
-                                            </button>
-                                        </div>
+                        pendingQuests.length === 0 ? (
+                            <p style={{ color: 'white', textAlign: 'center' }}>Нет заданий на модерацию</p>
+                        ) : (
+                            pendingQuests.map(quest => (
+                                <div key={quest.id} style={styles.adminQuestCard}>
+                                    <div>
+                                        <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
+                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
+                                            {quest.description}
+                                        </p>
+                                        <p style={{ fontSize: '11px', color: '#FF2D95' }}>
+                                            +{quest.reward} ⭐ | от @{quest.creator_name}
+                                        </p>
+                                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                                            Ссылка: {quest.target_url}
+                                        </p>
                                     </div>
-                                ))
-                            )}
-                        </>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                        <button onClick={() => approveQuest(quest.id)} style={styles.approveBtn}>
+                                            ✅ Одобрить
+                                        </button>
+                                        <button onClick={() => openRejectModal(quest.id)} style={styles.rejectBtn}>
+                                            ❌ Отклонить
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )
                     )}
                     
                     {adminTab === 'active' && (
-                        <>
-                            {activeQuests.length === 0 ? (
-                                <p style={{ color: 'white', textAlign: 'center' }}>Нет активных заданий</p>
-                            ) : (
-                                activeQuests.map(quest => (
-                                    <div key={quest.id} style={styles.adminQuestCard}>
-                                        <div>
-                                            <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
-                                            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
-                                                {quest.description}
-                                            </p>
-                                            <p style={{ fontSize: '11px', color: '#FF2D95' }}>
-                                                +{quest.reward} ⭐ | от @{quest.creator_name}
-                                            </p>
-                                            <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                                                Ссылка: {quest.target_url}
-                                            </p>
-                                            <p style={{ fontSize: '10px', color: '#4ECDC4' }}>
-                                                Выполнено: {quest.budget - quest.remaining} / {quest.budget}
-                                            </p>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                                            <button onClick={() => deactivateQuest(quest.id)} style={styles.deactivateBtn}>
-                                                ❌ Снять с публикации
-                                            </button>
-                                        </div>
+                        activeQuests.length === 0 ? (
+                            <p style={{ color: 'white', textAlign: 'center' }}>Нет активных заданий</p>
+                        ) : (
+                            activeQuests.map(quest => (
+                                <div key={quest.id} style={styles.adminQuestCard}>
+                                    <div>
+                                        <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
+                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
+                                            {quest.description}
+                                        </p>
+                                        <p style={{ fontSize: '11px', color: '#FF2D95' }}>
+                                            +{quest.reward} ⭐ | от @{quest.creator_name}
+                                        </p>
+                                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                                            Ссылка: {quest.target_url}
+                                        </p>
+                                        <p style={{ fontSize: '10px', color: '#4ECDC4' }}>
+                                            Выполнено: {quest.budget - quest.remaining} / {quest.budget}
+                                        </p>
                                     </div>
-                                ))
-                            )}
-                        </>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                        <button onClick={() => deactivateQuest(quest.id)} style={styles.deactivateBtn}>
+                                            ❌ Снять с публикации
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )
                     )}
                 </div>
             </div>
@@ -295,43 +291,6 @@ const AdminPanel = ({ onClose, userId }) => {
                 </div>
             )}
         </>
-    );
-};
-                
-                {adminTab === 'active' && (
-                    <>
-                        {activeQuests.length === 0 ? (
-                            <p style={{ color: 'white', textAlign: 'center' }}>Нет активных заданий</p>
-                        ) : (
-                            activeQuests.map(quest => (
-                                <div key={quest.id} style={styles.adminQuestCard}>
-                                    <div>
-                                        <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
-                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
-                                            {quest.description}
-                                        </p>
-                                        <p style={{ fontSize: '11px', color: '#FF2D95' }}>
-                                            +{quest.reward} ⭐ | от @{quest.creator_name}
-                                        </p>
-                                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                                            Ссылка: {quest.target_url}
-                                        </p>
-                                        <p style={{ fontSize: '10px', color: '#4ECDC4' }}>
-                                            Выполнено: {quest.budget - quest.remaining} / {quest.budget}
-                                        </p>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                                        <button onClick={() => deactivateQuest(quest.id)} style={styles.deactivateBtn}>
-                                            ❌ Снять с публикации
-                                        </button>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </>
-                )}
-            </div>
-        </div>
     );
 };
 
@@ -1702,37 +1661,38 @@ const styles = {
         fontSize: '13px'
     },
     rejectModal: {
-    background: 'rgba(20,20,40,0.98)',
-    backdropFilter: 'blur(20px)',
-    borderRadius: '24px',
-    padding: '24px',
-    width: '320px',
-    border: '1px solid rgba(0,212,255,0.3)'
-},
-rejectSelect: {
-    width: '100%',
-    padding: '12px',
-    marginBottom: '16px',
-    background: 'rgba(255,255,255,0.1)',
-    border: '1px solid rgba(0,212,255,0.3)',
-    borderRadius: '12px',
-    color: 'white',
-    fontSize: '14px',
-    boxSizing: 'border-box',
-    cursor: 'pointer'
-},
-rejectTextarea: {
-    width: '100%',
-    padding: '12px',
-    background: 'rgba(255,255,255,0.1)',
-    border: '1px solid rgba(0,212,255,0.3)',
-    borderRadius: '12px',
-    color: 'white',
-    fontSize: '14px',
-    fontFamily: 'inherit',
-    resize: 'vertical',
-    boxSizing: 'border-box',
-    minHeight: '80px'
+        background: 'rgba(20,20,40,0.98)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '24px',
+        padding: '24px',
+        width: '320px',
+        border: '1px solid rgba(0,212,255,0.3)'
+    },
+    rejectSelect: {
+        width: '100%',
+        padding: '12px',
+        marginBottom: '16px',
+        background: 'rgba(255,255,255,0.1)',
+        border: '1px solid rgba(0,212,255,0.3)',
+        borderRadius: '12px',
+        color: 'white',
+        fontSize: '14px',
+        boxSizing: 'border-box',
+        cursor: 'pointer'
+    },
+    rejectTextarea: {
+        width: '100%',
+        padding: '12px',
+        background: 'rgba(255,255,255,0.1)',
+        border: '1px solid rgba(0,212,255,0.3)',
+        borderRadius: '12px',
+        color: 'white',
+        fontSize: '14px',
+        fontFamily: 'inherit',
+        resize: 'vertical',
+        boxSizing: 'border-box',
+        minHeight: '80px'
+    }
 };
 
 const styleSheet = document.createElement("style");
