@@ -62,43 +62,41 @@ const AdminPanel = ({ onClose, userId }) => {
     };
     
     const rejectQuest = (questId) => {
-    setCurrentQuestId(questId);
-    setRejectReason('');
-    setShowRejectModal(true);
-};
-
-const confirmReject = async () => {
-    if (!rejectReason.trim()) {
-        window.Telegram.WebApp.showPopup({
-            title: 'Ошибка',
-            message: 'Укажите причину отклонения',
-            buttons: [{ type: 'ok' }]
-        });
-        return;
-    }
-    
-    try {
-        const response = await axios.post(`${API_URL}/api/admin/reject-quest/${currentQuestId}`, {
-            adminId: Number(userId),
-            reason: rejectReason
-        });
-        if (response.data.success) {
-            fetchPendingQuests();
-            setShowRejectModal(false);
-            window.Telegram.WebApp.showPopup({
-                title: '❌ Отклонено',
-                message: 'Задание отклонено',
-                buttons: [{ type: 'ok' }]
-            });
+    window.Telegram.WebApp.showPopup({
+        title: '❌ Отклонить задание',
+        message: 'Введите причину отклонения:',
+        buttons: [
+            { type: 'ok', text: 'Отправить' },
+            { type: 'cancel', text: 'Отмена' }
+        ]
+    }, async (buttonId) => {
+        if (buttonId === 'ok' || buttonId === 0 || buttonId === '') {
+            // Telegram не поддерживает текстовый ввод в попапах, поэтому используем простую причину
+            const reason = 'Не соответствует правилам платформы';
+            
+            try {
+                const response = await axios.post(`${API_URL}/api/admin/reject-quest/${questId}`, {
+                    adminId: Number(userId),
+                    reason: reason
+                });
+                if (response.data.success) {
+                    fetchPendingQuests();
+                    window.Telegram.WebApp.showPopup({
+                        title: '❌ Отклонено',
+                        message: 'Задание отклонено',
+                        buttons: [{ type: 'ok' }]
+                    });
+                }
+            } catch (error) {
+                console.error('Error rejecting quest:', error);
+                window.Telegram.WebApp.showPopup({
+                    title: 'Ошибка',
+                    message: error.response?.data?.error || 'Не удалось отклонить задание',
+                    buttons: [{ type: 'ok' }]
+                });
+            }
         }
-    } catch (error) {
-        console.error('Error rejecting quest:', error);
-        window.Telegram.WebApp.showPopup({
-            title: 'Ошибка',
-            message: error.response?.data?.error || 'Не удалось отклонить задание',
-            buttons: [{ type: 'ok' }]
-        });
-    }
+    });
 };    
     const deactivateQuest = async (questId) => {
         window.Telegram.WebApp.showPopup({
