@@ -382,6 +382,51 @@ app.post('/api/admin/reject-quest/:questId', async (req, res) => {
     }
 });
 
+// СНЯТИЕ ЗАДАНИЯ С ПУБЛИКАЦИИ (только для админа)
+app.post('/api/admin/deactivate-quest/:questId', async (req, res) => {
+    const { questId } = req.params;
+    const { adminId } = req.body;
+    
+    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
+    
+    if (adminId !== parseInt(ADMIN_ID)) {
+        return res.status(403).json({ error: 'Доступ запрещён' });
+    }
+    
+    try {
+        await db.query(
+            'UPDATE quests SET status = $1 WHERE id = $2',
+            ['inactive', questId]
+        );
+        res.json({ success: true, message: 'Задание снято с публикации' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ПОЛУЧЕНИЕ ВСЕХ АКТИВНЫХ ЗАДАНИЙ (для админа)
+app.get('/api/admin/active-quests', async (req, res) => {
+    const { adminId } = req.query;
+    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
+    
+    if (adminId !== parseInt(ADMIN_ID)) {
+        return res.status(403).json({ error: 'Доступ запрещён' });
+    }
+    
+    try {
+        const quests = await db.query(
+            `SELECT q.*, u.username as creator_name, u.telegram_id as creator_telegram_id
+             FROM quests q
+             JOIN users u ON q.advertiser_id = u.id
+             WHERE q.status = 'active'
+             ORDER BY q.created_at DESC`
+        );
+        res.json(quests.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });

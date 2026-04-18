@@ -6,10 +6,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.ap
 // АДМИН-ПАНЕЛЬ (компонент внутри файла, чтобы иметь доступ к API_URL)
 const AdminPanel = ({ onClose, userId }) => {
     const [pendingQuests, setPendingQuests] = useState([]);
+    const [activeQuests, setActiveQuests] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [adminTab, setAdminTab] = useState('pending');
     
     useEffect(() => {
         fetchPendingQuests();
+        fetchActiveQuests();
     }, []);
     
     const fetchPendingQuests = async () => {
@@ -18,30 +21,31 @@ const AdminPanel = ({ onClose, userId }) => {
             setPendingQuests(response.data);
         } catch (error) {
             console.error('Error fetching pending quests:', error);
+        }
+    };
+    
+    const fetchActiveQuests = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/api/admin/active-quests?adminId=${userId}`);
+            setActiveQuests(response.data);
+        } catch (error) {
+            console.error('Error fetching active quests:', error);
         } finally {
             setLoading(false);
         }
     };
     
     const approveQuest = async (questId) => {
-        console.log('Sending approve request:', { questId, adminId: userId });
         try {
             const response = await axios.post(`${API_URL}/api/admin/approve-quest/${questId}`, {
                 adminId: Number(userId)
             });
-            console.log('Approve response:', response.data);
-            
             if (response.data.success) {
                 fetchPendingQuests();
+                fetchActiveQuests();
                 window.Telegram.WebApp.showPopup({
                     title: '✅ Одобрено',
                     message: response.data.message || 'Задание опубликовано',
-                    buttons: [{ type: 'ok' }]
-                });
-            } else {
-                window.Telegram.WebApp.showPopup({
-                    title: 'Ошибка',
-                    message: response.data.error || 'Не удалось одобрить задание',
                     buttons: [{ type: 'ok' }]
                 });
             }
@@ -84,6 +88,135 @@ const AdminPanel = ({ onClose, userId }) => {
             }
         });
     };
+    
+    const deactivateQuest = async (questId) => {
+        window.Telegram.WebApp.showPopup({
+            title: '⚠️ Снять с публикации',
+            message: 'Задание будет скрыто из ленты пользователей. Продолжить?',
+            buttons: [{ type: 'ok', text: 'Да, снять' }, { type: 'cancel', text: 'Отмена' }]
+        }, async (buttonId) => {
+            if (buttonId === 'ok') {
+                try {
+                    const response = await axios.post(`${API_URL}/api/admin/deactivate-quest/${questId}`, {
+                        adminId: Number(userId)
+                    });
+                    if (response.data.success) {
+                        fetchActiveQuests();
+                        window.Telegram.WebApp.showPopup({
+                            title: '✅ Снято',
+                            message: 'Задание скрыто из ленты пользователей',
+                            buttons: [{ type: 'ok' }]
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error deactivating quest:', error);
+                    window.Telegram.WebApp.showPopup({
+                        title: 'Ошибка',
+                        message: error.response?.data?.error || 'Не удалось снять задание',
+                        buttons: [{ type: 'ok' }]
+                    });
+                }
+            }
+        });
+    };
+    
+    if (loading) return (
+        <div style={styles.modalOverlay}>
+            <div style={styles.adminPanel}>
+                <p style={{ color: 'white', textAlign: 'center' }}>Загрузка...</p>
+            </div>
+        </div>
+    );
+    
+    return (
+        <div style={styles.modalOverlay}>
+            <div style={styles.adminPanel}>
+                <div style={styles.formHeader}>
+                    <h3 style={{ color: 'white' }}>🛡️ Админ-панель</h3>
+                    <button onClick={onClose} style={styles.closeBtn}>✕</button>
+                </div>
+                
+                {/* Вкладки */}
+                <div style={styles.adminTabs}>
+                    <button onClick={() => setAdminTab('pending')} style={adminTab === 'pending' ? styles.adminTabActive : styles.adminTab}>
+                        ⏳ На модерации ({pendingQuests.length})
+                    </button>
+                    <button onClick={() => setAdminTab('active')} style={adminTab === 'active' ? styles.adminTabActive : styles.adminTab}>
+                        ✅ Активные ({activeQuests.length})
+                    </button>
+                </div>
+                
+                {/* Задания на модерации */}
+                {adminTab === 'pending' && (
+                    <>
+                        {pendingQuests.length === 0 ? (
+                            <p style={{ color: 'white', textAlign: 'center' }}>Нет заданий на модерацию</p>
+                        ) : (
+                            pendingQuests.map(quest => (
+                                <div key={quest.id} style={styles.adminQuestCard}>
+                                    <div>
+                                        <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
+                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
+                                            {quest.description}
+                                        </p>
+                                        <p style={{ fontSize: '11px', color: '#FF2D95' }}>
+                                            +{quest.reward} ⭐ | от @{quest.creator_name}
+                                        </p>
+                                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                                            Ссылка: {quest.target_url}
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                        <button onClick={() => approveQuest(quest.id)} style={styles.approveBtn}>
+                                            ✅ Одобрить
+                                        </button>
+                                        <button onClick={() => rejectQuest(quest.id)} style={styles.rejectBtn}>
+                                            ❌ Отклонить
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </>
+                )}
+                
+                {/* Активные задания (управление) */}
+                {adminTab === 'active' && (
+                    <>
+                        {activeQuests.length === 0 ? (
+                            <p style={{ color: 'white', textAlign: 'center' }}>Нет активных заданий</p>
+                        ) : (
+                            activeQuests.map(quest => (
+                                <div key={quest.id} style={styles.adminQuestCard}>
+                                    <div>
+                                        <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
+                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
+                                            {quest.description}
+                                        </p>
+                                        <p style={{ fontSize: '11px', color: '#FF2D95' }}>
+                                            +{quest.reward} ⭐ | от @{quest.creator_name}
+                                        </p>
+                                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
+                                            Ссылка: {quest.target_url}
+                                        </p>
+                                        <p style={{ fontSize: '10px', color: '#4ECDC4' }}>
+                                            Выполнено: {quest.budget - quest.remaining} / {quest.budget}
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                        <button onClick={() => deactivateQuest(quest.id)} style={styles.deactivateBtn}>
+                                            ❌ Снять с публикации
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};
     
     if (loading) return (
         <div style={styles.modalOverlay}>
@@ -1490,6 +1623,45 @@ const styles = {
         borderRadius: '16px',
         color: 'rgba(255,255,255,0.4)',
         fontSize: '13px'
+    },
+        adminTabs: {
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '20px',
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: '40px',
+        padding: '4px'
+    },
+    adminTab: {
+        flex: 1,
+        padding: '10px',
+        background: 'transparent',
+        border: 'none',
+        borderRadius: '40px',
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: '13px',
+        cursor: 'pointer'
+    },
+    adminTabActive: {
+        flex: 1,
+        padding: '10px',
+        background: 'rgba(0, 212, 255, 0.15)',
+        border: 'none',
+        borderRadius: '40px',
+        color: '#00D4FF',
+        fontSize: '13px',
+        fontWeight: '600',
+        cursor: 'pointer'
+    },
+    deactivateBtn: {
+        background: 'rgba(255,45,149,0.2)',
+        border: '1px solid rgba(255,45,149,0.5)',
+        borderRadius: '20px',
+        padding: '6px 12px',
+        color: '#FF2D95',
+        cursor: 'pointer',
+        fontSize: '12px',
+        width: '100%'
     }
 };
 
