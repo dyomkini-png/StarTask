@@ -11,6 +11,15 @@ const AdminPanel = ({ onClose, userId }) => {
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
     const [currentQuestId, setCurrentQuestId] = useState(null);
+    const rejectReasons = [
+    '❌ Не соответствует правилам платформы',
+    '📢 Ссылка на канал недействительна',
+    '🎯 Неправильный тип задания',
+    '📝 Описание не соответствует действительности',
+    '💰 Слишком высокая/низкая награда',
+    '🔄 Дубликат существующего задания',
+    '🚫 Другая причина'
+];
 
     useEffect(() => {
         fetchPendingQuests();
@@ -63,42 +72,46 @@ const AdminPanel = ({ onClose, userId }) => {
     
     const rejectQuest = (questId) => {
     setCurrentQuestId(questId);
-    setRejectReason('');
-    setShowRejectModal(true);
-};
-
-const confirmReject = async () => {
-    if (!rejectReason.trim()) {
-        window.Telegram.WebApp.showPopup({
-            title: 'Ошибка',
-            message: 'Укажите причину отклонения',
-            buttons: [{ type: 'ok' }]
-        });
-        return;
-    }
     
-    try {
-        const response = await axios.post(`${API_URL}/api/admin/reject-quest/${currentQuestId}`, {
-            adminId: Number(userId),
-            reason: rejectReason
-        });
-        if (response.data.success) {
-            fetchPendingQuests();
-            setShowRejectModal(false);
-            window.Telegram.WebApp.showPopup({
-                title: '❌ Отклонено',
-                message: 'Задание отклонено',
-                buttons: [{ type: 'ok' }]
-            });
+    // Создаём кнопки из списка причин
+    const buttons = rejectReasons.map(reason => ({
+        id: reason,
+        type: 'default',
+        text: reason.length > 30 ? reason.substring(0, 27) + '...' : reason
+    }));
+    
+    // Добавляем кнопку отмены
+    buttons.push({ id: 'cancel', type: 'cancel', text: 'Отмена' });
+    
+    window.Telegram.WebApp.showPopup({
+        title: '❌ Отклонить задание',
+        message: 'Выберите причину отклонения:',
+        buttons: buttons
+    }, async (buttonId) => {
+        if (buttonId !== 'cancel') {
+            try {
+                const response = await axios.post(`${API_URL}/api/admin/reject-quest/${questId}`, {
+                    adminId: Number(userId),
+                    reason: buttonId
+                });
+                if (response.data.success) {
+                    fetchPendingQuests();
+                    window.Telegram.WebApp.showPopup({
+                        title: '❌ Отклонено',
+                        message: 'Задание отклонено',
+                        buttons: [{ type: 'ok' }]
+                    });
+                }
+            } catch (error) {
+                console.error('Error rejecting quest:', error);
+                window.Telegram.WebApp.showPopup({
+                    title: 'Ошибка',
+                    message: error.response?.data?.error || 'Не удалось отклонить задание',
+                    buttons: [{ type: 'ok' }]
+                });
+            }
         }
-    } catch (error) {
-        console.error('Error rejecting quest:', error);
-        window.Telegram.WebApp.showPopup({
-            title: 'Ошибка',
-            message: error.response?.data?.error || 'Не удалось отклонить задание',
-            buttons: [{ type: 'ok' }]
-        });
-    }
+    });
 };    
     const deactivateQuest = async (questId) => {
         window.Telegram.WebApp.showPopup({
@@ -137,24 +150,7 @@ const confirmReject = async () => {
                 <div style={styles.adminPanel}>
                     <p style={{ color: 'white', textAlign: 'center' }}>Загрузка...</p>
                 </div>
-                            {showRejectModal && (
-    <div style={styles.modalOverlay}>
-        <div style={styles.rejectModal}>
-            <div style={styles.formHeader}>
-                <h3 style={{ color: 'white' }}>❌ Отклонить задание</h3>
-                <button onClick={() => setShowRejectModal(false)} style={styles.closeBtn}>✕</button>
-            </div>
-            <textarea
-                placeholder="Укажите причину отклонения..."
-                style={styles.rejectTextarea}
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                rows={4}
-            />
-            <button onClick={confirmReject} style={styles.submitBtn}>
-                Отправить
-            </button>
-        </div>
+                                    </div>
     </div>
 )}
             </div>
