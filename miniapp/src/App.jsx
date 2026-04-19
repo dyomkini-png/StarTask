@@ -547,34 +547,37 @@ function App() {
             message: 'Поделитесь с друзьями и получайте 10% от их заработка',
             buttons: [{ type: 'ok' }]
         });
-    const openTopUpModal = () => {
-    setShowTopUpModal(true);
     };
+
+    const openTopUpModal = () => {
+        setShowTopUpModal(true);
+    };
+
     const createInvoice = async () => {
-    const tg = window.Telegram.WebApp;
-    try {
-        const response = await axios.post(`${API_URL}/api/create-invoice`, {
-            userId: user.id,
-            amount: topUpAmount
-        });
-        
-        if (response.data.success) {
+        const tg = window.Telegram.WebApp;
+        try {
+            const response = await axios.post(`${API_URL}/api/create-invoice`, {
+                userId: user.id,
+                amount: topUpAmount
+            });
+            
+            if (response.data.success) {
+                tg.showPopup({
+                    title: '✅ Счёт создан',
+                    message: 'Перейдите в Telegram для оплаты',
+                    buttons: [{ type: 'ok' }]
+                });
+                setShowTopUpModal(false);
+            }
+        } catch (error) {
+            console.error('Error creating invoice:', error);
             tg.showPopup({
-                title: '✅ Счёт создан',
-                message: 'Перейдите в Telegram для оплаты',
+                title: 'Ошибка',
+                message: error.response?.data?.error || 'Не удалось создать счёт',
                 buttons: [{ type: 'ok' }]
             });
-            setShowTopUpModal(false);
         }
-    } catch (error) {
-        console.error('Error creating invoice:', error);
-        tg.showPopup({
-            title: 'Ошибка',
-            message: error.response?.data?.error || 'Не удалось создать счёт',
-            buttons: [{ type: 'ok' }]
-        });
-    }
-};
+    };
 
     if (loading) {
         return (
@@ -624,22 +627,22 @@ function App() {
                     <p style={styles.profileId}>ID: {user?.telegram_id}</p>
                     
                     <div style={styles.profileBalances}>
-    <div style={styles.profileBalanceCard}>
-        <span style={styles.profileBalanceLabel}>⭐ Баланс</span>
-        <strong style={styles.profileBalanceValue}>{balance}</strong>
-    </div>
-    <div style={styles.profileBalanceCard}>
-        <span style={styles.profileBalanceLabel}>💎 TON</span>
-        <strong style={styles.profileBalanceValue}>{typeof tonBalance === 'number' ? tonBalance.toFixed(3) : 0}</strong>
-    </div>
-</div>
+                        <div style={styles.profileBalanceCard}>
+                            <span style={styles.profileBalanceLabel}>⭐ Баланс</span>
+                            <strong style={styles.profileBalanceValue}>{balance}</strong>
+                        </div>
+                        <div style={styles.profileBalanceCard}>
+                            <span style={styles.profileBalanceLabel}>💎 TON</span>
+                            <strong style={styles.profileBalanceValue}>{typeof tonBalance === 'number' ? tonBalance.toFixed(3) : 0}</strong>
+                        </div>
+                    </div>
                     <button onClick={() => setShowCreateForm(true)} style={styles.createQuestBtn}>
                         ✨ Создать задание
                     </button>
                     {/* Кнопка пополнения баланса */}
-<button onClick={openTopUpModal} style={styles.topUpBtn}>
-    💰 Пополнить баланс
-</button>
+                    <button onClick={openTopUpModal} style={styles.topUpBtn}>
+                        💰 Пополнить баланс
+                    </button>
                     {user?.telegram_id && String(user.telegram_id) === "850997324" && (
                         <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
                             🛡️ Админ-панель
@@ -730,7 +733,7 @@ function App() {
                 {showAdminPanel && (
                     <AdminPanel onClose={() => setShowAdminPanel(false)} userId={user?.telegram_id} />
                 )}
-                             {/* МОДАЛЬНОЕ ОКНО ПОПОЛНЕНИЯ */}
+                {/* МОДАЛЬНОЕ ОКНО ПОПОЛНЕНИЯ */}
                 {showTopUpModal && (
                     <div style={styles.modalOverlay}>
                         <div style={styles.topUpModal}>
@@ -1822,7 +1825,7 @@ const styles = {
         color: 'rgba(255,255,255,0.4)',
         fontSize: '13px'
     },
-        topUpBtn: {
+    topUpBtn: {
         background: 'linear-gradient(135deg, rgba(0,212,255,0.2) 0%, rgba(0,212,255,0.1) 100%)',
         border: '1px solid rgba(0,212,255,0.5)',
         borderRadius: '40px',
