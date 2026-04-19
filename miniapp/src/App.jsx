@@ -553,74 +553,18 @@ function App() {
         setShowTopUpModal(true);
     };
 
-    const createInvoice = async () => {
+    const createInvoice = () => {
     const tg = window.Telegram.WebApp;
     
-    tg.showPopup({
-        title: '🔍 Шаг 1',
-        message: 'Функция вызвана',
-        buttons: [{ type: 'ok' }]
-    });
+    // Формируем прямую ссылку на оплату через бота
+    const payUrl = `https://t.me/StarTaskBot?start=pay_${user.id}_${topUpAmount}`;
     
-    // Проверяем, что user существует
-    if (!user) {
-        tg.showPopup({
-            title: '❌ Ошибка',
-            message: 'Пользователь не авторизован',
-            buttons: [{ type: 'ok' }]
-        });
-        return;
-    }
+    // Открываем ссылку
+    tg.openLink(payUrl);
     
-    tg.showPopup({
-        title: '🔍 Шаг 2',
-        message: `userId: ${user.id}, сумма: ${topUpAmount}`,
-        buttons: [{ type: 'ok' }]
-    });
-    
-    try {
-        tg.showPopup({
-            title: '🔍 Шаг 3',
-            message: `Отправляем запрос на ${API_URL}/api/create-invoice`,
-            buttons: [{ type: 'ok' }]
-        });
-        
-        const response = await axios.post(`${API_URL}/api/create-invoice`, {
-            userId: user.id,
-            amount: topUpAmount
-        });
-        
-        tg.showPopup({
-            title: '🔍 Шаг 4',
-            message: `Ответ получен: ${JSON.stringify(response.data)}`,
-            buttons: [{ type: 'ok' }]
-        });
-        
-        if (response.data.success && response.data.invoiceLink) {
-            tg.showPopup({
-                title: '🔍 Шаг 5',
-                message: `Открываем ссылку: ${response.data.invoiceLink}`,
-                buttons: [{ type: 'ok' }]
-            });
-            tg.openLink(response.data.invoiceLink);
-            setShowTopUpModal(false);
-        } else {
-            tg.showPopup({
-                title: '❌ Ошибка',
-                message: response.data.error || 'Не удалось создать счёт',
-                buttons: [{ type: 'ok' }]
-            });
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        tg.showPopup({
-            title: '❌ Ошибка запроса',
-            message: error.message || 'Неизвестная ошибка',
-            buttons: [{ type: 'ok' }]
-        });
-    }
+    // Закрываем модальное окно
+    setShowTopUpModal(false);
 };
-
     if (loading) {
         return (
             <div style={styles.loadingContainer}>
