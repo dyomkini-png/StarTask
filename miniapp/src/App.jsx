@@ -554,16 +554,20 @@ function App() {
     };
 
     const createInvoice = () => {
-    const tg = window.Telegram.WebApp;
-    
-    // Формируем прямую ссылку на оплату через бота
     const payUrl = `https://t.me/StarTaskBot?start=pay_${user.id}_${topUpAmount}`;
     
-    // Открываем ссылку
-    tg.openLink(payUrl);
+    // Пробуем открыть через window.open (работает в некоторых случаях)
+    window.open(payUrl, '_blank');
     
     // Закрываем модальное окно
     setShowTopUpModal(false);
+    
+    // Показываем подсказку пользователю
+    window.Telegram.WebApp.showPopup({
+        title: '💰 Оплата',
+        message: 'Если окно не открылось, нажмите на ссылку:\n' + payUrl,
+        buttons: [{ type: 'ok' }]
+    });
 };
     if (loading) {
         return (
