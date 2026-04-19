@@ -636,37 +636,31 @@ function App() {
                                     <p>Нет заданий в этой категории</p>
                                 </div>
                             ) : (
-                                {myQuests.filter(q => q.status === questStatusFilter).length === 0 ? (
-    <div style={styles.emptyMyQuests}>
-        <p>Нет заданий в этой категории</p>
-    </div>
-) : (
-    myQuests.filter(q => q.status === questStatusFilter).map(quest => (
-        <div key={quest.id} style={styles.myQuestCard}>
-            <div style={styles.myQuestIcon}>📢</div>
-            <div style={styles.myQuestContent}>
-                <h4>{quest.title}</h4>
-                <p>{quest.description}</p>
-                <div style={styles.myQuestFooter}>
-                    <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                        <span style={styles.myQuestStatus}>
-                            {quest.status === 'pending' && '⏳ На модерации'}
-                            {quest.status === 'active' && '✅ Опубликовано'}
-                            {quest.status === 'rejected' && '❌ Отклонено'}
-                            {quest.status === 'inactive' && '📦 Снято с публикации'}
-                        </span>
-                        {quest.status === 'rejected' && quest.rejection_reason && (
-                            <span style={{ fontSize: '11px', color: '#FF2D95', background: 'rgba(255,45,149,0.1)', padding: '3px 8px', borderRadius: '16px' }}>
-                                📝 {quest.rejection_reason}
-                            </span>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    ))
-)}                              
+                                myQuests.filter(q => q.status === questStatusFilter).map(quest => (
+                                    <div key={quest.id} style={styles.myQuestCard}>
+                                        <div style={styles.myQuestIcon}>📢</div>
+                                        <div style={styles.myQuestContent}>
+                                            <h4>{quest.title}</h4>
+                                            <p>{quest.description}</p>
+                                            <div style={styles.myQuestFooter}>
+                                                <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                                    <span style={styles.myQuestStatus}>
+                                                        {quest.status === 'pending' && '⏳ На модерации'}
+                                                        {quest.status === 'active' && '✅ Опубликовано'}
+                                                        {quest.status === 'rejected' && '❌ Отклонено'}
+                                                        {quest.status === 'inactive' && '📦 Снято с публикации'}
+                                                    </span>
+                                                    {quest.status === 'rejected' && quest.rejection_reason && (
+                                                        <span style={{ fontSize: '11px', color: '#FF2D95', background: 'rgba(255,45,149,0.1)', padding: '3px 8px', borderRadius: '16px' }}>
+                                                            📝 {quest.rejection_reason}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
                             )}
                         </div>
                     )}
@@ -1718,9 +1712,9 @@ styleSheet.textContent = `
         background: #050510;
     }
     select, select option {
-    background: rgba(20, 20, 40, 0.95);
-    color: white;
-    border: 1px solid rgba(0, 212, 255, 0.3);
+        background: rgba(20, 20, 40, 0.95);
+        color: white;
+        border: 1px solid rgba(0, 212, 255, 0.3);
     }
     select option {
         padding: 8px;
