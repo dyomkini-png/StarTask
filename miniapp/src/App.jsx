@@ -600,18 +600,9 @@ function App() {
         <strong style={styles.profileBalanceValue}>{balance}</strong>
     </div>
     <div style={styles.profileBalanceCard}>
-    <span style={styles.profileBalanceLabel}>
-        <img 
-            src="/ton-icon.png" 
-            alt="TON" 
-            width="14" 
-            height="14" 
-            style={{ marginRight: '4px', display: 'inline-block', verticalAlign: 'middle' }}
-        />
-        TON
-    </span>
-    <strong style={styles.profileBalanceValue}>{typeof tonBalance === 'number' ? tonBalance.toFixed(3) : 0}</strong>
-</div>
+        <span style={styles.profileBalanceLabel}>💎 TON</span>
+        <strong style={styles.profileBalanceValue}>{typeof tonBalance === 'number' ? tonBalance.toFixed(3) : 0}</strong>
+    </div>
 </div>
                     <button onClick={() => setShowCreateForm(true)} style={styles.createQuestBtn}>
                         ✨ Создать задание
