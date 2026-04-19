@@ -4,17 +4,13 @@ const { Telegraf } = require('telegraf');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const MINI_APP_URL = process.env.MINI_APP_URL || 'https://startask-ten.vercel.app';
 
-// Обработка любого текстового сообщения, начинающегося с /start
-bot.command('start', async (ctx) => {
-    // Получаем текст команды
+// Обработка команды /start
+bot.start(async (ctx) => {
     const text = ctx.message.text;
-    console.log('📥 Получено сообщение:', text);
+    console.log('📥 Получено:', text);
     
-    // Извлекаем параметр после /start
-    let param = null;
-    if (text.includes(' ')) {
-        param = text.split(' ')[1];
-    }
+    // Извлекаем параметр (всё, что после /start )
+    let param = text.substring(6).trim();
     console.log('📥 Параметр:', param);
     
     // Если есть параметр pay_
@@ -23,7 +19,7 @@ bot.command('start', async (ctx) => {
         const userId = parts[1];
         const amount = parseInt(parts[2]);
         
-        console.log(`💰 Обработка платежа: userId=${userId}, amount=${amount}`);
+        console.log(`💰 Платёж: userId=${userId}, amount=${amount}`);
         
         try {
             await ctx.telegram.sendInvoice(ctx.chat.id, {
@@ -36,8 +32,8 @@ bot.command('start', async (ctx) => {
             });
             console.log('✅ Инвойс отправлен');
         } catch (error) {
-            console.error('❌ Ошибка отправки инвойса:', error);
-            await ctx.reply('❌ Ошибка при создании счёта. Пожалуйста, попробуйте позже.');
+            console.error('❌ Ошибка:', error);
+            await ctx.reply('❌ Ошибка при создании счёта');
         }
         return;
     }
@@ -48,7 +44,7 @@ bot.command('start', async (ctx) => {
         console.log(`👥 Реферал: ${referrerId} пригласил ${ctx.from.id}`);
     }
     
-    // Обычное приветствие
+    // Установка кнопки меню
     await ctx.telegram.setChatMenuButton({
         chat_id: ctx.chat.id,
         menu_button: {
@@ -58,9 +54,10 @@ bot.command('start', async (ctx) => {
         }
     });
     
+    // Приветствие
     await ctx.reply(
         `⭐ Добро пожаловать в StarTask, ${ctx.from.first_name}! ⭐\n\n` +
-        `👇 Нажми на кнопку ниже, чтобы начать зарабатывать!`,
+        `👇 Нажми на кнопку ниже, чтобы начать!`,
         {
             reply_markup: {
                 inline_keyboard: [
@@ -78,7 +75,7 @@ bot.on('pre_checkout_query', async (ctx) => {
         await ctx.answerPreCheckoutQuery(true);
         console.log('✅ pre_checkout_query подтверждён');
     } catch (error) {
-        console.error('❌ Ошибка pre_checkout_query:', error);
+        console.error('❌ Ошибка:', error);
         await ctx.answerPreCheckoutQuery(false, 'Ошибка при обработке платежа');
     }
 });
@@ -100,9 +97,9 @@ bot.on('successful_payment', async (ctx) => {
         await axios.post(`${API_URL}/api/webhook/payment`, {
             message: { successful_payment: payment }
         });
-        console.log('✅ Webhook отправлен на backend');
+        console.log('✅ Webhook отправлен');
     } catch (error) {
-        console.error('❌ Ошибка отправки webhook:', error);
+        console.error('❌ Ошибка webhook:', error.message);
     }
 });
 
