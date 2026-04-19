@@ -1,22 +1,43 @@
-import net from 'node:net';
-import dotenv from 'dotenv';
-import { Telegraf } from 'telegraf';
-
-net.setDefaultAutoSelectFamily(false);
-dotenv.config();
+irequire('dotenv').config();
+const { Telegraf } = require('telegraf');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-const MINI_APP_URL = process.env.MINI_APP_URL || 'https://starquest-tma.vercel.app';
+const MINI_APP_URL = process.env.MINI_APP_URL || 'https://startask-ten.vercel.app';
 
+// Обработка команды /start с параметром pay
 bot.start(async (ctx) => {
     const args = ctx.message.text.split(' ');
-    const refCode = args[1];
+    const param = args[1];
     
-    if (refCode && refCode.startsWith('ref_')) {
-        const referrerId = refCode.split('_')[1];
+    // Если есть параметр pay_ - отправляем инвойс на оплату
+    if (param && param.startsWith('pay_')) {
+        const parts = param.split('_');
+        const userId = parseInt(parts[1]);
+        const amount = parseInt(parts[2]);
+        
+        try {
+            await ctx.telegram.sendInvoice(ctx.chat.id, {
+                title: 'Пополнение баланса StarTask',
+                description: `Пополнение баланса на ${amount} Telegram Stars`,
+                payload: JSON.stringify({ userId, amount, type: 'topup' }),
+                currency: 'XTR',
+                prices: [{ label: `${amount} Stars`, amount: amount }],
+                start_parameter: 'topup'
+            });
+        } catch (error) {
+            console.error('Error sending invoice:', error);
+            await ctx.reply('❌ Ошибка при создании счёта');
+        }
+        return;
+    }
+    
+    // Обработка реферальной ссылки
+    if (param && param.startsWith('ref_')) {
+        const referrerId = param.split('_')[1];
         console.log(`Referral: ${referrerId} invited ${ctx.from.id}`);
     }
     
+    // Установка кнопки меню
     await ctx.telegram.setChatMenuButton({
         chat_id: ctx.chat.id,
         menu_button: {
@@ -26,6 +47,7 @@ bot.start(async (ctx) => {
         }
     });
     
+    // Приветственное сообщение
     await ctx.reply(
         `⭐ Добро пожаловать в StarTask, ${ctx.from.first_name}! ⭐\n\n` +
         `👇 Нажми на кнопку ниже, чтобы начать зарабатывать!`,
@@ -39,17 +61,33 @@ bot.start(async (ctx) => {
     );
 });
 
+// Команда /balance
 bot.command('balance', async (ctx) => {
     await ctx.reply('⭐ *Ваш баланс:* 0 Stars', { parse_mode: 'Markdown' });
 });
 
+// Команда /tasks
 bot.command('tasks', async (ctx) => {
     await ctx.reply('📋 Откройте Mini App, чтобы увидеть задания!', { parse_mode: 'Markdown' });
 });
 
+// Команда /referral
 bot.command('referral', async (ctx) => {
     const refLink = `https://t.me/StarTaskBot?start=ref_${ctx.from.id}`;
-    await ctx.reply(`👥 *Партнерская ссылка:*\n${refLink}`);
+    await ctx.reply(`👥 *Партнерская ссылка:*\n${refLink}`, { parse_mode: 'Markdown' });
+});
+
+// Команда /help
+bot.command('help', async (ctx) => {
+    await ctx.reply(
+        `❓ *Помощь по StarTask*\n\n` +
+        `/start - Открыть главное меню\n` +
+        `/tasks - Список заданий\n` +
+        `/balance - Мой баланс\n` +
+        `/referral - Партнерская программа\n` +
+        `/help - Эта справка`,
+        { parse_mode: 'Markdown' }
+    );
 });
 
 bot.launch();
