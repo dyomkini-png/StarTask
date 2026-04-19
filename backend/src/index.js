@@ -117,6 +117,7 @@ app.post('/api/create-invoice', async (req, res) => {
         
         const telegramId = user.rows[0].telegram_id;
         
+        // Создаём инвойс
         const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendInvoice`, {
             chat_id: telegramId,
             title: 'Пополнение баланса StarTask',
@@ -127,8 +128,11 @@ app.post('/api/create-invoice', async (req, res) => {
             start_parameter: 'topup'
         });
         
+        // Формируем ссылку для оплаты
+        const invoiceLink = `https://t.me/bot/StarTaskBot/invoice?start=topup_${userId}_${amount}`;
+        
         console.log('Invoice created:', response.data);
-        res.json({ success: true });
+        res.json({ success: true, invoiceLink: invoiceLink });
     } catch (error) {
         console.error('Error creating invoice:', error);
         res.status(500).json({ error: 'Failed to create invoice' });

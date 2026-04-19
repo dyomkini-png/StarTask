@@ -556,26 +556,57 @@ function App() {
     const createInvoice = async () => {
     const tg = window.Telegram.WebApp;
     
-    // Используем прямой метод openInvoice
-    const invoiceUrl = `https://t.me/bot/StarTaskBot/invoice?start=topup_${user.id}_${topUpAmount}`;
+    // ШАГ 1: Проверяем, что мы в Telegram WebApp
+    tg.showPopup({
+        title: '🔍 Диагностика',
+        message: 'Шаг 1: Функция вызвана',
+        buttons: [{ type: 'ok' }]
+    });
     
-    // Открываем платёжное окно напрямую
-    tg.openInvoice(invoiceUrl, (status) => {
-        if (status === 'paid') {
+    try {
+        // ШАГ 2: Отправляем запрос на backend
+        tg.showPopup({
+            title: '🔍 Шаг 2',
+            message: 'Отправляем запрос на сервер...',
+            buttons: [{ type: 'ok' }]
+        });
+        
+        const response = await axios.post(`${API_URL}/api/create-invoice`, {
+            userId: user.id,
+            amount: topUpAmount
+        });
+        
+        // ШАГ 3: Показываем ответ сервера
+        tg.showPopup({
+            title: '🔍 Шаг 3',
+            message: `Ответ сервера: ${JSON.stringify(response.data)}`,
+            buttons: [{ type: 'ok' }]
+        });
+        
+        if (response.data.success && response.data.invoiceLink) {
+            // ШАГ 4: Открываем платёжную ссылку
             tg.showPopup({
-                title: '✅ Оплачено',
-                message: `Баланс пополнен на ${topUpAmount} Stars`,
+                title: '🔍 Шаг 4',
+                message: `Открываем ссылку: ${response.data.invoiceLink}`,
                 buttons: [{ type: 'ok' }]
             });
-            fetchBalance(user.id);
-        } else if (status === 'failed') {
+            tg.openLink(response.data.invoiceLink);
+            setShowTopUpModal(false);
+        } else {
             tg.showPopup({
                 title: '❌ Ошибка',
-                message: 'Платёж не прошёл',
+                message: response.data.error || 'Не удалось создать счёт',
                 buttons: [{ type: 'ok' }]
             });
         }
-    });
+    } catch (error) {
+        console.error('Error creating invoice:', error);
+        tg.showPopup({
+            title: '❌ Ошибка запроса',
+            message: error.response?.data?.error || error.message || 'Неизвестная ошибка',
+            buttons: [{ type: 'ok' }]
+        });
+    }
 };
 
     if (loading) {
