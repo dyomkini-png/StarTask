@@ -4,24 +4,26 @@ const { Telegraf } = require('telegraf');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const MINI_APP_URL = process.env.MINI_APP_URL || 'https://startask-ten.vercel.app';
 
-// Обработка команды /start с параметром pay
-bot.start(async (ctx) => {
-    const args = ctx.message.text.split(' ');
-    const param = args[1];
+// Обработка любого текстового сообщения, начинающегося с /start
+bot.command('start', async (ctx) => {
+    // Получаем текст команды
+    const text = ctx.message.text;
+    console.log('📥 Получено сообщение:', text);
     
-    console.log('📥 /start command received');
-    console.log('Full message:', ctx.message.text);
-    console.log('Param:', param);
-});
-bot.start(async (ctx) => {
-    const args = ctx.message.text.split(' ');
-    const param = args[1];
+    // Извлекаем параметр после /start
+    let param = null;
+    if (text.includes(' ')) {
+        param = text.split(' ')[1];
+    }
+    console.log('📥 Параметр:', param);
     
-    // Если есть параметр pay_ - отправляем инвойс на оплату
+    // Если есть параметр pay_
     if (param && param.startsWith('pay_')) {
         const parts = param.split('_');
-        const userId = parseInt(parts[1]);
+        const userId = parts[1];
         const amount = parseInt(parts[2]);
+        
+        console.log(`💰 Обработка платежа: userId=${userId}, amount=${amount}`);
         
         try {
             await ctx.telegram.sendInvoice(ctx.chat.id, {
@@ -32,9 +34,10 @@ bot.start(async (ctx) => {
                 prices: [{ label: `${amount} Stars`, amount: amount }],
                 start_parameter: 'topup'
             });
+            console.log('✅ Инвойс отправлен');
         } catch (error) {
-            console.error('Error sending invoice:', error);
-            await ctx.reply('❌ Ошибка при создании счёта');
+            console.error('❌ Ошибка отправки инвойса:', error);
+            await ctx.reply('❌ Ошибка при создании счёта. Пожалуйста, попробуйте позже.');
         }
         return;
     }
@@ -42,10 +45,10 @@ bot.start(async (ctx) => {
     // Обработка реферальной ссылки
     if (param && param.startsWith('ref_')) {
         const referrerId = param.split('_')[1];
-        console.log(`Referral: ${referrerId} invited ${ctx.from.id}`);
+        console.log(`👥 Реферал: ${referrerId} пригласил ${ctx.from.id}`);
     }
     
-    // Установка кнопки меню
+    // Обычное приветствие
     await ctx.telegram.setChatMenuButton({
         chat_id: ctx.chat.id,
         menu_button: {
@@ -55,7 +58,6 @@ bot.start(async (ctx) => {
         }
     });
     
-    // Приветственное сообщение
     await ctx.reply(
         `⭐ Добро пожаловать в StarTask, ${ctx.from.first_name}! ⭐\n\n` +
         `👇 Нажми на кнопку ниже, чтобы начать зарабатывать!`,
@@ -69,56 +71,55 @@ bot.start(async (ctx) => {
     );
 });
 
-// Обработка успешного платежа (pre_checkout_query)
+// Обработка предварительного запроса платежа
 bot.on('pre_checkout_query', async (ctx) => {
+    console.log('💳 pre_checkout_query получен');
     try {
         await ctx.answerPreCheckoutQuery(true);
+        console.log('✅ pre_checkout_query подтверждён');
     } catch (error) {
-        console.error('Error answering pre_checkout_query:', error);
+        console.error('❌ Ошибка pre_checkout_query:', error);
         await ctx.answerPreCheckoutQuery(false, 'Ошибка при обработке платежа');
     }
 });
 
-// Обработка успешного платежа (successful_payment)
+// Обработка успешного платежа
 bot.on('successful_payment', async (ctx) => {
     const payment = ctx.message.successful_payment;
+    console.log('💰 Успешный платёж:', payment);
+    
     const payload = JSON.parse(payment.invoice_payload);
     const { userId, amount } = payload;
     
-    console.log(`💰 Payment received: user ${userId}, amount ${amount} Stars`);
-    
-    // Отправляем уведомление пользователю
     await ctx.reply(`✅ Оплата прошла успешно!\nБаланс пополнен на ${amount} Stars`);
     
-    // Здесь нужно отправить запрос на ваш backend для обновления баланса
-    // Так как бот не может напрямую писать в базу, делаем запрос к API
+    // Отправляем запрос на backend для обновления баланса
     try {
         const axios = require('axios');
-        await axios.post(`${process.env.API_URL}/api/webhook/payment`, {
+        const API_URL = process.env.API_URL || 'https://star-task.up.railway.app';
+        await axios.post(`${API_URL}/api/webhook/payment`, {
             message: { successful_payment: payment }
         });
+        console.log('✅ Webhook отправлен на backend');
     } catch (error) {
-        console.error('Error sending payment to webhook:', error);
+        console.error('❌ Ошибка отправки webhook:', error);
     }
 });
 
-// Команда /balance
+// Команды
 bot.command('balance', async (ctx) => {
     await ctx.reply('⭐ *Ваш баланс:* 0 Stars', { parse_mode: 'Markdown' });
 });
 
-// Команда /tasks
 bot.command('tasks', async (ctx) => {
     await ctx.reply('📋 Откройте Mini App, чтобы увидеть задания!', { parse_mode: 'Markdown' });
 });
 
-// Команда /referral
 bot.command('referral', async (ctx) => {
     const refLink = `https://t.me/StarTaskBot?start=ref_${ctx.from.id}`;
     await ctx.reply(`👥 *Партнерская ссылка:*\n${refLink}`, { parse_mode: 'Markdown' });
 });
 
-// Команда /help
 bot.command('help', async (ctx) => {
     await ctx.reply(
         `❓ *Помощь по StarTask*\n\n` +
