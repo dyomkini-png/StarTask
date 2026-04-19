@@ -117,25 +117,33 @@ app.post('/api/create-invoice', async (req, res) => {
         
         const telegramId = user.rows[0].telegram_id;
         
-        // Создаём инвойс
-        const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendInvoice`, {
-            chat_id: telegramId,
-            title: 'Пополнение баланса StarTask',
-            description: `Пополнение баланса на ${amount} Telegram Stars`,
-            payload: JSON.stringify({ userId, amount, type: 'topup' }),
-            currency: 'XTR',
-            prices: [{ label: `${amount} Stars`, amount: amount }],
-            start_parameter: 'topup'
-        });
+        // Создаём ссылку на инвойс через Telegram API
+        const response = await axios.post(
+            `https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`,
+            {
+                title: 'Пополнение баланса StarTask',
+                description: `Пополнение баланса на ${amount} Telegram Stars`,
+                payload: JSON.stringify({ userId, amount, type: 'topup' }),
+                currency: 'XTR',
+                prices: [{ label: `${amount} Stars`, amount: amount }]
+            }
+        );
         
-        // Формируем ссылку для оплаты
-        const invoiceLink = `https://t.me/bot/StarTaskBot/invoice?start=topup_${userId}_${amount}`;
-        
-        console.log('Invoice created:', response.data);
-        res.json({ success: true, invoiceLink: invoiceLink });
+        if (response.data.ok) {
+            console.log(`✅ Invoice created for user ${userId}, amount ${amount}`);
+            res.json({ 
+                success: true, 
+                invoiceLink: response.data.result 
+            });
+        } else {
+            throw new Error(response.data.description || 'Failed to create invoice');
+        }
     } catch (error) {
-        console.error('Error creating invoice:', error);
-        res.status(500).json({ error: 'Failed to create invoice' });
+        console.error('Error creating invoice:', error.response?.data || error.message);
+        res.status(500).json({ 
+            error: 'Failed to create invoice',
+            details: error.response?.data?.description || error.message 
+        });
     }
 });
 

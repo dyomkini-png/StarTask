@@ -553,10 +553,12 @@ function App() {
         setShowTopUpModal(true);
     };
 
-    const createInvoice = () => {
-    // Убеждаемся, что user.id и topUpAmount существуют
+    const createInvoice = async () => {
+    const tg = window.Telegram.WebApp;
+    
+    // Проверки
     if (!user || !user.id) {
-        window.Telegram.WebApp.showPopup({
+        tg.showPopup({
             title: 'Ошибка',
             message: 'Пользователь не авторизован',
             buttons: [{ type: 'ok' }]
@@ -565,7 +567,7 @@ function App() {
     }
     
     if (!topUpAmount || topUpAmount < 1) {
-        window.Telegram.WebApp.showPopup({
+        tg.showPopup({
             title: 'Ошибка',
             message: 'Выберите сумму пополнения',
             buttons: [{ type: 'ok' }]
@@ -573,23 +575,63 @@ function App() {
         return;
     }
     
-    // Формируем ссылку
-    const payUrl = `https://t.me/StarTaskBot?start=pay_${user.id}_${topUpAmount}`;
-    
-    console.log('🔍 Открываем ссылку:', payUrl);
-    
-    // Показываем пользователю, что происходит
-    window.Telegram.WebApp.showPopup({
-        title: '⏳ Перенаправление',
-        message: `Переход к оплате ${topUpAmount} Stars...`,
-        buttons: []
-    });
-    
-    // Открываем ссылку
-    window.Telegram.WebApp.openLink(payUrl);
-    
-    // Закрываем модальное окно
     setShowTopUpModal(false);
+    
+    // Показываем индикатор загрузки
+    tg.MainButton.show();
+    tg.MainButton.setText('⏳ Создание счёта...');
+    tg.MainButton.disable();
+    
+    try {
+        // ШАГ 1: Создаём инвойс через наш бэкенд
+        const response = await axios.post(`${API_URL}/api/create-invoice`, {
+            userId: user.id,
+            amount: topUpAmount
+        });
+        
+        tg.MainButton.hide();
+        
+        if (response.data.invoiceLink) {
+            // ШАГ 2: Открываем инвойс в Telegram
+            tg.openInvoice(response.data.invoiceLink, (status) => {
+                if (status === 'paid') {
+                    // ШАГ 3: Платёж успешен - обновляем баланс
+                    fetchBalance(user.id);
+                    tg.showPopup({
+                        title: '✅ Успешно!',
+                        message: `Баланс пополнен на ${topUpAmount} Stars`,
+                        buttons: [{ type: 'ok' }]
+                    });
+                } else if (status === 'cancelled') {
+                    tg.showPopup({
+                        title: '❌ Отменено',
+                        message: 'Вы отменили платёж',
+                        buttons: [{ type: 'ok' }]
+                    });
+                } else if (status === 'failed') {
+                    tg.showPopup({
+                        title: '❌ Ошибка',
+                        message: 'Не удалось выполнить платёж',
+                        buttons: [{ type: 'ok' }]
+                    });
+                }
+            });
+        } else {
+            tg.showPopup({
+                title: 'Ошибка',
+                message: 'Не удалось создать счёт',
+                buttons: [{ type: 'ok' }]
+            });
+        }
+    } catch (error) {
+        tg.MainButton.hide();
+        console.error('Invoice error:', error);
+        tg.showPopup({
+            title: 'Ошибка',
+            message: error.response?.data?.error || 'Не удалось создать счёт',
+            buttons: [{ type: 'ok' }]
+        });
+    }
 };
     if (loading) {
         return (
