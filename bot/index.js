@@ -9,6 +9,14 @@ bot.start(async (ctx) => {
     const args = ctx.message.text.split(' ');
     const param = args[1];
     
+    console.log('📥 /start command received');
+    console.log('Full message:', ctx.message.text);
+    console.log('Param:', param);
+});
+bot.start(async (ctx) => {
+    const args = ctx.message.text.split(' ');
+    const param = args[1];
+    
     // Если есть параметр pay_ - отправляем инвойс на оплату
     if (param && param.startsWith('pay_')) {
         const parts = param.split('_');

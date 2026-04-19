@@ -554,20 +554,42 @@ function App() {
     };
 
     const createInvoice = () => {
+    // Убеждаемся, что user.id и topUpAmount существуют
+    if (!user || !user.id) {
+        window.Telegram.WebApp.showPopup({
+            title: 'Ошибка',
+            message: 'Пользователь не авторизован',
+            buttons: [{ type: 'ok' }]
+        });
+        return;
+    }
+    
+    if (!topUpAmount || topUpAmount < 1) {
+        window.Telegram.WebApp.showPopup({
+            title: 'Ошибка',
+            message: 'Выберите сумму пополнения',
+            buttons: [{ type: 'ok' }]
+        });
+        return;
+    }
+    
+    // Формируем ссылку
     const payUrl = `https://t.me/StarTaskBot?start=pay_${user.id}_${topUpAmount}`;
     
-    // Пробуем открыть через window.open (работает в некоторых случаях)
-    window.open(payUrl, '_blank');
+    console.log('🔍 Открываем ссылку:', payUrl);
+    
+    // Показываем пользователю, что происходит
+    window.Telegram.WebApp.showPopup({
+        title: '⏳ Перенаправление',
+        message: `Переход к оплате ${topUpAmount} Stars...`,
+        buttons: []
+    });
+    
+    // Открываем ссылку
+    window.Telegram.WebApp.openLink(payUrl);
     
     // Закрываем модальное окно
     setShowTopUpModal(false);
-    
-    // Показываем подсказку пользователю
-    window.Telegram.WebApp.showPopup({
-        title: '💰 Оплата',
-        message: 'Если окно не открылось, нажмите на ссылку:\n' + payUrl,
-        buttons: [{ type: 'ok' }]
-    });
 };
     if (loading) {
         return (
