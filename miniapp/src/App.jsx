@@ -575,12 +575,15 @@ function App() {
         return;
     }
     
+    // Сразу закрываем модалку
     setShowTopUpModal(false);
     
     // Показываем индикатор загрузки
     tg.MainButton.show();
     tg.MainButton.setText('⏳ Создание счёта...');
     tg.MainButton.disable();
+    
+    console.log('💰 Creating invoice:', { userId: user.id, amount: topUpAmount });
     
     try {
         // ШАГ 1: Создаём инвойс через наш бэкенд
@@ -589,11 +592,18 @@ function App() {
             amount: topUpAmount
         });
         
+        console.log('💰 Invoice response:', response.data);
+        
+        // Скрываем кнопку загрузки
         tg.MainButton.hide();
         
-        if (response.data.invoiceLink) {
+        if (response.data.success && response.data.invoiceLink) {
+            console.log('💰 Opening invoice:', response.data.invoiceLink);
+            
             // ШАГ 2: Открываем инвойс в Telegram
             tg.openInvoice(response.data.invoiceLink, (status) => {
+                console.log('💰 Invoice status:', status);
+                
                 if (status === 'paid') {
                     // ШАГ 3: Платёж успешен - обновляем баланс
                     fetchBalance(user.id);
@@ -611,7 +621,7 @@ function App() {
                 } else if (status === 'failed') {
                     tg.showPopup({
                         title: '❌ Ошибка',
-                        message: 'Не удалось выполнить платёж',
+                        message: 'Не удалось выполнить платёж. Попробуйте позже.',
                         buttons: [{ type: 'ok' }]
                     });
                 }
@@ -619,16 +629,18 @@ function App() {
         } else {
             tg.showPopup({
                 title: 'Ошибка',
-                message: 'Не удалось создать счёт',
+                message: 'Не удалось создать счёт для оплаты',
                 buttons: [{ type: 'ok' }]
             });
         }
     } catch (error) {
         tg.MainButton.hide();
-        console.error('Invoice error:', error);
+        console.error('💰 Invoice error:', error);
+        console.error('💰 Error details:', error.response?.data);
+        
         tg.showPopup({
             title: 'Ошибка',
-            message: error.response?.data?.error || 'Не удалось создать счёт',
+            message: error.response?.data?.error || 'Не удалось создать счёт. Попробуйте позже.',
             buttons: [{ type: 'ok' }]
         });
     }
