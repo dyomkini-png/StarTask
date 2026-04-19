@@ -576,43 +576,64 @@ function App() {
     
     setShowTopUpModal(false);
     
+    // Показываем индикатор загрузки
     tg.MainButton.show();
     tg.MainButton.setText('⏳ Создание счёта...');
     tg.MainButton.disable();
     
     try {
+        // ШАГ 1: Создаём инвойс через бэкенд
         const response = await axios.post(`${API_URL}/api/create-invoice`, {
             userId: user.id,
             amount: topUpAmount
         });
         
+        // Скрываем кнопку загрузки
         tg.MainButton.hide();
         
         if (response.data.success && response.data.invoiceLink) {
-            tg.openInvoice(response.data.invoiceLink, (status) => {
-                if (status === 'paid') {
-                    fetchBalance(user.id);
-                    tg.showPopup({
-                        title: '✅ Успешно!',
-                        message: `Баланс пополнен на ${topUpAmount} Stars`,
-                        buttons: [{ type: 'ok' }]
-                    });
-                }
-                if (status === 'cancelled') {
-                    tg.showPopup({
-                        title: '❌ Отменено',
-                        message: 'Вы отменили платёж',
-                        buttons: [{ type: 'ok' }]
-                    });
-                }
-                if (status === 'failed') {
-                    tg.showPopup({
-                        title: '❌ Ошибка',
-                        message: 'Не удалось выполнить платёж',
-                        buttons: [{ type: 'ok' }]
-                    });
-                }
-            });
+            // ШАГ 2: Открываем инвойс ВНУТРИ Mini App
+            // ВАЖНО: для версии WebApp 6.0+ используем openInvoice с URL
+            if (typeof tg.openInvoice === 'function') {
+                // Пробуем открыть инвойс
+                tg.openInvoice(response.data.invoiceLink, (status) => {
+                    if (status === 'paid') {
+                        fetchBalance(user.id);
+                        tg.showPopup({
+                            title: '✅ Успешно!',
+                            message: `Баланс пополнен на ${topUpAmount} Stars`,
+                            buttons: [{ type: 'ok' }]
+                        });
+                    } else if (status === 'cancelled') {
+                        tg.showPopup({
+                            title: '❌ Отменено',
+                            message: 'Вы отменили платёж',
+                            buttons: [{ type: 'ok' }]
+                        });
+                    } else if (status === 'failed') {
+                        tg.showPopup({
+                            title: '❌ Ошибка',
+                            message: 'Не удалось выполнить платёж',
+                            buttons: [{ type: 'ok' }]
+                        });
+                    }
+                });
+            } else {
+                // Fallback для старых версий
+                tg.openLink(response.data.invoiceLink);
+                tg.showPopup({
+                    title: '💳 Оплата',
+                    message: 'Окно оплаты открыто. После оплаты нажмите "Готово"',
+                    buttons: [{
+                        type: 'ok',
+                        text: 'Готово'
+                    }]
+                }, (buttonId) => {
+                    if (buttonId === 'ok') {
+                        setTimeout(() => fetchBalance(user.id), 2000);
+                    }
+                });
+            }
         } else {
             tg.showPopup({
                 title: 'Ошибка',
@@ -625,12 +646,11 @@ function App() {
         console.error('Invoice error:', error);
         tg.showPopup({
             title: 'Ошибка',
-            message: 'Не удалось создать счёт',
+            message: error.response?.data?.error || 'Не удалось создать счёт',
             buttons: [{ type: 'ok' }]
         });
     }
-};
-    if (loading) {
+};    if (loading) {
         return (
             <div style={styles.loadingContainer}>
                 <div style={styles.spinner}></div>

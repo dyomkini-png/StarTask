@@ -90,7 +90,6 @@ bot.on('successful_payment', async (ctx) => {
     
     await ctx.reply(`✅ Оплата прошла успешно!\nБаланс пополнен на ${amount} Stars`);
     
-    // Отправляем запрос на backend для обновления баланса
     try {
         const axios = require('axios');
         const API_URL = process.env.API_URL || 'https://star-task.up.railway.app';

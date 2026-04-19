@@ -117,6 +117,9 @@ app.post('/api/create-invoice', async (req, res) => {
         
         const telegramId = user.rows[0].telegram_id;
         
+        console.log(`📦 Creating invoice for telegram_id: ${telegramId}, amount: ${amount}`);
+        
+        // Создаём инвойс ПРАВИЛЬНО для Mini App
         const response = await axios.post(
             `https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`,
             {
@@ -124,11 +127,23 @@ app.post('/api/create-invoice', async (req, res) => {
                 description: `${amount} Stars`,
                 payload: JSON.stringify({ userId, amount, type: 'topup' }),
                 currency: 'XTR',
-                prices: [{ label: `${amount} Stars`, amount: amount }]
+                prices: [{ label: `${amount} Stars`, amount: amount }],
+                provider_token: '',  // ОБЯЗАТЕЛЬНО для Telegram Stars
+                need_name: false,
+                need_phone_number: false,
+                need_email: false,
+                need_shipping_address: false,
+                is_flexible: false
+            },
+            {
+                headers: { 'Content-Type': 'application/json' }
             }
         );
         
+        console.log('📦 Telegram API response:', response.data);
+        
         if (response.data.ok) {
+            console.log(`✅ Invoice link created: ${response.data.result}`);
             res.json({ 
                 success: true, 
                 invoiceLink: response.data.result 
@@ -137,7 +152,7 @@ app.post('/api/create-invoice', async (req, res) => {
             throw new Error(response.data.description || 'Failed to create invoice');
         }
     } catch (error) {
-        console.error('Error creating invoice:', error.response?.data || error.message);
+        console.error('❌ Error creating invoice:', error.response?.data || error.message);
         res.status(500).json({ 
             error: 'Failed to create invoice',
             details: error.response?.data?.description || error.message 
