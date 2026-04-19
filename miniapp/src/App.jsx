@@ -595,15 +595,15 @@ function App() {
                     <p style={styles.profileId}>ID: {user?.telegram_id}</p>
                     
                     <div style={styles.profileBalances}>
-                        <div style={styles.profileBalanceCard}>
-                            <span>⭐ Stars</span>
-                            <strong>{balance}</strong>
-                        </div>
-                        <div style={styles.profileBalanceCard}>
-                            <span>₿ TON</span>
-                            <strong>{tonBalance}</strong>
-                        </div>
-                    </div>
+    <div style={styles.profileBalanceCard}>
+        <span style={styles.profileBalanceLabel}>⭐ Баланс</span>
+        <strong style={styles.profileBalanceValue}>{balance}</strong>
+    </div>
+    <div style={styles.profileBalanceCard}>
+        <span style={styles.profileBalanceLabel}>🟣 TON</span>
+        <strong style={styles.profileBalanceValue}>{tonBalance.toFixed(3)}</strong>
+    </div>
+</div>
 
                     <button onClick={() => setShowCreateForm(true)} style={styles.createQuestBtn}>
                         ✨ Создать задание
@@ -636,32 +636,45 @@ function App() {
                                     <p>Нет заданий в этой категории</p>
                                 </div>
                             ) : (
-                                myQuests.filter(q => q.status === questStatusFilter).map(quest => (
-                                    <div key={quest.id} style={styles.myQuestCard}>
-                                        <div style={styles.myQuestIcon}>📢</div>
-                                        <div style={styles.myQuestContent}>
-                                            <h4>{quest.title}</h4>
-                                            <p>{quest.description}</p>
-                                            <div style={styles.myQuestFooter}>
-                                                <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                                                    <span style={styles.myQuestStatus}>
-                                                        {quest.status === 'pending' && '⏳ На модерации'}
-                                                        {quest.status === 'active' && '✅ Опубликовано'}
-                                                        {quest.status === 'rejected' && '❌ Отклонено'}
-                                                        {quest.status === 'inactive' && '📦 Снято с публикации'}
-                                                    </span>
-                                                    {quest.status === 'rejected' && quest.rejection_reason && (
-                                                        <span style={{ fontSize: '11px', color: '#FF2D95', background: 'rgba(255,45,149,0.1)', padding: '3px 8px', borderRadius: '16px' }}>
-                                                            📝 {quest.rejection_reason}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
+                                {myQuests.filter(q => q.status === questStatusFilter).map(quest => (
+    <div key={quest.id} style={styles.myQuestCard}>
+        <div style={styles.myQuestAvatar}>
+    {channelAvatars[quest.id] ? (
+        <img src={channelAvatars[quest.id]} alt="" style={styles.myQuestAvatarImg} />
+    ) : (
+        <div style={styles.myQuestAvatarPlaceholder}>
+            {getChannelInitial(quest.title, quest.target_url)}
+        </div>
+    )}
+</div>
+        <div style={styles.myQuestContent}>
+            <h4>{quest.title}</h4>
+            <p>{quest.description}</p>
+            <div style={styles.myQuestFooter}>
+                <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    <span style={{
+                        ...styles.myQuestStatus,
+                        ...(quest.status === 'pending' && styles.statusPending),
+                        ...(quest.status === 'active' && styles.statusActive),
+                        ...(quest.status === 'rejected' && styles.statusRejected),
+                        ...(quest.status === 'inactive' && styles.statusInactive)
+                    }}>
+                        {quest.status === 'pending' && '⏳ На модерации'}
+                        {quest.status === 'active' && '✅ Опубликовано'}
+                        {quest.status === 'rejected' && '❌ Отклонено'}
+                        {quest.status === 'inactive' && '📦 Снято с публикации'}
+                    </span>
+                    {quest.status === 'rejected' && quest.rejection_reason && (
+                        <span style={{ fontSize: '11px', color: '#FF2D95', background: 'rgba(255,45,149,0.1)', padding: '3px 8px', borderRadius: '16px' }}>
+                            📝 {quest.rejection_reason}
+                        </span>
+                    )}
+                </div>
+            </div>
+        </div>
+    </div>
+))}                            )}
                         </div>
                     )}
                 </div>
@@ -1424,6 +1437,16 @@ const styles = {
         padding: '12px 24px',
         textAlign: 'center',
         minWidth: '100px'
+    profileBalanceLabel: {
+        fontSize: '12px',
+        color: 'rgba(255,255,255,0.6)',
+        display: 'block',
+        marginBottom: '4px'
+    },
+    profileBalanceValue: {
+        fontSize: '20px',
+        fontWeight: '700',
+        color: '#00D4FF'
     },
     createQuestBtn: {
         background: 'linear-gradient(135deg, rgba(0,212,255,0.2) 0%, rgba(255,45,149,0.1) 100%)',
@@ -1476,6 +1499,34 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 200
+    },
+        myQuestAvatar: {
+        width: '48px',
+        height: '48px',
+        borderRadius: '24px',
+        background: 'rgba(0,212,255,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        flexShrink: 0
+    },
+    myQuestAvatarImg: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover'
+    },
+    myQuestAvatarPlaceholder: {
+        width: '48px',
+        height: '48px',
+        borderRadius: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '20px',
+        fontWeight: '600',
+        color: '#00D4FF',
+        background: 'rgba(0,212,255,0.1)'
     },
     createForm: {
         background: 'rgba(20,20,40,0.95)',
@@ -1658,7 +1709,7 @@ const styles = {
         fontSize: '11px',
         padding: '3px 8px',
         borderRadius: '20px',
-        background: 'rgba(0,0,0,0.3)'
+        display: 'inline-block'
     },
     emptyMyQuests: {
         textAlign: 'center',
@@ -1687,6 +1738,22 @@ const styles = {
         fontSize: '14px',
         boxSizing: 'border-box',
         cursor: 'pointer'
+    },
+    statusPending: {
+        background: 'rgba(255, 193, 7, 0.2)',
+        color: '#FFC107'
+    },
+    statusActive: {
+        background: 'rgba(76, 175, 80, 0.2)',
+        color: '#4CAF50'
+    },
+    statusRejected: {
+        background: 'rgba(244, 67, 54, 0.2)',
+        color: '#F44336'
+    },
+    statusInactive: {
+        background: 'rgba(156, 39, 176, 0.2)',
+        color: '#9C27B0'
     },
     rejectTextarea: {
         width: '100%',
