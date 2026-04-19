@@ -575,18 +575,13 @@ function App() {
         return;
     }
     
-    // Сразу закрываем модалку
+    // Закрываем модалку
     setShowTopUpModal(false);
-    
-    // Показываем индикатор загрузки
-    tg.MainButton.show();
-    tg.MainButton.setText('⏳ Создание счёта...');
-    tg.MainButton.disable();
     
     console.log('💰 Creating invoice:', { userId: user.id, amount: topUpAmount });
     
     try {
-        // ШАГ 1: Создаём инвойс через наш бэкенд
+        // Создаём инвойс через бэкенд
         const response = await axios.post(`${API_URL}/api/create-invoice`, {
             userId: user.id,
             amount: topUpAmount
@@ -594,38 +589,46 @@ function App() {
         
         console.log('💰 Invoice response:', response.data);
         
-        // Скрываем кнопку загрузки
-        tg.MainButton.hide();
-        
         if (response.data.success && response.data.invoiceLink) {
-            console.log('💰 Opening invoice:', response.data.invoiceLink);
+            const invoiceLink = response.data.invoiceLink;
+            console.log('💰 Opening invoice link:', invoiceLink);
             
-            // ШАГ 2: Открываем инвойс в Telegram
-            tg.openInvoice(response.data.invoiceLink, (status) => {
-                console.log('💰 Invoice status:', status);
-                
-                if (status === 'paid') {
-                    // ШАГ 3: Платёж успешен - обновляем баланс
-                    fetchBalance(user.id);
-                    tg.showPopup({
-                        title: '✅ Успешно!',
-                        message: `Баланс пополнен на ${topUpAmount} Stars`,
-                        buttons: [{ type: 'ok' }]
-                    });
-                } else if (status === 'cancelled') {
-                    tg.showPopup({
-                        title: '❌ Отменено',
-                        message: 'Вы отменили платёж',
-                        buttons: [{ type: 'ok' }]
-                    });
-                } else if (status === 'failed') {
-                    tg.showPopup({
-                        title: '❌ Ошибка',
-                        message: 'Не удалось выполнить платёж. Попробуйте позже.',
-                        buttons: [{ type: 'ok' }]
-                    });
+            // Пробуем открыть ссылку
+            tg.openLink(invoiceLink);
+            
+            // Показываем инструкцию пользователю
+            tg.showPopup({
+                title: '💳 Оплата',
+                message: 'Окно оплаты открыто в Telegram. После оплаты баланс обновится автоматически.',
+                buttons: [{
+                    type: 'ok',
+                    text: 'Я оплатил'
+                }]
+            }, (buttonId) => {
+                if (buttonId === 'ok') {
+                    // Проверяем баланс через 2 секунды
+                    setTimeout(() => {
+                        fetchBalance(user.id);
+                    }, 2000);
                 }
             });
+            
+        } else {
+            tg.showPopup({
+                title: 'Ошибка',
+                message: 'Не удалось создать счёт для оплаты',
+                buttons: [{ type: 'ok' }]
+            });
+        }
+    } catch (error) {
+        console.error('💰 Invoice error:', error);
+        tg.showPopup({
+            title: 'Ошибка',
+            message: error.response?.data?.error || 'Не удалось создать счёт',
+            buttons: [{ type: 'ok' }]
+        });
+    }
+};
         } else {
             tg.showPopup({
                 title: 'Ошибка',
