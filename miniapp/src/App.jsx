@@ -648,8 +648,8 @@ function App() {
                                             )}
                                         </div>
                                         <div style={styles.myQuestContent}>
-                                            <h4>{quest.title}</h4>
-                                            <p>{quest.description}</p>
+                                            <h4 style={styles.myQuestTitle}>{quest.title}</h4>
+<p style={styles.myQuestDescription}>{quest.description}</p>
                                             <div style={styles.myQuestFooter}>
                                                 <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
                                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
@@ -1509,7 +1509,20 @@ const styles = {
     },
     myQuestContent: {
         flex: 1
+        color: 'white'
     },
+     myQuestTitle: {
+        fontSize: '15px',
+        fontWeight: '600',
+        color: 'white',
+        marginBottom: '4px'
+    },
+    myQuestDescription: {
+        fontSize: '12px',
+        color: 'rgba(255,255,255,0.6)',
+        marginBottom: '8px'
+    },
+
     myQuestReward: {
         fontSize: '12px',
         color: '#FF2D95'
