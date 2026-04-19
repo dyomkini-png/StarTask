@@ -595,22 +595,22 @@ function App() {
                     <p style={styles.profileId}>ID: {user?.telegram_id}</p>
                     
                     <div style={styles.profileBalances}>
-                        <div style={styles.profileBalanceCard}>
-                            <span style={styles.profileBalanceLabel}>⭐ Баланс</span>
-                            <strong style={styles.profileBalanceValue}>{balance}</strong>
-                        </div>
-                        <div style={styles.profileBalanceCard}>
-    <span style={styles.profileBalanceLabel}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '4px', display: 'inline-block', verticalAlign: 'middle' }}>
-            <path d="M12 2L3 7L12 12L21 7L12 2Z" stroke="#00D4FF" strokeWidth="1.5" fill="none"/>
-            <path d="M3 17L12 22L21 17" stroke="#00D4FF" strokeWidth="1.5" fill="none"/>
-            <path d="M3 12L12 17L21 12" stroke="#00D4FF" strokeWidth="1.5" fill="none"/>
-        </svg>
-        TON
-    </span>
-    <strong style={styles.profileBalanceValue}>{typeof tonBalance === 'number' ? tonBalance.toFixed(3) : 0}</strong>
+    <div style={styles.profileBalanceCard}>
+        <span style={styles.profileBalanceLabel}>⭐ Баланс</span>
+        <strong style={styles.profileBalanceValue}>{balance}</strong>
+    </div>
+    <div style={styles.profileBalanceCard}>
+        <span style={styles.profileBalanceLabel}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '4px', display: 'inline-block', verticalAlign: 'middle' }}>
+                <path d="M12 2L3 7L12 12L21 7L12 2Z" stroke="#00D4FF" strokeWidth="1.5" fill="none"/>
+                <path d="M3 17L12 22L21 17" stroke="#00D4FF" strokeWidth="1.5" fill="none"/>
+                <path d="M3 12L12 17L21 12" stroke="#00D4FF" strokeWidth="1.5" fill="none"/>
+            </svg>
+            TON
+        </span>
+        <strong style={styles.profileBalanceValue}>{typeof tonBalance === 'number' ? tonBalance.toFixed(3) : 0}</strong>
+    </div>
 </div>
-
                     <button onClick={() => setShowCreateForm(true)} style={styles.createQuestBtn}>
                         ✨ Создать задание
                     </button>
