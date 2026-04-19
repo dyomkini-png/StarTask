@@ -554,30 +554,29 @@ function App() {
     };
 
     const createInvoice = async () => {
-        const tg = window.Telegram.WebApp;
-        try {
-            const response = await axios.post(`${API_URL}/api/create-invoice`, {
-                userId: user.id,
-                amount: topUpAmount
-            });
-            
-            if (response.data.success) {
-                tg.showPopup({
-                    title: '✅ Счёт создан',
-                    message: 'Перейдите в Telegram для оплаты',
-                    buttons: [{ type: 'ok' }]
-                });
-                setShowTopUpModal(false);
-            }
-        } catch (error) {
-            console.error('Error creating invoice:', error);
+    const tg = window.Telegram.WebApp;
+    
+    // Используем прямой метод openInvoice
+    const invoiceUrl = `https://t.me/bot/StarTaskBot/invoice?start=topup_${user.id}_${topUpAmount}`;
+    
+    // Открываем платёжное окно напрямую
+    tg.openInvoice(invoiceUrl, (status) => {
+        if (status === 'paid') {
             tg.showPopup({
-                title: 'Ошибка',
-                message: error.response?.data?.error || 'Не удалось создать счёт',
+                title: '✅ Оплачено',
+                message: `Баланс пополнен на ${topUpAmount} Stars`,
+                buttons: [{ type: 'ok' }]
+            });
+            fetchBalance(user.id);
+        } else if (status === 'failed') {
+            tg.showPopup({
+                title: '❌ Ошибка',
+                message: 'Платёж не прошёл',
                 buttons: [{ type: 'ok' }]
             });
         }
-    };
+    });
+};
 
     if (loading) {
         return (
