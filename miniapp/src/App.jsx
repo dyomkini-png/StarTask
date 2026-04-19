@@ -556,18 +556,32 @@ function App() {
     const createInvoice = async () => {
     const tg = window.Telegram.WebApp;
     
-    // ШАГ 1: Проверяем, что мы в Telegram WebApp
     tg.showPopup({
-        title: '🔍 Диагностика',
-        message: 'Шаг 1: Функция вызвана',
+        title: '🔍 Шаг 1',
+        message: 'Функция вызвана',
+        buttons: [{ type: 'ok' }]
+    });
+    
+    // Проверяем, что user существует
+    if (!user) {
+        tg.showPopup({
+            title: '❌ Ошибка',
+            message: 'Пользователь не авторизован',
+            buttons: [{ type: 'ok' }]
+        });
+        return;
+    }
+    
+    tg.showPopup({
+        title: '🔍 Шаг 2',
+        message: `userId: ${user.id}, сумма: ${topUpAmount}`,
         buttons: [{ type: 'ok' }]
     });
     
     try {
-        // ШАГ 2: Отправляем запрос на backend
         tg.showPopup({
-            title: '🔍 Шаг 2',
-            message: 'Отправляем запрос на сервер...',
+            title: '🔍 Шаг 3',
+            message: `Отправляем запрос на ${API_URL}/api/create-invoice`,
             buttons: [{ type: 'ok' }]
         });
         
@@ -576,17 +590,15 @@ function App() {
             amount: topUpAmount
         });
         
-        // ШАГ 3: Показываем ответ сервера
         tg.showPopup({
-            title: '🔍 Шаг 3',
-            message: `Ответ сервера: ${JSON.stringify(response.data)}`,
+            title: '🔍 Шаг 4',
+            message: `Ответ получен: ${JSON.stringify(response.data)}`,
             buttons: [{ type: 'ok' }]
         });
         
         if (response.data.success && response.data.invoiceLink) {
-            // ШАГ 4: Открываем платёжную ссылку
             tg.showPopup({
-                title: '🔍 Шаг 4',
+                title: '🔍 Шаг 5',
                 message: `Открываем ссылку: ${response.data.invoiceLink}`,
                 buttons: [{ type: 'ok' }]
             });
@@ -600,10 +612,10 @@ function App() {
             });
         }
     } catch (error) {
-        console.error('Error creating invoice:', error);
+        console.error('Error:', error);
         tg.showPopup({
             title: '❌ Ошибка запроса',
-            message: error.response?.data?.error || error.message || 'Неизвестная ошибка',
+            message: error.message || 'Неизвестная ошибка',
             buttons: [{ type: 'ok' }]
         });
     }
