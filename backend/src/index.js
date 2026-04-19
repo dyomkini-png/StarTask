@@ -59,6 +59,16 @@ async function initDB() {
             commission_earned INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT NOW()
         );
+        
+        CREATE TABLE IF NOT EXISTS transactions (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            amount INTEGER,
+            type TEXT,
+            status TEXT,
+            telegram_payload JSONB,
+            created_at TIMESTAMP DEFAULT NOW()
+        );
     `);
     console.log('✅ Database initialized');
 }
@@ -84,6 +94,8 @@ app.post('/api/auth', async (req, res) => {
     }
 });
 
+// ========== ПОПОЛНЕНИЕ БАЛАНСА ==========
+
 // СОЗДАНИЕ ИНВОЙСА ДЛЯ ПОПОЛНЕНИЯ BALANCE
 app.post('/api/create-invoice', async (req, res) => {
     const { userId, amount } = req.body;
@@ -98,7 +110,6 @@ app.post('/api/create-invoice', async (req, res) => {
     }
     
     try {
-        // Получаем telegram_id пользователя
         const user = await db.query('SELECT telegram_id FROM users WHERE id = $1', [userId]);
         if (!user.rows[0]) {
             return res.status(404).json({ error: 'User not found' });
@@ -106,19 +117,18 @@ app.post('/api/create-invoice', async (req, res) => {
         
         const telegramId = user.rows[0].telegram_id;
         
-        // Создаём инвойс через Telegram Bot API
         const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendInvoice`, {
             chat_id: telegramId,
             title: 'Пополнение баланса StarTask',
             description: `Пополнение баланса на ${amount} Telegram Stars`,
             payload: JSON.stringify({ userId, amount, type: 'topup' }),
-            currency: 'XTR',  // XTR = Telegram Stars [citation:4]
+            currency: 'XTR',
             prices: [{ label: `${amount} Stars`, amount: amount }],
             start_parameter: 'topup'
         });
         
         console.log('Invoice created:', response.data);
-        res.json({ success: true, invoiceLink: null }); // sendInvoice отправляет сообщение напрямую
+        res.json({ success: true });
     } catch (error) {
         console.error('Error creating invoice:', error);
         res.status(500).json({ error: 'Failed to create invoice' });
@@ -137,13 +147,11 @@ app.post('/api/webhook/payment', async (req, res) => {
         console.log(`💰 Payment received: user ${userId}, amount ${amount} Stars`);
         
         try {
-            // Начисляем Stars пользователю
             await db.query(
                 'UPDATE users SET stars_balance = stars_balance + $1 WHERE id = $2',
                 [amount, userId]
             );
             
-            // Сохраняем транзакцию в историю (опционально)
             await db.query(
                 `INSERT INTO transactions (user_id, amount, type, status, telegram_payload) 
                  VALUES ($1, $2, $3, $4, $5)`,
@@ -194,7 +202,6 @@ app.get('/api/quests', async (req, res) => {
     }
 });
 
-// ПОЛУЧЕНИЕ ЗАДАНИЙ ПОЛЬЗОВАТЕЛЯ ПО СТАТУСАМ
 app.get('/api/user/:userId/quests', async (req, res) => {
     try {
         const quests = await db.query(
@@ -207,7 +214,6 @@ app.get('/api/user/:userId/quests', async (req, res) => {
     }
 });
 
-// ВЫПОЛНЕННЫЕ ЗАДАНИЯ ПОЛЬЗОВАТЕЛЯ
 app.get('/api/user/:userId/completions', async (req, res) => {
     try {
         const completions = await db.query(
@@ -220,8 +226,6 @@ app.get('/api/user/:userId/completions', async (req, res) => {
     }
 });
 
-// СОЗДАНИЕ ЗАДАНИЯ
-// СОЗДАНИЕ ЗАДАНИЯ (статус pending, ждёт модерации)
 app.post('/api/create-quest', async (req, res) => {
     const { userId, title, description, reward, targetUrl } = req.body;
     
@@ -235,7 +239,6 @@ app.post('/api/create-quest', async (req, res) => {
             return res.status(404).json({ error: 'Пользователь не найден' });
         }
         
-        // Создаём задание со статусом 'pending'
         const newQuest = await db.query(
             `INSERT INTO quests (advertiser_id, title, description, reward, reward_type, type, target_url, budget, remaining, status) 
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
@@ -249,7 +252,6 @@ app.post('/api/create-quest', async (req, res) => {
     }
 });
 
-// ПРОВЕРКА ПОДПИСКИ И НАЧИСЛЕНИЕ НАГРАДЫ
 app.post('/api/check-subscription', async (req, res) => {
     const { userId, channelUsername, questId } = req.body;
     const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -343,42 +345,30 @@ app.get('/api/referral/:userId/stats', async (req, res) => {
     }
 });
 
-// ========== АВАТАРКИ КАНАЛОВ (УЛУЧШЕННАЯ ВЕРСИЯ) ==========
+// ========== АВАТАРКИ КАНАЛОВ ==========
 app.get('/api/channel/avatar/:username', async (req, res) => {
     const { username } = req.params;
     
     try {
-        // Пробуем получить через официальный API Telegram (публичные данные)
         const response = await axios.get(`https://t.me/s/${username}`, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            },
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
             timeout: 15000
         });
         
         const html = response.data;
         let avatarUrl = null;
         
-        // Способ 1: ищем в теге meta og:image
         const ogMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/);
-        if (ogMatch && ogMatch[1]) {
-            avatarUrl = ogMatch[1];
-        }
+        if (ogMatch && ogMatch[1]) avatarUrl = ogMatch[1];
         
-        // Способ 2: ищем в теге img с классом tgme_page_photo_image
         if (!avatarUrl) {
             const imgMatch = html.match(/<img[^>]*class="tgme_page_photo_image"[^>]*src="([^"]+)"/);
-            if (imgMatch && imgMatch[1]) {
-                avatarUrl = imgMatch[1];
-            }
+            if (imgMatch && imgMatch[1]) avatarUrl = imgMatch[1];
         }
         
-        // Способ 3: ищем в стилях background-image
         if (!avatarUrl) {
             const bgMatch = html.match(/background-image:url\(['"]?([^'"()]+)['"]?\)/);
-            if (bgMatch && bgMatch[1]) {
-                avatarUrl = bgMatch[1];
-            }
+            if (bgMatch && bgMatch[1]) avatarUrl = bgMatch[1];
         }
         
         if (avatarUrl) {
@@ -394,9 +384,9 @@ app.get('/api/channel/avatar/:username', async (req, res) => {
         return res.status(500).json({ success: false, error: 'Failed to fetch channel data' });
     }
 });
+
 // ========== АДМИН-ПАНЕЛЬ ==========
 
-// Получение всех заданий на модерацию
 app.get('/api/admin/pending-quests', async (req, res) => {
     try {
         const quests = await db.query(
@@ -412,11 +402,9 @@ app.get('/api/admin/pending-quests', async (req, res) => {
     }
 });
 
-// Одобрение задания
 app.post('/api/admin/approve-quest/:questId', async (req, res) => {
     const { questId } = req.params;
     const { adminId } = req.body;
-    
     const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
     
     if (String(adminId) !== String(ADMIN_ID)) {
@@ -424,22 +412,16 @@ app.post('/api/admin/approve-quest/:questId', async (req, res) => {
     }
     
     try {
-        await db.query(
-            'UPDATE quests SET status = $1 WHERE id = $2',
-            ['active', questId]
-        );
+        await db.query('UPDATE quests SET status = $1 WHERE id = $2', ['active', questId]);
         res.json({ success: true, message: 'Задание одобрено и опубликовано' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Отклонение задания с причиной
-// Отклонение задания (с сохранением причины)
 app.post('/api/admin/reject-quest/:questId', async (req, res) => {
     const { questId } = req.params;
     const { adminId, reason } = req.body;
-    
     const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
     
     if (String(adminId) !== String(ADMIN_ID)) {
@@ -447,36 +429,27 @@ app.post('/api/admin/reject-quest/:questId', async (req, res) => {
     }
     
     try {
-        await db.query(
-            'UPDATE quests SET status = $1, rejection_reason = $2 WHERE id = $3',
-            ['rejected', reason || 'Не указана', questId]
-        );
+        await db.query('UPDATE quests SET status = $1, rejection_reason = $2 WHERE id = $3', ['rejected', reason || 'Не указана', questId]);
         res.json({ success: true, message: 'Задание отклонено' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// СНЯТИЕ ЗАДАНИЯ С ПУБЛИКАЦИИ (только для админа)
 app.post('/api/admin/deactivate-quest/:questId', async (req, res) => {
     const { questId } = req.params;
     const { adminId } = req.body;
+    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
     
     console.log('📥 Deactivate quest:', { questId, adminId });
 
-    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
-    
     if (String(adminId) !== String(ADMIN_ID)) {
         console.log('❌ Access denied');
         return res.status(403).json({ error: 'Доступ запрещён' });
     }
     
     try {
-        const result = await db.query(
-            'UPDATE quests SET status = $1 WHERE id = $2 RETURNING *',
-            ['inactive', questId]
-        );
-
+        const result = await db.query('UPDATE quests SET status = $1 WHERE id = $2 RETURNING *', ['inactive', questId]);
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Задание не найдено' });
         }
@@ -489,13 +462,10 @@ app.post('/api/admin/deactivate-quest/:questId', async (req, res) => {
     }
 });
 
-// ПОЛУЧЕНИЕ ВСЕХ АКТИВНЫХ ЗАДАНИЙ (для админа)
-// ПОЛУЧЕНИЕ ВСЕХ АКТИВНЫХ ЗАДАНИЙ (для админа)
 app.get('/api/admin/active-quests', async (req, res) => {
     const { adminId } = req.query;
     const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
     
-    // Приводим оба значения к строке для сравнения
     if (String(adminId) !== String(ADMIN_ID)) {
         return res.status(403).json({ error: 'Доступ запрещён' });
     }
