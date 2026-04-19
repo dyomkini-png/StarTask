@@ -747,7 +747,7 @@ function App() {
                             </p>
                             
                             <div style={styles.topUpAmounts}>
-                                {[50, 100, 250, 500, 1000].map(amount => (
+                                {[1, 50, 100, 250, 500, 1000].map(amount => (
                                     <button
                                         key={amount}
                                         onClick={() => setTopUpAmount(amount)}
