@@ -601,11 +601,13 @@ function App() {
     </div>
     <div style={styles.profileBalanceCard}>
     <span style={styles.profileBalanceLabel}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '4px', display: 'inline-block', verticalAlign: 'middle' }}>
-            <path d="M12 2L22 12L12 22L2 12L12 2Z" stroke="#00D4FF" strokeWidth="1.5" fill="none"/>
-            <path d="M12 6L18 12L12 18L6 12L12 6Z" stroke="#00D4FF" strokeWidth="1.5" fill="none"/>
-            <circle cx="12" cy="12" r="2" fill="#00D4FF"/>
-        </svg>
+        <img 
+            src="/ton-icon.png" 
+            alt="TON" 
+            width="14" 
+            height="14" 
+            style={{ marginRight: '4px', display: 'inline-block', verticalAlign: 'middle' }}
+        />
         TON
     </span>
     <strong style={styles.profileBalanceValue}>{typeof tonBalance === 'number' ? tonBalance.toFixed(3) : 0}</strong>
