@@ -84,6 +84,81 @@ app.post('/api/auth', async (req, res) => {
     }
 });
 
+// СОЗДАНИЕ ИНВОЙСА ДЛЯ ПОПОЛНЕНИЯ BALANCE
+app.post('/api/create-invoice', async (req, res) => {
+    const { userId, amount } = req.body;
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    
+    if (!BOT_TOKEN) {
+        return res.status(500).json({ error: 'BOT_TOKEN not configured' });
+    }
+    
+    if (!amount || amount < 1) {
+        return res.status(400).json({ error: 'Invalid amount' });
+    }
+    
+    try {
+        // Получаем telegram_id пользователя
+        const user = await db.query('SELECT telegram_id FROM users WHERE id = $1', [userId]);
+        if (!user.rows[0]) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const telegramId = user.rows[0].telegram_id;
+        
+        // Создаём инвойс через Telegram Bot API
+        const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendInvoice`, {
+            chat_id: telegramId,
+            title: 'Пополнение баланса StarTask',
+            description: `Пополнение баланса на ${amount} Telegram Stars`,
+            payload: JSON.stringify({ userId, amount, type: 'topup' }),
+            currency: 'XTR',  // XTR = Telegram Stars [citation:4]
+            prices: [{ label: `${amount} Stars`, amount: amount }],
+            start_parameter: 'topup'
+        });
+        
+        console.log('Invoice created:', response.data);
+        res.json({ success: true, invoiceLink: null }); // sendInvoice отправляет сообщение напрямую
+    } catch (error) {
+        console.error('Error creating invoice:', error);
+        res.status(500).json({ error: 'Failed to create invoice' });
+    }
+});
+
+// ВЕБХУК ДЛЯ ОБРАБОТКИ ПЛАТЕЖЕЙ
+app.post('/api/webhook/payment', async (req, res) => {
+    const { message } = req.body;
+    
+    if (message?.successful_payment) {
+        const payment = message.successful_payment;
+        const payload = JSON.parse(payment.invoice_payload);
+        const { userId, amount } = payload;
+        
+        console.log(`💰 Payment received: user ${userId}, amount ${amount} Stars`);
+        
+        try {
+            // Начисляем Stars пользователю
+            await db.query(
+                'UPDATE users SET stars_balance = stars_balance + $1 WHERE id = $2',
+                [amount, userId]
+            );
+            
+            // Сохраняем транзакцию в историю (опционально)
+            await db.query(
+                `INSERT INTO transactions (user_id, amount, type, status, telegram_payload) 
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [userId, amount, 'topup', 'completed', JSON.stringify(payment)]
+            );
+            
+            console.log(`✅ Balance updated for user ${userId}`);
+        } catch (error) {
+            console.error('Error updating balance:', error);
+        }
+    }
+    
+    res.sendStatus(200);
+});
+
 // ========== БАЛАНСЫ ==========
 app.get('/api/user/:userId/balance', async (req, res) => {
     try {

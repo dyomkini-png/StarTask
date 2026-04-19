@@ -309,6 +309,8 @@ function App() {
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [showAdminPanel, setShowAdminPanel] = useState(false);
     const [questStatusFilter, setQuestStatusFilter] = useState('pending');
+    const [showTopUpModal, setShowTopUpModal] = useState(false);
+    const [topUpAmount, setTopUpAmount] = useState(50);
     
     const titleInput = useRef(null);
     const descInput = useRef(null);
@@ -545,7 +547,34 @@ function App() {
             message: 'Поделитесь с друзьями и получайте 10% от их заработка',
             buttons: [{ type: 'ok' }]
         });
+    const openTopUpModal = () => {
+    setShowTopUpModal(true);
     };
+    const createInvoice = async () => {
+    const tg = window.Telegram.WebApp;
+    try {
+        const response = await axios.post(`${API_URL}/api/create-invoice`, {
+            userId: user.id,
+            amount: topUpAmount
+        });
+        
+        if (response.data.success) {
+            tg.showPopup({
+                title: '✅ Счёт создан',
+                message: 'Перейдите в Telegram для оплаты',
+                buttons: [{ type: 'ok' }]
+            });
+            setShowTopUpModal(false);
+        }
+    } catch (error) {
+        console.error('Error creating invoice:', error);
+        tg.showPopup({
+            title: 'Ошибка',
+            message: error.response?.data?.error || 'Не удалось создать счёт',
+            buttons: [{ type: 'ok' }]
+        });
+    }
+};
 
     if (loading) {
         return (
@@ -607,7 +636,10 @@ function App() {
                     <button onClick={() => setShowCreateForm(true)} style={styles.createQuestBtn}>
                         ✨ Создать задание
                     </button>
-                    
+                    {/* Кнопка пополнения баланса */}
+<button onClick={openTopUpModal} style={styles.topUpBtn}>
+    💰 Пополнить баланс
+</button>
                     {user?.telegram_id && String(user.telegram_id) === "850997324" && (
                         <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
                             🛡️ Админ-панель
@@ -698,6 +730,51 @@ function App() {
                 {showAdminPanel && (
                     <AdminPanel onClose={() => setShowAdminPanel(false)} userId={user?.telegram_id} />
                 )}
+                             {/* МОДАЛЬНОЕ ОКНО ПОПОЛНЕНИЯ */}
+                {showTopUpModal && (
+                    <div style={styles.modalOverlay}>
+                        <div style={styles.topUpModal}>
+                            <div style={styles.formHeader}>
+                                <h3 style={{ color: 'white' }}>💰 Пополнение баланса</h3>
+                                <button onClick={() => setShowTopUpModal(false)} style={styles.closeBtn}>✕</button>
+                            </div>
+                            
+                            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '16px' }}>
+                                Выберите сумму пополнения:
+                            </p>
+                            
+                            <div style={styles.topUpAmounts}>
+                                {[50, 100, 250, 500, 1000].map(amount => (
+                                    <button
+                                        key={amount}
+                                        onClick={() => setTopUpAmount(amount)}
+                                        style={{
+                                            ...styles.topUpAmountBtn,
+                                            ...(topUpAmount === amount && styles.topUpAmountBtnActive)
+                                        }}
+                                    >
+                                        {amount} ⭐
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+                                <button 
+                                    onClick={() => setShowTopUpModal(false)} 
+                                    style={{...styles.rejectBtn, flex: 1}}
+                                >
+                                    Отмена
+                                </button>
+                                <button 
+                                    onClick={createInvoice} 
+                                    style={{...styles.approveBtn, flex: 1, background: 'rgba(0,212,255,0.3)' }}
+                                >
+                                    Оплатить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}   
             </div>
         );
     }
@@ -1744,6 +1821,47 @@ const styles = {
         borderRadius: '16px',
         color: 'rgba(255,255,255,0.4)',
         fontSize: '13px'
+    },
+        topUpBtn: {
+        background: 'linear-gradient(135deg, rgba(0,212,255,0.2) 0%, rgba(0,212,255,0.1) 100%)',
+        border: '1px solid rgba(0,212,255,0.5)',
+        borderRadius: '40px',
+        padding: '14px 28px',
+        color: '#00D4FF',
+        fontWeight: '600',
+        cursor: 'pointer',
+        fontSize: '16px',
+        width: '100%',
+        marginBottom: '16px'
+    },
+    topUpModal: {
+        background: 'rgba(20,20,40,0.98)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '24px',
+        padding: '24px',
+        width: '320px',
+        border: '1px solid rgba(0,212,255,0.3)'
+    },
+    topUpAmounts: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '10px',
+        justifyContent: 'center'
+    },
+    topUpAmountBtn: {
+        background: 'rgba(255,255,255,0.1)',
+        border: '1px solid rgba(0,212,255,0.3)',
+        borderRadius: '30px',
+        padding: '10px 16px',
+        color: 'white',
+        fontSize: '14px',
+        cursor: 'pointer',
+        minWidth: '70px'
+    },
+    topUpAmountBtnActive: {
+        background: 'rgba(0,212,255,0.2)',
+        border: '1px solid rgba(0,212,255,0.7)',
+        color: '#00D4FF'
     },
     rejectModal: {
         background: 'rgba(20,20,40,0.98)',
