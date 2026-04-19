@@ -1,4 +1,4 @@
-irequire('dotenv').config();
+require('dotenv').config();
 const { Telegraf } = require('telegraf');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -59,6 +59,39 @@ bot.start(async (ctx) => {
             }
         }
     );
+});
+
+// Обработка успешного платежа (pre_checkout_query)
+bot.on('pre_checkout_query', async (ctx) => {
+    try {
+        await ctx.answerPreCheckoutQuery(true);
+    } catch (error) {
+        console.error('Error answering pre_checkout_query:', error);
+        await ctx.answerPreCheckoutQuery(false, 'Ошибка при обработке платежа');
+    }
+});
+
+// Обработка успешного платежа (successful_payment)
+bot.on('successful_payment', async (ctx) => {
+    const payment = ctx.message.successful_payment;
+    const payload = JSON.parse(payment.invoice_payload);
+    const { userId, amount } = payload;
+    
+    console.log(`💰 Payment received: user ${userId}, amount ${amount} Stars`);
+    
+    // Отправляем уведомление пользователю
+    await ctx.reply(`✅ Оплата прошла успешно!\nБаланс пополнен на ${amount} Stars`);
+    
+    // Здесь нужно отправить запрос на ваш backend для обновления баланса
+    // Так как бот не может напрямую писать в базу, делаем запрос к API
+    try {
+        const axios = require('axios');
+        await axios.post(`${process.env.API_URL}/api/webhook/payment`, {
+            message: { successful_payment: payment }
+        });
+    } catch (error) {
+        console.error('Error sending payment to webhook:', error);
+    }
 });
 
 // Команда /balance
