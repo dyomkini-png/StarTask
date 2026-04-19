@@ -636,51 +636,46 @@ function App() {
                                     <p>Нет заданий в этой категории</p>
                                 </div>
                             ) : (
-                                {myQuests.filter(q => q.status === questStatusFilter).length === 0 ? (
-    <div style={styles.emptyMyQuests}>
-        <p>Нет заданий в этой категории</p>
-    </div>
-) : (
-    myQuests.filter(q => q.status === questStatusFilter).map(quest => (
-        <div key={quest.id} style={styles.myQuestCard}>
-            <div style={styles.myQuestAvatar}>
-                {channelAvatars[quest.id] ? (
-                    <img src={channelAvatars[quest.id]} alt="" style={styles.myQuestAvatarImg} />
-                ) : (
-                    <div style={styles.myQuestAvatarPlaceholder}>
-                        {getChannelInitial(quest.title, quest.target_url)}
-                    </div>
-                )}
-            </div>
-            <div style={styles.myQuestContent}>
-                <h4 style={styles.myQuestTitle}>{quest.title}</h4>
-                <p style={styles.myQuestDescription}>{quest.description}</p>
-                <div style={styles.myQuestFooter}>
-                    <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                        <span style={{
-                            ...styles.myQuestStatus,
-                            ...(quest.status === 'pending' && styles.statusPending),
-                            ...(quest.status === 'active' && styles.statusActive),
-                            ...(quest.status === 'rejected' && styles.statusRejected),
-                            ...(quest.status === 'inactive' && styles.statusInactive)
-                        }}>
-                            {quest.status === 'pending' && '⏳ На модерации'}
-                            {quest.status === 'active' && '✅ Опубликовано'}
-                            {quest.status === 'rejected' && '❌ Отклонено'}
-                            {quest.status === 'inactive' && '📦 Снято с публикации'}
-                        </span>
-                        {quest.status === 'rejected' && quest.rejection_reason && (
-                            <span style={{ fontSize: '11px', color: '#FF2D95', background: 'rgba(255,45,149,0.1)', padding: '3px 8px', borderRadius: '16px' }}>
-                                📝 {quest.rejection_reason}
-                            </span>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    ))
-)}
+                                myQuests.filter(q => q.status === questStatusFilter).map(quest => (
+                                    <div key={quest.id} style={styles.myQuestCard}>
+                                        <div style={styles.myQuestAvatar}>
+                                            {channelAvatars[quest.id] ? (
+                                                <img src={channelAvatars[quest.id]} alt="" style={styles.myQuestAvatarImg} />
+                                            ) : (
+                                                <div style={styles.myQuestAvatarPlaceholder}>
+                                                    {getChannelInitial(quest.title, quest.target_url)}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div style={styles.myQuestContent}>
+                                            <h4 style={styles.myQuestTitle}>{quest.title}</h4>
+                                            <p style={styles.myQuestDescription}>{quest.description}</p>
+                                            <div style={styles.myQuestFooter}>
+                                                <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                                    <span style={{
+                                                        ...styles.myQuestStatus,
+                                                        ...(quest.status === 'pending' && styles.statusPending),
+                                                        ...(quest.status === 'active' && styles.statusActive),
+                                                        ...(quest.status === 'rejected' && styles.statusRejected),
+                                                        ...(quest.status === 'inactive' && styles.statusInactive)
+                                                    }}>
+                                                        {quest.status === 'pending' && '⏳ На модерации'}
+                                                        {quest.status === 'active' && '✅ Опубликовано'}
+                                                        {quest.status === 'rejected' && '❌ Отклонено'}
+                                                        {quest.status === 'inactive' && '📦 Снято с публикации'}
+                                                    </span>
+                                                    {quest.status === 'rejected' && quest.rejection_reason && (
+                                                        <span style={{ fontSize: '11px', color: '#FF2D95', background: 'rgba(255,45,149,0.1)', padding: '3px 8px', borderRadius: '16px' }}>
+                                                            📝 {quest.rejection_reason}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     )}
                 </div>
@@ -1513,10 +1508,10 @@ const styles = {
         background: 'rgba(0,212,255,0.1)'
     },
     myQuestContent: {
-        flex: 1
+        flex: 1,
         color: 'white'
     },
-     myQuestTitle: {
+    myQuestTitle: {
         fontSize: '15px',
         fontWeight: '600',
         color: 'white',
@@ -1527,7 +1522,6 @@ const styles = {
         color: 'rgba(255,255,255,0.6)',
         marginBottom: '8px'
     },
-
     myQuestReward: {
         fontSize: '12px',
         color: '#FF2D95'
