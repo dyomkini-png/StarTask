@@ -69,35 +69,23 @@ bot.start(async (ctx) => {
 });
 
 // Обязательный обработчик
+// Обязательный pre-checkout (должен ответить за 10 секунд)
 bot.on('pre_checkout_query', async (ctx) => {
-    try {
-        // Можно добавить проверку payload, но для Stars всегда отвечаем true
-        await ctx.answerPreCheckoutQuery(true);
-        console.log('✅ pre_checkout_query confirmed');
-    } catch (error) {
-        console.error('❌ pre_checkout_query error:', error);
-        await ctx.answerPreCheckoutQuery(false, 'Ошибка сервера. Попробуйте позже.');
-    }
+    await ctx.answerPreCheckoutQuery(true);
 });
 
-// Обработка успешной оплаты (вебхук на бэкенд)
+// Успешная оплата
 bot.on('successful_payment', async (ctx) => {
     const payment = ctx.message.successful_payment;
-    const payload = JSON.parse(payment.invoice_payload);
-    const { userId, amount } = payload;
+    const { userId, amount } = JSON.parse(payment.invoice_payload);
     
-    console.log(`💰 Payment received: user ${userId}, amount ${amount}`);
+    // Отправляем вебхук на бэкенд
+    await axios.post(`${API_URL}/api/webhook/payment`, {
+        message: { successful_payment: payment }
+    });
     
-    try {
-        const axios = require('axios');
-        const API_URL = process.env.API_URL || 'https://star-task.up.railway.app';
-        await axios.post(`${API_URL}/api/webhook/payment`, {
-            message: { successful_payment: payment }
-        });
-        await ctx.reply(`✅ Баланс пополнен на ${amount} Stars!`);
-    } catch (error) {
-        console.error('❌ Webhook error:', error.message);
-    }
+    await ctx.reply(`✅ Баланс пополнен на ${amount} Stars!`);
+});
 });
 
 // Команды
