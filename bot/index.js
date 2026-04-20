@@ -68,27 +68,25 @@ bot.start(async (ctx) => {
     );
 });
 
-// Обработка предварительного запроса платежа
+// Обязательный обработчик
 bot.on('pre_checkout_query', async (ctx) => {
-    console.log('💳 pre_checkout_query получен');
     try {
+        // Можно добавить проверку payload, но для Stars всегда отвечаем true
         await ctx.answerPreCheckoutQuery(true);
-        console.log('✅ pre_checkout_query подтверждён');
+        console.log('✅ pre_checkout_query confirmed');
     } catch (error) {
-        console.error('❌ Ошибка:', error);
-        await ctx.answerPreCheckoutQuery(false, 'Ошибка при обработке платежа');
+        console.error('❌ pre_checkout_query error:', error);
+        await ctx.answerPreCheckoutQuery(false, 'Ошибка сервера. Попробуйте позже.');
     }
 });
 
-// Обработка успешного платежа
+// Обработка успешной оплаты (вебхук на бэкенд)
 bot.on('successful_payment', async (ctx) => {
     const payment = ctx.message.successful_payment;
-    console.log('💰 Успешный платёж:', payment);
-    
     const payload = JSON.parse(payment.invoice_payload);
     const { userId, amount } = payload;
     
-    await ctx.reply(`✅ Оплата прошла успешно!\nБаланс пополнен на ${amount} Stars`);
+    console.log(`💰 Payment received: user ${userId}, amount ${amount}`);
     
     try {
         const axios = require('axios');
@@ -96,9 +94,9 @@ bot.on('successful_payment', async (ctx) => {
         await axios.post(`${API_URL}/api/webhook/payment`, {
             message: { successful_payment: payment }
         });
-        console.log('✅ Webhook отправлен');
+        await ctx.reply(`✅ Баланс пополнен на ${amount} Stars!`);
     } catch (error) {
-        console.error('❌ Ошибка webhook:', error.message);
+        console.error('❌ Webhook error:', error.message);
     }
 });
 

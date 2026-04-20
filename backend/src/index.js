@@ -420,6 +420,70 @@ app.post('/api/admin/approve-quest/:questId', async (req, res) => {
     }
 });
 
+// Эндпоинт для создания ссылки на оплату
+app.post('/api/create-invoice', async (req, res) => {
+    const { userId, amount } = req.body;
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    
+    if (!BOT_TOKEN) {
+        return res.status(500).json({ error: 'BOT_TOKEN not configured' });
+    }
+    
+    try {
+        const user = await db.query('SELECT telegram_id FROM users WHERE id = $1', [userId]);
+        if (!user.rows[0]) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const telegramId = user.rows[0].telegram_id;
+        
+        console.log(`📦 Creating invoice for telegram_id: ${telegramId}, amount: ${amount}`);
+        
+        const response = await axios.post(
+            `https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`,
+            {
+                title: 'Пополнение баланса StarTask',
+                description: `Пополнение на ${amount} Stars`,
+                payload: JSON.stringify({ userId, amount, type: 'topup' }),
+                provider_token: '', // КРИТИЧНО: пустая строка для Telegram Stars
+                currency: 'XTR',    // КРИТИЧНО: валюта Stars
+                prices: [{ label: `${amount} Stars`, amount: amount }]
+            }
+        );
+        
+        if (response.data.ok) {
+            console.log(`✅ Invoice link created: ${response.data.result}`);
+            res.json({ 
+                success: true, 
+                invoiceLink: response.data.result 
+            });
+        } else {
+            throw new Error(response.data.description || 'Failed to create invoice');
+        }
+    } catch (error) {
+        console.error('❌ Error creating invoice:', error.response?.data || error.message);
+        res.status(500).json({ 
+            error: 'Failed to create invoice',
+            details: error.response?.data?.description || error.message 
+        });
+    }
+});
+
+// Резервный эндпоинт для зачисления (вызывается сразу после paid)
+app.post('/api/stars-payment/success', async (req, res) => {
+    const { userId, amount } = req.body;
+    
+    try {
+        await db.query(
+            'UPDATE users SET stars_balance = stars_balance + $1 WHERE id = $2',
+            [amount, userId]
+        );
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post('/api/admin/reject-quest/:questId', async (req, res) => {
     const { questId } = req.params;
     const { adminId, reason } = req.body;

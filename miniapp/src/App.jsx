@@ -552,7 +552,8 @@ function App() {
     const openTopUpModal = () => {
         setShowTopUpModal(true);
     };
-    const createInvoice = async () => {
+    // Замените функцию createInvoice полностью
+const createInvoice = async () => {
     const tg = window.Telegram.WebApp;
     
     if (!user || !user.id) {
@@ -573,66 +574,71 @@ function App() {
         return;
     }
     
+    // Закрываем модалку выбора суммы
     setShowTopUpModal(false);
     
-    // Проверяем, поддерживает ли клиент Stars Payments
-    if (!tg.isVersionAtLeast || !tg.isVersionAtLeast('6.0')) {
-        tg.showPopup({
-            title: 'Ошибка',
-            message: 'Ваша версия Telegram не поддерживает оплату Stars',
-            buttons: [{ type: 'ok' }]
-        });
-        return;
-    }
+    // Показываем индикатор загрузки на время запроса к API
+    tg.MainButton.show();
+    tg.MainButton.setText('⏳ Создание счёта...');
+    tg.MainButton.disable();
     
-    // Используем НАТИВНЫЙ метод Telegram Mini App для оплаты Stars
-    tg.requestStarsPayment({
-        amount: topUpAmount,
-        description: `Пополнение баланса на ${topUpAmount} Stars`,
-        payload: JSON.stringify({ 
-            userId: user.id, 
-            amount: topUpAmount,
-            type: 'topup' 
-        })
-    }, async (result) => {
-        if (result === 'paid') {
-            // Платёж успешен - отправляем на бэкенд для начисления
-            try {
-                await axios.post(`${API_URL}/api/stars-payment/success`, {
-                    userId: user.id,
-                    amount: topUpAmount,
-                    telegram_payment_id: Date.now() + '_' + user.id
-                });
-                
-                fetchBalance(user.id);
-                
-                tg.showPopup({
-                    title: '✅ Успешно!',
-                    message: `Баланс пополнен на ${topUpAmount} Stars`,
-                    buttons: [{ type: 'ok' }]
-                });
-            } catch (error) {
-                console.error('Error saving payment:', error);
-                tg.showPopup({
-                    title: '⚠️ Внимание',
-                    message: 'Платёж прошёл, но баланс не обновился. Напишите в поддержку.',
-                    buttons: [{ type: 'ok' }]
-                });
-            }
-        } else if (result === 'cancelled') {
-            tg.showPopup({
-                title: '❌ Отменено',
-                message: 'Вы отменили платёж',
-                buttons: [{ type: 'ok' }]
+    try {
+        // ШАГ 1: Получаем ссылку на оплату с бэкенда
+        const response = await axios.post(`${API_URL}/api/create-invoice`, {
+            userId: user.id,
+            amount: topUpAmount
+        });
+        
+        tg.MainButton.hide();
+        
+        if (response.data.success && response.data.invoiceLink) {
+            // ШАГ 2: Открываем встроенное окно оплаты Telegram
+            tg.openInvoice(response.data.invoiceLink, (status) => {
+                if (status === 'paid') {
+                    // ШАГ 3: Успех — отправляем запрос на зачисление средств
+                    axios.post(`${API_URL}/api/stars-payment/success`, {
+                        userId: user.id,
+                        amount: topUpAmount,
+                        telegram_payment_id: Date.now() + '_' + user.id
+                    }).then(() => {
+                        fetchBalance(user.id);
+                    }).catch(console.error);
+                    
+                    tg.showPopup({
+                        title: '✅ Успешно!',
+                        message: `Баланс пополнен на ${topUpAmount} Stars`,
+                        buttons: [{ type: 'ok' }]
+                    });
+                } else if (status === 'cancelled') {
+                    tg.showPopup({
+                        title: '❌ Отменено',
+                        message: 'Вы отменили платёж',
+                        buttons: [{ type: 'ok' }]
+                    });
+                } else if (status === 'failed') {
+                    tg.showPopup({
+                        title: '❌ Ошибка',
+                        message: 'Не удалось выполнить платёж. Попробуйте позже.',
+                        buttons: [{ type: 'ok' }]
+                    });
+                }
             });
-        } else if (result === 'failed') {
+        } else {
             tg.showPopup({
-                title: '❌ Ошибка',
-                message: 'Не удалось выполнить платёж',
+                title: 'Ошибка',
+                message: 'Не удалось создать счёт',
                 buttons: [{ type: 'ok' }]
             });
         }
-    });
+    } catch (error) {
+        tg.MainButton.hide();
+        console.error('Invoice error:', error);
+        tg.showPopup({
+            title: 'Ошибка',
+            message: error.response?.data?.error || 'Не удалось создать счёт',
+            buttons: [{ type: 'ok' }]
+        });
+    }
 };
       if (loading) {
         return (
