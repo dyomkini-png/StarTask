@@ -634,7 +634,7 @@ function App() {
         }
     });
 };
-   };    if (loading) {
+      if (loading) {
         return (
             <div style={styles.loadingContainer}>
                 <div style={styles.spinner}></div>
