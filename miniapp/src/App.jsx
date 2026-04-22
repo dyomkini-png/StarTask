@@ -564,12 +564,6 @@ const createInvoice = async () => {
         return;
     }
     
-    tg.showPopup({
-        title: '⏳ Подготовка',
-        message: `Создание платежа на ${topUpAmount} Stars...`,
-        buttons: []
-    });
-    
     try {
         const response = await axios.post(`${API_URL}/api/create-invoice`, {
             userId: user.id,
@@ -577,32 +571,18 @@ const createInvoice = async () => {
         });
         
         if (response.data.success && response.data.invoiceLink) {
-            // Открываем платёж в Mini App
-            tg.openInvoice(response.data.invoiceLink, (status) => {
-                console.log('Payment status:', status);
-                
-                if (status === 'paid') {
-                    tg.showPopup({
-                        title: '✅ Оплачено!',
-                        message: `Баланс пополнен на ${topUpAmount} Stars`,
-                        buttons: [{ type: 'ok' }]
-                    });
-                    fetchBalance(user.id);
-                    setShowTopUpModal(false);
-                } else if (status === 'failed') {
-                    tg.showPopup({
-                        title: '❌ Ошибка',
-                        message: 'Платёж не прошёл. Попробуйте позже.',
-                        buttons: [{ type: 'ok' }]
-                    });
-                } else if (status === 'cancelled') {
-                    tg.showPopup({
-                        title: 'Отмена',
-                        message: 'Вы отменили платёж.',
-                        buttons: [{ type: 'ok' }]
-                    });
-                }
+            // Отправляем ссылку в чат с ботом
+            tg.sendData(JSON.stringify({
+                type: 'send_message',
+                text: `💰 Ссылка для оплаты ${topUpAmount} Stars:\n${response.data.invoiceLink}`
+            }));
+            
+            tg.showPopup({
+                title: '💰 Ссылка отправлена',
+                message: 'Перейдите в диалог с ботом и нажмите на ссылку',
+                buttons: [{ type: 'ok' }]
             });
+            setShowTopUpModal(false);
         } else {
             tg.showPopup({
                 title: 'Ошибка',
