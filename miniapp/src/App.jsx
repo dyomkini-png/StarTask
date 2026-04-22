@@ -552,7 +552,7 @@ function App() {
     const openTopUpModal = () => {
         setShowTopUpModal(true);
     };
- const createInvoice = async () => {
+const createInvoice = async () => {
     const tg = window.Telegram.WebApp;
     
     if (!user || !user.id) {
@@ -577,7 +577,7 @@ function App() {
         });
         
         if (response.data.success && response.data.invoiceLink) {
-            // ✅ ОТКРЫВАЕМ ПЛАТЁЖ В MINI APP
+            // Открываем платёж в Mini App
             tg.openInvoice(response.data.invoiceLink, (status) => {
                 console.log('Payment status:', status);
                 
@@ -601,19 +601,6 @@ function App() {
                         message: 'Вы отменили платёж.',
                         buttons: [{ type: 'ok' }]
                     });
-                } else {
-                    // Если статус не пришёл, пробуем зачислить вручную через наш эндпоинт
-                    await axios.post(`${API_URL}/api/stars-payment/success`, {
-                        userId: user.id,
-                        amount: topUpAmount
-                    });
-                    fetchBalance(user.id);
-                    tg.showPopup({
-                        title: '✅ Средства зачислены',
-                        message: `Баланс пополнен на ${topUpAmount} Stars`,
-                        buttons: [{ type: 'ok' }]
-                    });
-                    setShowTopUpModal(false);
                 }
             });
         } else {
