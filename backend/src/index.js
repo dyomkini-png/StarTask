@@ -410,7 +410,7 @@ app.post('/api/admin/approve-quest/:questId', async (req, res) => {
     }
 });
 
-// Эндпоинт для создания ссылки на оплату
+// СОЗДАНИЕ ССЫЛКИ ДЛЯ ОПЛАТЫ (РАБОТАЕТ В MINI APP)
 app.post('/api/create-invoice', async (req, res) => {
     const { userId, amount } = req.body;
     const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -429,20 +429,16 @@ app.post('/api/create-invoice', async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
         
-        const telegramId = user.rows[0].telegram_id;
-        
-        // Используем createInvoiceLink через Telegram Bot API
+        // ✅ КЛЮЧЕВОЙ МОМЕНТ: используем createInvoiceLink
         const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`, {
-            title: 'Пополнение баланса StarTask',
-            description: `Пополнение баланса на ${amount} Telegram Stars`,
+            title: '⭐ Пополнение StarTask',
+            description: `Пополнение внутреннего баланса на ${amount} Telegram Stars`,
             payload: JSON.stringify({ userId, amount, type: 'topup' }),
             currency: 'XTR',
             prices: [{ label: `${amount} Stars`, amount: amount }],
-            subscription_period: 2592000  // 30 дней
         });
         
         const invoiceLink = response.data.result;
-        
         console.log('✅ Invoice link created:', invoiceLink);
         res.json({ success: true, invoiceLink: invoiceLink });
         

@@ -565,50 +565,55 @@ function App() {
     }
     
     tg.showPopup({
-        title: '⏳ Создание счёта',
-        message: `Подготовка платежа на ${topUpAmount} Stars...`,
+        title: '⏳ Подготовка',
+        message: `Создание платежа на ${topUpAmount} Stars...`,
         buttons: []
     });
     
     try {
-        // Получаем ссылку на инвойс от бэкенда
         const response = await axios.post(`${API_URL}/api/create-invoice`, {
             userId: user.id,
             amount: topUpAmount
         });
         
         if (response.data.success && response.data.invoiceLink) {
-            // Закрываем попап загрузки
-            tg.showPopup({
-                title: '💰 Оплата',
-                message: `Сумма: ${topUpAmount} Stars`,
-                buttons: [{ type: 'ok', text: 'Оплатить' }]
-            }, async () => {
-                // Открываем инвойс через встроенный метод
-                try {
-                    const status = await tg.openInvoice(response.data.invoiceLink, 'url');
-                    if (status === 'paid') {
-                        tg.showPopup({
-                            title: '✅ Оплачено!',
-                            message: `Баланс пополнен на ${topUpAmount} Stars`,
-                            buttons: [{ type: 'ok' }]
-                        });
-                        fetchBalance(user.id);
-                        setShowTopUpModal(false);
-                    } else {
-                        tg.showPopup({
-                            title: '❌ Ошибка',
-                            message: 'Платёж не завершён',
-                            buttons: [{ type: 'ok' }]
-                        });
-                    }
-                } catch (err) {
-                    console.error('OpenInvoice error:', err);
+            // ✅ ОТКРЫВАЕМ ПЛАТЁЖ В MINI APP
+            tg.openInvoice(response.data.invoiceLink, (status) => {
+                console.log('Payment status:', status);
+                
+                if (status === 'paid') {
                     tg.showPopup({
-                        title: '❌ Ошибка',
-                        message: 'Не удалось открыть окно оплаты',
+                        title: '✅ Оплачено!',
+                        message: `Баланс пополнен на ${topUpAmount} Stars`,
                         buttons: [{ type: 'ok' }]
                     });
+                    fetchBalance(user.id);
+                    setShowTopUpModal(false);
+                } else if (status === 'failed') {
+                    tg.showPopup({
+                        title: '❌ Ошибка',
+                        message: 'Платёж не прошёл. Попробуйте позже.',
+                        buttons: [{ type: 'ok' }]
+                    });
+                } else if (status === 'cancelled') {
+                    tg.showPopup({
+                        title: 'Отмена',
+                        message: 'Вы отменили платёж.',
+                        buttons: [{ type: 'ok' }]
+                    });
+                } else {
+                    // Если статус не пришёл, пробуем зачислить вручную через наш эндпоинт
+                    await axios.post(`${API_URL}/api/stars-payment/success`, {
+                        userId: user.id,
+                        amount: topUpAmount
+                    });
+                    fetchBalance(user.id);
+                    tg.showPopup({
+                        title: '✅ Средства зачислены',
+                        message: `Баланс пополнен на ${topUpAmount} Stars`,
+                        buttons: [{ type: 'ok' }]
+                    });
+                    setShowTopUpModal(false);
                 }
             });
         } else {
