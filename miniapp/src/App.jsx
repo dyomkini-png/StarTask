@@ -552,8 +552,7 @@ function App() {
     const openTopUpModal = () => {
         setShowTopUpModal(true);
     };
-    // Замените функцию createInvoice полностью
-const createInvoice = async () => {
+ const createInvoice = async () => {
     const tg = window.Telegram.WebApp;
     
     if (!user || !user.id) {
@@ -565,60 +564,49 @@ const createInvoice = async () => {
         return;
     }
     
-    if (!topUpAmount || topUpAmount < 1) {
-        tg.showPopup({
-            title: 'Ошибка',
-            message: 'Выберите сумму пополнения',
-            buttons: [{ type: 'ok' }]
-        });
-        return;
-    }
-    
-    // Закрываем модалку выбора суммы
-    setShowTopUpModal(false);
-    
-    // Показываем индикатор загрузки на время запроса к API
-    tg.MainButton.show();
-    tg.MainButton.setText('⏳ Создание счёта...');
-    tg.MainButton.disable();
+    tg.showPopup({
+        title: '⏳ Создание счёта',
+        message: `Подготовка платежа на ${topUpAmount} Stars...`,
+        buttons: []
+    });
     
     try {
-        // ШАГ 1: Получаем ссылку на оплату с бэкенда
+        // Получаем ссылку на инвойс от бэкенда
         const response = await axios.post(`${API_URL}/api/create-invoice`, {
             userId: user.id,
             amount: topUpAmount
         });
         
-        tg.MainButton.hide();
-        
         if (response.data.success && response.data.invoiceLink) {
-            // ШАГ 2: Открываем встроенное окно оплаты Telegram
-            tg.openInvoice(response.data.invoiceLink, (status) => {
-                if (status === 'paid') {
-                    // ШАГ 3: Успех — отправляем запрос на зачисление средств
-                    axios.post(`${API_URL}/api/stars-payment/success`, {
-                        userId: user.id,
-                        amount: topUpAmount,
-                        telegram_payment_id: Date.now() + '_' + user.id
-                    }).then(() => {
+            // Закрываем попап загрузки
+            tg.showPopup({
+                title: '💰 Оплата',
+                message: `Сумма: ${topUpAmount} Stars`,
+                buttons: [{ type: 'ok', text: 'Оплатить' }]
+            }, async () => {
+                // Открываем инвойс через встроенный метод
+                try {
+                    const status = await tg.openInvoice(response.data.invoiceLink, 'url');
+                    if (status === 'paid') {
+                        tg.showPopup({
+                            title: '✅ Оплачено!',
+                            message: `Баланс пополнен на ${topUpAmount} Stars`,
+                            buttons: [{ type: 'ok' }]
+                        });
                         fetchBalance(user.id);
-                    }).catch(console.error);
-                    
-                    tg.showPopup({
-                        title: '✅ Успешно!',
-                        message: `Баланс пополнен на ${topUpAmount} Stars`,
-                        buttons: [{ type: 'ok' }]
-                    });
-                } else if (status === 'cancelled') {
-                    tg.showPopup({
-                        title: '❌ Отменено',
-                        message: 'Вы отменили платёж',
-                        buttons: [{ type: 'ok' }]
-                    });
-                } else if (status === 'failed') {
+                        setShowTopUpModal(false);
+                    } else {
+                        tg.showPopup({
+                            title: '❌ Ошибка',
+                            message: 'Платёж не завершён',
+                            buttons: [{ type: 'ok' }]
+                        });
+                    }
+                } catch (err) {
+                    console.error('OpenInvoice error:', err);
                     tg.showPopup({
                         title: '❌ Ошибка',
-                        message: 'Не удалось выполнить платёж. Попробуйте позже.',
+                        message: 'Не удалось открыть окно оплаты',
                         buttons: [{ type: 'ok' }]
                     });
                 }
@@ -626,13 +614,12 @@ const createInvoice = async () => {
         } else {
             tg.showPopup({
                 title: 'Ошибка',
-                message: 'Не удалось создать счёт',
+                message: response.data.error || 'Не удалось создать счёт',
                 buttons: [{ type: 'ok' }]
             });
         }
     } catch (error) {
-        tg.MainButton.hide();
-        console.error('Invoice error:', error);
+        console.error('Error:', error);
         tg.showPopup({
             title: 'Ошибка',
             message: error.response?.data?.error || 'Не удалось создать счёт',

@@ -22,17 +22,33 @@ bot.start(async (ctx) => {
         console.log(`💰 Платёж: userId=${userId}, amount=${amount}`);
         
         try {
+            // Используем createInvoiceLink вместо sendInvoice для прямой ссылки
+            const invoiceLink = await ctx.telegram.createInvoiceLink({
+                title: 'Пополнение баланса StarTask',
+                description: `Пополнение баланса на ${amount} Telegram Stars`,
+                payload: JSON.stringify({ userId, amount, type: 'topup' }),
+                currency: 'XTR',
+                prices: [{ label: `${amount} Stars`, amount: amount }],
+                // ВАЖНО: для платежей через openInvoice этот параметр может быть критичен
+                subscription_period: 2592000 // 30 дней в секундах
+            });
+            
+            // Отправляем ссылку пользователю (как запасной вариант)
+            await ctx.reply(`💰 Ссылка для оплаты ${amount} Stars:\n${invoiceLink}`);
+            
+            // Также отправляем инвойс напрямую (старый способ)
             await ctx.telegram.sendInvoice(ctx.chat.id, {
                 title: 'Пополнение баланса StarTask',
                 description: `Пополнение баланса на ${amount} Telegram Stars`,
                 payload: JSON.stringify({ userId, amount, type: 'topup' }),
                 currency: 'XTR',
                 prices: [{ label: `${amount} Stars`, amount: amount }],
-                start_parameter: 'topup'
+                start_parameter: 'topup',
+                subscription_period: 2592000
             });
-            console.log('✅ Инвойс отправлен');
+            
         } catch (error) {
-            console.error('❌ Ошибка:', error);
+            console.error('Error creating invoice:', error);
             await ctx.reply('❌ Ошибка при создании счёта');
         }
         return;

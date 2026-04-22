@@ -415,32 +415,40 @@ app.post('/api/create-invoice', async (req, res) => {
     const { userId, amount } = req.body;
     const BOT_TOKEN = process.env.BOT_TOKEN;
     
+    if (!BOT_TOKEN) {
+        return res.status(500).json({ error: 'BOT_TOKEN not configured' });
+    }
+    
+    if (!amount || amount < 1) {
+        return res.status(400).json({ error: 'Invalid amount' });
+    }
+    
     try {
-        // Получаем telegram_id пользователя из БД
-        const user = await db.query(
-            'SELECT telegram_id FROM users WHERE id = $1', 
-            [userId]
-        );
+        const user = await db.query('SELECT telegram_id FROM users WHERE id = $1', [userId]);
+        if (!user.rows[0]) {
+            return res.status(404).json({ error: 'User not found' });
+        }
         
-        // Создаём инвойс через Telegram Bot API
-        const response = await axios.post(
-            `https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`,
-            {
-                title: 'Пополнение StarTask',
-                description: `${amount} Stars`,
-                payload: JSON.stringify({ userId, amount }),
-                provider_token: '', // Пусто для Telegram Stars
-                currency: 'XTR',
-                prices: [{ label: `${amount} Stars`, amount: amount }]
-            }
-        );
+        const telegramId = user.rows[0].telegram_id;
         
-        res.json({ 
-            success: true, 
-            invoiceLink: response.data.result 
+        // Используем createInvoiceLink через Telegram Bot API
+        const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`, {
+            title: 'Пополнение баланса StarTask',
+            description: `Пополнение баланса на ${amount} Telegram Stars`,
+            payload: JSON.stringify({ userId, amount, type: 'topup' }),
+            currency: 'XTR',
+            prices: [{ label: `${amount} Stars`, amount: amount }],
+            subscription_period: 2592000  // 30 дней
         });
+        
+        const invoiceLink = response.data.result;
+        
+        console.log('✅ Invoice link created:', invoiceLink);
+        res.json({ success: true, invoiceLink: invoiceLink });
+        
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error creating invoice:', error.response?.data || error.message);
+        res.status(500).json({ error: 'Failed to create invoice' });
     }
 });
 
