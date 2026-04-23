@@ -446,15 +446,28 @@ app.post('/api/create-invoice', async (req, res) => {
 
 // Резервный эндпоинт для зачисления (вызывается сразу после paid)
 app.post('/api/stars-payment/success', async (req, res) => {
-    const { userId, amount } = req.body;
+    const { userId, amount, telegram_payment_id } = req.body;
+    
+    console.log(`💰 Stars payment success: user ${userId}, amount ${amount}, payment_id ${telegram_payment_id}`);
     
     try {
+        // Начисляем Stars
         await db.query(
             'UPDATE users SET stars_balance = stars_balance + $1 WHERE id = $2',
             [amount, userId]
         );
+        
+        // Сохраняем транзакцию
+        await db.query(
+            `INSERT INTO transactions (user_id, amount, type, status) 
+             VALUES ($1, $2, $3, $4)`,
+            [userId, amount, 'topup', 'completed']
+        );
+        
+        console.log(`✅ Balance updated for user ${userId}`);
         res.json({ success: true });
     } catch (error) {
+        console.error('❌ Error processing payment:', error);
         res.status(500).json({ error: error.message });
     }
 });

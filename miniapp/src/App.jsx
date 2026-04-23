@@ -569,33 +569,33 @@ function App() {
     };
 const createInvoice = async () => {
     const tg = window.Telegram.WebApp;
-
+    
     if (!user || !user.id) {
         tg.showPopup({ title: 'Ошибка', message: 'Пользователь не авторизован', buttons: [{ type: 'ok' }] });
         return;
     }
-
-    tg.showPopup({ title: '⏳', message: `Создание платежа на ${topUpAmount} Stars...`, buttons: [] });
-
+    
+    tg.showPopup({ title: '⏳', message: `Подготовка платежа на ${topUpAmount} Stars...`, buttons: [] });
+    
     try {
         const response = await axios.post(`${API_URL}/api/create-invoice`, {
             userId: user.id,
             amount: topUpAmount
         });
-
+        
         if (response.data.success && response.data.invoiceLink) {
-            // Отправляем ссылку в чат с ботом
-            tg.showPopup({
-                title: '✅ Счёт создан!',
-                message: 'Перейдите в диалог с ботом и нажмите "Оплатить"',
-                buttons: [{ type: 'ok' }]
-            });
-            
-            // Открываем диалог с ботом
-            tg.openLink('https://t.me/StarTaskBot');
-            
-            // Закрываем модальное окно
+            // ✅ ПРАВИЛЬНЫЙ ВЫЗОВ openInvoice (без колбэка, просто открываем)
+            tg.openInvoice(response.data.invoiceLink);
             setShowTopUpModal(false);
+            
+            // Показываем инструкцию после открытия
+            setTimeout(() => {
+                tg.showPopup({
+                    title: '💰 Оплата',
+                    message: 'Подтвердите платёж в открывшемся окне. После оплаты баланс обновится автоматически.',
+                    buttons: [{ type: 'ok' }]
+                });
+            }, 500);
         } else {
             tg.showPopup({ title: 'Ошибка', message: response.data.error || 'Не удалось создать счёт', buttons: [{ type: 'ok' }] });
         }

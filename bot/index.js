@@ -11,7 +11,7 @@ bot.start(async (ctx) => {
     const text = ctx.message.text;
     const param = text.substring(6).trim();
     
-    // Если есть параметр pay_ — отправляем инвойс (резервный канал, на случай если прямой не сработает)
+    // Если есть параметр pay_ — отправляем инвойс (резервный канал)
     if (param && param.startsWith('pay_')) {
         const parts = param.split('_');
         const userId = parts[1];
@@ -62,8 +62,7 @@ bot.start(async (ctx) => {
     );
 });
 
-// Обязательная обработка pre_checkout_query
-// В bot/index.js
+// ✅ ОБЯЗАТЕЛЬНО: отвечаем на pre_checkout_query
 bot.on('pre_checkout_query', async (ctx) => {
     try {
         await ctx.answerPreCheckoutQuery(true);
@@ -74,6 +73,7 @@ bot.on('pre_checkout_query', async (ctx) => {
     }
 });
 
+// ✅ ОБРАБОТКА УСПЕШНОГО ПЛАТЕЖА
 bot.on('successful_payment', async (ctx) => {
     const payment = ctx.message.successful_payment;
     const payload = JSON.parse(payment.invoice_payload);
@@ -82,15 +82,16 @@ bot.on('successful_payment', async (ctx) => {
     console.log(`💰 Payment received: user ${userId}, amount ${amount}`);
 
     try {
-        await axios.post(`${process.env.API_URL}/api/stars-payment/success`, {
-            userId,
-            amount,
+        // Отправляем запрос на ваш backend для зачисления
+        await axios.post(`${API_URL}/api/stars-payment/success`, {
+            userId: Number(userId),
+            amount: Number(amount),
             telegram_payment_id: payment.telegram_payment_charge_id
         });
-        await ctx.reply(`✅ Баланс пополнен на ${amount} Stars!`);
+        await ctx.reply(`✅ Баланс успешно пополнен на ${amount} Stars!`);
     } catch (error) {
         console.error('Error updating balance:', error);
-        await ctx.reply('✅ Платёж получен, баланс скоро обновится.');
+        await ctx.reply('✅ Платёж получен! Баланс обновится в течение минуты.');
     }
 });
 
