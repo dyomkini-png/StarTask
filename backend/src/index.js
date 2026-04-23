@@ -414,34 +414,30 @@ app.post('/api/admin/approve-quest/:questId', async (req, res) => {
 app.post('/api/create-invoice', async (req, res) => {
     const { userId, amount } = req.body;
     const BOT_TOKEN = process.env.BOT_TOKEN;
-    
-    if (!BOT_TOKEN) {
-        return res.status(500).json({ error: 'BOT_TOKEN not configured' });
-    }
-    
-    if (!amount || amount < 1) {
-        return res.status(400).json({ error: 'Invalid amount' });
-    }
-    
+
+    if (!BOT_TOKEN) return res.status(500).json({ error: 'BOT_TOKEN not configured' });
+    if (!amount || amount < 1) return res.status(400).json({ error: 'Invalid amount' });
+
     try {
         const user = await db.query('SELECT telegram_id FROM users WHERE id = $1', [userId]);
-        if (!user.rows[0]) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-        
-        // ✅ КЛЮЧЕВОЙ МОМЕНТ: используем createInvoiceLink
+        if (!user.rows[0]) return res.status(404).json({ error: 'User not found' });
+
+        const telegramId = user.rows[0].telegram_id;
+
+        // ✅ Используем метод createInvoiceLink для получения прямой ссылки
         const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`, {
-            title: '⭐ Пополнение StarTask',
+            title: '⭐ Пополнение баланса StarTask',
             description: `Пополнение внутреннего баланса на ${amount} Telegram Stars`,
             payload: JSON.stringify({ userId, amount, type: 'topup' }),
             currency: 'XTR',
             prices: [{ label: `${amount} Stars`, amount: amount }],
+            // ❌ subscription_period НЕ НУЖЕН, это не подписка
         });
-        
+
         const invoiceLink = response.data.result;
         console.log('✅ Invoice link created:', invoiceLink);
         res.json({ success: true, invoiceLink: invoiceLink });
-        
+
     } catch (error) {
         console.error('Error creating invoice:', error.response?.data || error.message);
         res.status(500).json({ error: 'Failed to create invoice' });

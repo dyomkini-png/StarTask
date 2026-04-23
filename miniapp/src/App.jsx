@@ -24,9 +24,24 @@ const AdminPanel = ({ onClose, userId }) => {
     ];
 
     useEffect(() => {
-        fetchPendingQuests();
-        fetchActiveQuests();
-    }, []);
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    // ✅ Критически важно: убираем главную кнопку, если она не нужна
+    // Если она настроена через Telegram (tg.MainButton), то openInvoice может не сработать
+    if (tg.MainButton) {
+        tg.MainButton.hide();
+        tg.MainButton.offClick();
+    }
+
+    tg.setHeaderColor('#0a0a1a');
+    tg.setBackgroundColor('#0a0a1a');
+
+    if (tg.initDataUnsafe?.user) {
+        authenticate(tg.initDataUnsafe.user);
+    }
+}, []);
     
     const fetchPendingQuests = async () => {
         try {
@@ -554,49 +569,47 @@ function App() {
     };
 const createInvoice = async () => {
     const tg = window.Telegram.WebApp;
-    
+
     if (!user || !user.id) {
-        tg.showPopup({
-            title: 'Ошибка',
-            message: 'Пользователь не авторизован',
-            buttons: [{ type: 'ok' }]
-        });
+        tg.showPopup({ title: 'Ошибка', message: 'Пользователь не авторизован', buttons: [{ type: 'ok' }] });
         return;
     }
-    
+
+    tg.showPopup({ title: '⏳', message: `Подготовка платежа на ${topUpAmount} Stars...`, buttons: [] });
+
     try {
         const response = await axios.post(`${API_URL}/api/create-invoice`, {
             userId: user.id,
             amount: topUpAmount
         });
-        
+
         if (response.data.success && response.data.invoiceLink) {
-            // Отправляем ссылку в чат с ботом
-            tg.sendData(JSON.stringify({
-                type: 'send_message',
-                text: `💰 Ссылка для оплаты ${topUpAmount} Stars:\n${response.data.invoiceLink}`
-            }));
-            
-            tg.showPopup({
-                title: '💰 Ссылка отправлена',
-                message: 'Перейдите в диалог с ботом и нажмите на ссылку',
-                buttons: [{ type: 'ok' }]
+            // ✅ Пытаемся открыть инвойс в приложении
+            tg.openInvoice(response.data.invoiceLink, (status) => {
+                if (status === 'paid') {
+                    tg.showPopup({
+                        title: '✅ Оплачено!',
+                        message: `Баланс пополнен на ${topUpAmount} Stars`,
+                        buttons: [{ type: 'ok' }]
+                    });
+                    fetchBalance(user.id);
+                    setShowTopUpModal(false);
+                } else if (status === 'failed') {
+                    tg.showPopup({
+                        title: '❌ Ошибка',
+                        message: 'Платёж не прошёл. Попробуйте позже.',
+                        buttons: [{ type: 'ok' }]
+                    });
+                } else if (status === 'cancelled') {
+                    tg.showPopup({ title: 'Отмена', message: 'Вы отменили платёж.', buttons: [{ type: 'ok' }] });
+                }
             });
-            setShowTopUpModal(false);
         } else {
-            tg.showPopup({
-                title: 'Ошибка',
-                message: response.data.error || 'Не удалось создать счёт',
-                buttons: [{ type: 'ok' }]
-            });
+            tg.showPopup({ title: 'Ошибка', message: response.data.error || 'Не удалось создать счёт', buttons: [{ type: 'ok' }] });
         }
     } catch (error) {
         console.error('Error:', error);
-        tg.showPopup({
-            title: 'Ошибка',
-            message: error.response?.data?.error || 'Не удалось создать счёт',
-            buttons: [{ type: 'ok' }]
-        });
+        tg.showPopup({ title: 'Ошибка', message: error.response?.data?.error || 'Серверная ошибка', buttons: [{ type: 'ok' }] });
     }
 };
       if (loading) {
