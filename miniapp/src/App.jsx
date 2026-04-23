@@ -575,6 +575,8 @@ const createInvoice = async () => {
         return;
     }
 
+    tg.showPopup({ title: '⏳', message: `Создание платежа на ${topUpAmount} Stars...`, buttons: [] });
+
     try {
         const response = await axios.post(`${API_URL}/api/create-invoice`, {
             userId: user.id,
@@ -582,21 +584,17 @@ const createInvoice = async () => {
         });
 
         if (response.data.success && response.data.invoiceLink) {
-            // Показываем ссылку в попапе
+            // Отправляем ссылку в чат с ботом
             tg.showPopup({
-                title: '💰 Оплата',
-                message: `Для оплаты ${topUpAmount} Stars перейдите по ссылке:\n\n${response.data.invoiceLink}`,
-                buttons: [{ type: 'ok', text: '📋 Скопировать' }]
-            }, (buttonId) => {
-                if (buttonId === 'ok') {
-                    navigator.clipboard.writeText(response.data.invoiceLink);
-                    tg.showPopup({
-                        title: '✅ Скопировано!',
-                        message: 'Вставьте ссылку в браузер для оплаты',
-                        buttons: [{ type: 'ok' }]
-                    });
-                }
+                title: '✅ Счёт создан!',
+                message: 'Перейдите в диалог с ботом и нажмите "Оплатить"',
+                buttons: [{ type: 'ok' }]
             });
+            
+            // Открываем диалог с ботом
+            tg.openLink('https://t.me/StarTaskBot');
+            
+            // Закрываем модальное окно
             setShowTopUpModal(false);
         } else {
             tg.showPopup({ title: 'Ошибка', message: response.data.error || 'Не удалось создать счёт', buttons: [{ type: 'ok' }] });
