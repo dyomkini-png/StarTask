@@ -63,35 +63,34 @@ bot.start(async (ctx) => {
 });
 
 // Обязательная обработка pre_checkout_query
+// В bot/index.js
 bot.on('pre_checkout_query', async (ctx) => {
     try {
         await ctx.answerPreCheckoutQuery(true);
         console.log('✅ Pre-checkout approved');
     } catch (error) {
         console.error('Pre-checkout error:', error);
-        await ctx.answerPreCheckoutQuery(false, 'Ошибка при обработке платежа');
+        await ctx.answerPreCheckoutQuery(false, 'Временная ошибка, попробуйте позже.');
     }
 });
 
-// Обработка успешного платежа
 bot.on('successful_payment', async (ctx) => {
     const payment = ctx.message.successful_payment;
     const payload = JSON.parse(payment.invoice_payload);
     const { userId, amount } = payload;
-    
+
     console.log(`💰 Payment received: user ${userId}, amount ${amount}`);
-    
-    // Отправляем запрос на backend для зачисления
+
     try {
-        await axios.post(`${API_URL}/api/stars-payment/success`, {
+        await axios.post(`${process.env.API_URL}/api/stars-payment/success`, {
             userId,
             amount,
             telegram_payment_id: payment.telegram_payment_charge_id
         });
         await ctx.reply(`✅ Баланс пополнен на ${amount} Stars!`);
     } catch (error) {
-        console.error('Error sending to backend:', error);
-        await ctx.reply('✅ Платёж получен, но баланс обновится через несколько секунд.');
+        console.error('Error updating balance:', error);
+        await ctx.reply('✅ Платёж получен, баланс скоро обновится.');
     }
 });
 
