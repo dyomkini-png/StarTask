@@ -120,5 +120,19 @@ bot.command('help', async (ctx) => {
     );
 });
 
-bot.launch();
-console.log('🤖 Bot @StarTaskBot started');
+const express = require('express');
+const app = express();
+app.use(express.json());
+
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
+const PORT = process.env.PORT || 3001;
+
+app.use(bot.webhookCallback('/webhook'));
+
+app.listen(PORT, async () => {
+    if (WEBHOOK_URL) {
+        await bot.telegram.setWebhook(`${WEBHOOK_URL}/webhook`);
+        console.log('✅ Webhook set:', `${WEBHOOK_URL}/webhook`);
+    }
+    console.log(`🤖 Bot started on port ${PORT}`);
+});
