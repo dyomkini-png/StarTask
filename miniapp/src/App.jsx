@@ -575,8 +575,6 @@ const createInvoice = async () => {
         return;
     }
 
-    tg.showPopup({ title: '⏳', message: `Создание платежа на ${topUpAmount} Stars...`, buttons: [] });
-
     try {
         const response = await axios.post(`${API_URL}/api/create-invoice`, {
             userId: user.id,
@@ -584,14 +582,22 @@ const createInvoice = async () => {
         });
 
         if (response.data.success && response.data.invoiceLink) {
-            // ✅ Этот метод РАБОТАЕТ ВСЕГДА
-            tg.openLink(response.data.invoiceLink);
-            setShowTopUpModal(false);
+            // Показываем ссылку в попапе
             tg.showPopup({
                 title: '💰 Оплата',
-                message: 'Подтвердите платёж в открывшемся окне',
-                buttons: [{ type: 'ok' }]
+                message: `Для оплаты ${topUpAmount} Stars перейдите по ссылке:\n\n${response.data.invoiceLink}`,
+                buttons: [{ type: 'ok', text: '📋 Скопировать' }]
+            }, (buttonId) => {
+                if (buttonId === 'ok') {
+                    navigator.clipboard.writeText(response.data.invoiceLink);
+                    tg.showPopup({
+                        title: '✅ Скопировано!',
+                        message: 'Вставьте ссылку в браузер для оплаты',
+                        buttons: [{ type: 'ok' }]
+                    });
+                }
             });
+            setShowTopUpModal(false);
         } else {
             tg.showPopup({ title: 'Ошибка', message: response.data.error || 'Не удалось создать счёт', buttons: [{ type: 'ok' }] });
         }
