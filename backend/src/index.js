@@ -108,28 +108,26 @@ app.post('/api/create-invoice', async (req, res) => {
         const user = await db.query('SELECT telegram_id FROM users WHERE id = $1', [userId]);
         if (!user.rows[0]) return res.status(404).json({ error: 'User not found' });
 
-        const telegramId = user.rows[0].telegram_id;
+        // ✅ createInvoiceLink вместо sendInvoice — возвращает ссылку, не шлёт сообщение
+        const invoiceResponse = await axios.post(
+            `https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`,
+            {
+                title: '⭐ Пополнение StarTask',
+                description: `Пополнение баланса на ${amount} Telegram Stars`,
+                payload: JSON.stringify({ userId, amount, type: 'topup' }),
+                currency: 'XTR',
+                prices: [{ label: `${amount} Stars`, amount: amount }]
+            }
+        );
 
-        // ✅ ОТПРАВЛЯЕМ ИНВОЙС ПОЛЬЗОВАТЕЛЮ (ОН ПОЯВИТСЯ В ЧАТЕ С БОТОМ)
-        const invoiceResponse = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendInvoice`, {
-            chat_id: telegramId,
-            title: '⭐ Пополнение баланса StarTask',
-            description: `Пополнение внутреннего баланса на ${amount} Telegram Stars`,
-            payload: JSON.stringify({ userId, amount, type: 'topup' }),
-            currency: 'XTR',
-            prices: [{ label: `${amount} Stars`, amount: amount }],
-            start_parameter: 'topup'
-        });
+        const invoiceLink = invoiceResponse.data.result; // это строка-ссылка
 
-        // Получаем ID отправленного сообщения с инвойсом
-        const messageId = invoiceResponse.data.result.message_id;
-
-        console.log(`✅ Invoice sent to user ${telegramId} for ${amount} Stars. Message ID: ${messageId}`);
-        res.json({ success: true, messageId: messageId });
+        console.log(`✅ Invoice link created for user ${userId}, amount ${amount}`);
+        res.json({ success: true, invoiceLink });
 
     } catch (error) {
-        console.error('🔥 Error creating invoice:', error.response?.data || error.message);
-        res.status(500).json({ error: 'Failed to create invoice' });
+        console.error('🔥 Error creating invoice link:', error.response?.data || error.message);
+        res.status(500).json({ error: 'Failed to create invoice link' });
     }
 });
 

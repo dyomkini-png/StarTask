@@ -569,37 +569,45 @@ function App() {
     };
 const createInvoice = async () => {
     const tg = window.Telegram.WebApp;
-    
+
     if (!user || !user.id) {
         tg.showPopup({ title: 'Ошибка', message: 'Пользователь не авторизован', buttons: [{ type: 'ok' }] });
         return;
     }
-    
-    tg.showPopup({ title: '⏳', message: `Создание платежа на ${topUpAmount} Stars...`, buttons: [] });
-    
+
     try {
         const response = await axios.post(`${API_URL}/api/create-invoice`, {
             userId: user.id,
             amount: topUpAmount
         });
-        
-        if (response.data.success) {
-            // ✅ Закрываем текущее окно и открываем инвойс
+
+        if (response.data.success && response.data.invoiceLink) {
             setShowTopUpModal(false);
-            tg.close();
-            
-            // Небольшая задержка, чтобы окно успело закрыться
-            setTimeout(() => {
-                // ❗ САМЫЙ ВАЖНЫЙ МОМЕНТ: открываем диалог с ботом, где лежит инвойс, через deep-link
-                const botUsername = 'StarTaskBot'; // Имя вашего бота без @
-                tg.openLink(`https://t.me/${botUsername}?start=pay_${user.id}_${topUpAmount}`);
-                
-                tg.showPopup({
-                    title: '💰 Переход к оплате',
-                    message: 'Нажмите на кнопку "Заплатить ★ X" в сообщении от бота.',
-                    buttons: [{ type: 'ok' }]
-                });
-            }, 500);
+
+            // ✅ Открываем платёжный экран ВНУТРИ MiniApp — без выхода!
+            tg.openInvoice(response.data.invoiceLink, (status) => {
+                if (status === 'paid') {
+                    // Платёж прошёл — обновляем баланс
+                    fetchBalance(user.id);
+                    tg.showPopup({
+                        title: '✅ Успешно!',
+                        message: `Баланс пополнен на ${topUpAmount} Stars!`,
+                        buttons: [{ type: 'ok' }]
+                    });
+                } else if (status === 'cancelled') {
+                    tg.showPopup({
+                        title: '❌ Отменено',
+                        message: 'Платёж был отменён',
+                        buttons: [{ type: 'ok' }]
+                    });
+                } else if (status === 'failed') {
+                    tg.showPopup({
+                        title: '❌ Ошибка',
+                        message: 'Платёж не прошёл. Попробуйте ещё раз.',
+                        buttons: [{ type: 'ok' }]
+                    });
+                }
+            });
         } else {
             tg.showPopup({ title: 'Ошибка', message: response.data.error || 'Не удалось создать счёт', buttons: [{ type: 'ok' }] });
         }
