@@ -575,7 +575,7 @@ const createInvoice = async () => {
         return;
     }
     
-    tg.showPopup({ title: '⏳', message: `Подготовка платежа на ${topUpAmount} Stars...`, buttons: [] });
+    tg.showPopup({ title: '⏳', message: `Создание платежа на ${topUpAmount} Stars...`, buttons: [] });
     
     try {
         const response = await axios.post(`${API_URL}/api/create-invoice`, {
@@ -583,16 +583,20 @@ const createInvoice = async () => {
             amount: topUpAmount
         });
         
-        if (response.data.success && response.data.invoiceLink) {
-            // ✅ ПРАВИЛЬНЫЙ ВЫЗОВ openInvoice (без колбэка, просто открываем)
-            tg.openInvoice(response.data.invoiceLink);
+        if (response.data.success) {
+            // ✅ Закрываем текущее окно и открываем инвойс
             setShowTopUpModal(false);
+            tg.close();
             
-            // Показываем инструкцию после открытия
+            // Небольшая задержка, чтобы окно успело закрыться
             setTimeout(() => {
+                // ❗ САМЫЙ ВАЖНЫЙ МОМЕНТ: открываем диалог с ботом, где лежит инвойс, через deep-link
+                const botUsername = 'StarTaskBot'; // Имя вашего бота без @
+                tg.openLink(`https://t.me/${botUsername}?start=pay_${user.id}_${topUpAmount}`);
+                
                 tg.showPopup({
-                    title: '💰 Оплата',
-                    message: 'Подтвердите платёж в открывшемся окне. После оплаты баланс обновится автоматически.',
+                    title: '💰 Переход к оплате',
+                    message: 'Нажмите на кнопку "Заплатить ★ X" в сообщении от бота.',
                     buttons: [{ type: 'ok' }]
                 });
             }, 500);

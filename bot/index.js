@@ -6,12 +6,12 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 const MINI_APP_URL = process.env.MINI_APP_URL || 'https://startask-ten.vercel.app';
 const API_URL = process.env.API_URL || 'https://star-task.up.railway.app';
 
-// Обработка команды /start
+// Команда /start
 bot.start(async (ctx) => {
     const text = ctx.message.text;
     const param = text.substring(6).trim();
     
-    // Если есть параметр pay_ — отправляем инвойс (резервный канал)
+    // Обработка pay_ (резервный канал, если прямой не сработает)
     if (param && param.startsWith('pay_')) {
         const parts = param.split('_');
         const userId = parts[1];
@@ -39,7 +39,7 @@ bot.start(async (ctx) => {
         console.log(`Referral: ${referrerId} invited ${ctx.from.id}`);
     }
     
-    // Кнопка меню
+    // Установка кнопки меню
     await ctx.telegram.setChatMenuButton({
         chat_id: ctx.chat.id,
         menu_button: {
@@ -82,7 +82,6 @@ bot.on('successful_payment', async (ctx) => {
     console.log(`💰 Payment received: user ${userId}, amount ${amount}`);
 
     try {
-        // Отправляем запрос на ваш backend для зачисления
         await axios.post(`${API_URL}/api/stars-payment/success`, {
             userId: Number(userId),
             amount: Number(amount),
