@@ -316,6 +316,24 @@ function App() {
     const [topUpAmount, setTopUpAmount] = useState(50);
 	const [tonConnectUI] = useTonConnectUI();
     const wallet = useTonWallet();
+	useEffect(() => {
+    if (wallet && user) {
+        try {
+            const friendlyAddress = Address.parse(wallet.account.address).toString({
+                bounceable: false,
+                testOnly: false
+            });
+            axios.post(`${API_URL}/api/user/connect-wallet`, {
+                userId: user.id,
+                walletAddress: friendlyAddress
+            }).then(() => {
+                console.log('✅ Wallet saved to DB');
+            });
+        } catch (e) {
+            console.error('Wallet address parse error:', e);
+        }
+    }
+}, [wallet, user]);
     
     const titleInput = useRef(null);
     const descInput = useRef(null);

@@ -204,6 +204,21 @@ app.post('/api/auth', async (req, res) => {
     }
 });
 
+app.post('/api/user/connect-wallet', async (req, res) => {
+    const { userId, walletAddress } = req.body;
+    try {
+        await db.query(
+            'UPDATE users SET ton_wallet = $1 WHERE id = $2',
+            [walletAddress, userId]
+        );
+        console.log(`✅ Wallet connected for user ${userId}: ${walletAddress}`);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('❌ Wallet connect error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ========== ПОПОЛНЕНИЕ БАЛАНСА ==========
 
 // ✅ ФУНКЦИЯ СОЗДАНИЯ И ОТПРАВКИ ИНВОЙСА (РАБОТАЕТ С MINI APP)
