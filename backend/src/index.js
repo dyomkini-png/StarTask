@@ -47,8 +47,17 @@ bot.on('successful_payment', async (ctx) => {
 });
 
 app.post('/webhook', (req, res, next) => {
-    console.log('📨 Webhook received:', JSON.stringify(req.body));
-    next();
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+        try {
+            req.body = JSON.parse(body);
+            console.log('📨 Webhook received:', JSON.stringify(req.body));
+        } catch(e) {
+            req.body = {};
+        }
+        next();
+    });
 }, bot.webhookCallback());
 
 app.use(express.json());
