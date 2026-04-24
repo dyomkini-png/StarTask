@@ -589,6 +589,10 @@ function App() {
         return;
     }
 
+    console.log('💎 Platform wallet:', import.meta.env.VITE_PLATFORM_TON_WALLET);
+    console.log('💎 Amount in nano:', (tonTopUpAmount * 1e9).toString());
+    console.log('💎 Wallet connected:', wallet.account.address);
+
     try {
         setTonPaymentStep('waiting');
 
