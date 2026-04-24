@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { TonConnectButton, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
 
@@ -312,6 +313,8 @@ function App() {
     const [questStatusFilter, setQuestStatusFilter] = useState('pending');
     const [showTopUpModal, setShowTopUpModal] = useState(false);
     const [topUpAmount, setTopUpAmount] = useState(50);
+	const [tonConnectUI] = useTonConnectUI();
+    const wallet = useTonWallet();
     
     const titleInput = useRef(null);
     const descInput = useRef(null);
@@ -659,6 +662,31 @@ const createInvoice = async () => {
                             <strong style={styles.profileBalanceValue}>{typeof tonBalance === 'number' ? tonBalance.toFixed(3) : 0}</strong>
                         </div>
                     </div>
+					<div style={{ width: '100%', marginBottom: '16px' }}>
+    {wallet ? (
+        <div style={styles.walletConnected}>
+            <div style={styles.walletInfo}>
+                <span style={styles.walletLabel}>💎 TON кошелёк подключён</span>
+                <span style={styles.walletAddress}>
+                    {wallet.account.address.slice(0, 6)}...{wallet.account.address.slice(-4)}
+                </span>
+            </div>
+            <button 
+                onClick={() => tonConnectUI.disconnect()} 
+                style={styles.walletDisconnectBtn}
+            >
+                Отключить
+            </button>
+        </div>
+    ) : (
+        <button 
+            onClick={() => tonConnectUI.openModal()} 
+            style={styles.walletConnectBtn}
+        >
+            💎 Подключить TON кошелёк
+        </button>
+    )}
+</div>
                     <button onClick={() => setShowCreateForm(true)} style={styles.createQuestBtn}>
                         ✨ Создать задание
                     </button>
@@ -1921,7 +1949,53 @@ const styles = {
         resize: 'vertical',
         boxSizing: 'border-box',
         minHeight: '80px'
-    }
+    },
+	walletConnectBtn: {
+    background: 'linear-gradient(135deg, rgba(0,136,204,0.3) 0%, rgba(0,136,204,0.1) 100%)',
+    border: '1px solid rgba(0,136,204,0.6)',
+    borderRadius: '40px',
+    padding: '14px 28px',
+    color: '#0088CC',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontSize: '16px',
+    width: '100%',
+    marginBottom: '8px'
+},
+walletConnected: {
+    background: 'rgba(0,136,204,0.1)',
+    border: '1px solid rgba(0,136,204,0.3)',
+    borderRadius: '20px',
+    padding: '12px 16px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '8px'
+},
+walletInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px'
+},
+walletLabel: {
+    fontSize: '13px',
+    color: '#0088CC',
+    fontWeight: '600'
+},
+walletAddress: {
+    fontSize: '11px',
+    color: 'rgba(255,255,255,0.5)',
+    fontFamily: 'monospace'
+},
+walletDisconnectBtn: {
+    background: 'rgba(255,45,149,0.2)',
+    border: '1px solid rgba(255,45,149,0.3)',
+    borderRadius: '20px',
+    padding: '6px 12px',
+    color: '#FF2D95',
+    fontSize: '12px',
+    cursor: 'pointer'
+},
 };
 
 const styleSheet = document.createElement("style");
