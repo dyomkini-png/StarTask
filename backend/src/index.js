@@ -219,6 +219,64 @@ app.post('/api/user/connect-wallet', async (req, res) => {
     }
 });
 
+app.post('/api/ton-payment/verify', async (req, res) => {
+    const { userId, txHash, amount } = req.body;
+
+    try {
+        // Проверяем не обрабатывали ли уже эту транзакцию
+        const existing = await db.query(
+            'SELECT id FROM transactions WHERE tx_hash = $1',
+            [txHash]
+        );
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: 'Transaction already processed' });
+        }
+
+        // Верифицируем транзакцию через TON API
+        const PLATFORM_WALLET = process.env.PLATFORM_TON_WALLET;
+        const response = await axios.get(
+            `https://toncenter.com/api/v2/getTransactions?address=${PLATFORM_WALLET}&limit=20`,
+            { headers: { 'X-API-Key': process.env.TON_API_KEY || '' } }
+        );
+
+        const transactions = response.data.result;
+        const tx = transactions.find(t => t.transaction_id.hash === txHash);
+
+        if (!tx) {
+            return res.status(404).json({ error: 'Transaction not found' });
+        }
+
+        // Проверяем что транзакция свежая (не старше 10 минут)
+        const txTime = tx.utime * 1000;
+        const now = Date.now();
+        if (now - txTime > 10 * 60 * 1000) {
+            return res.status(400).json({ error: 'Transaction too old' });
+        }
+
+        const tonAmount = tx.in_msg.value / 1e9; // конвертируем из нанотон
+
+        // Зачисляем TON баланс
+        await db.query(
+            'UPDATE users SET ton_balance = ton_balance + $1 WHERE id = $2',
+            [tonAmount, userId]
+        );
+
+        // Сохраняем транзакцию
+        await db.query(
+            `INSERT INTO transactions (user_id, amount, type, status, tx_hash, ton_amount)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [userId, 0, 'ton_topup', 'completed', txHash, tonAmount]
+        );
+
+        console.log(`✅ TON payment verified: user ${userId}, amount ${tonAmount} TON`);
+        res.json({ success: true, amount: tonAmount });
+
+    } catch (error) {
+        console.error('❌ TON verify error:', error);
+        res.status(500).json({ error: 'Verification failed' });
+    }
+});
+
 // ========== ПОПОЛНЕНИЕ БАЛАНСА ==========
 
 // ✅ ФУНКЦИЯ СОЗДАНИЯ И ОТПРАВКИ ИНВОЙСА (РАБОТАЕТ С MINI APP)

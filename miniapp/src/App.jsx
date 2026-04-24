@@ -316,6 +316,9 @@ function App() {
     const [topUpAmount, setTopUpAmount] = useState(50);
 	const [tonConnectUI] = useTonConnectUI();
     const wallet = useTonWallet();
+	const [showTonTopUpModal, setShowTonTopUpModal] = useState(false);
+    const [tonTopUpAmount, setTonTopUpAmount] = useState(1);
+    const [tonPaymentStep, setTonPaymentStep] = useState('select');
 	useEffect(() => {
     if (wallet && user) {
         try {
@@ -575,6 +578,55 @@ function App() {
     const openTopUpModal = () => {
         setShowTopUpModal(true);
     };
+	
+	const sendTonPayment = async () => {
+    if (!wallet) {
+        window.Telegram.WebApp.showPopup({
+            title: 'Ошибка',
+            message: 'Подключите TON кошелёк',
+            buttons: [{ type: 'ok' }]
+        });
+        return;
+    }
+
+    try {
+        setTonPaymentStep('waiting');
+
+        const amountInNano = (tonTopUpAmount * 1e9).toString();
+
+        const tx = await tonConnectUI.sendTransaction({
+            validUntil: Math.floor(Date.now() / 1000) + 600,
+            messages: [
+                {
+                    address: import.meta.env.VITE_PLATFORM_TON_WALLET,
+                    amount: amountInNano,
+                    payload: ''
+                }
+            ]
+        });
+
+        // Верифицируем на бэкенде
+        const response = await axios.post(`${API_URL}/api/ton-payment/verify`, {
+            userId: user.id,
+            txHash: tx.boc,
+            amount: tonTopUpAmount
+        });
+
+        if (response.data.success) {
+            setTonPaymentStep('success');
+            fetchTonBalance(user.id);
+        }
+    } catch (error) {
+        console.error('TON payment error:', error);
+        setTonPaymentStep('select');
+        window.Telegram.WebApp.showPopup({
+            title: 'Ошибка',
+            message: 'Платёж не прошёл. Попробуйте ещё раз.',
+            buttons: [{ type: 'ok' }]
+        });
+    }
+};
+
 const createInvoice = async () => {
     const tg = window.Telegram.WebApp;
 
@@ -723,6 +775,9 @@ const createInvoice = async () => {
                     <button onClick={openTopUpModal} style={styles.topUpBtn}>
                         💰 Пополнить баланс
                     </button>
+					<button onClick={() => setShowTonTopUpModal(true)} style={styles.tonTopUpBtn}>
+    💎 Пополнить TON баланс
+</button>
                     {user?.telegram_id && String(user.telegram_id) === "850997324" && (
                         <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
                             🛡️ Админ-панель
@@ -809,6 +864,60 @@ const createInvoice = async () => {
                         </div>
                     </div>
                 )}
+				
+				{showTonTopUpModal && (
+    <div style={styles.modalOverlay}>
+        <div style={styles.topUpModal}>
+            <div style={styles.formHeader}>
+                <h3 style={{ color: 'white' }}>💎 Пополнение TON</h3>
+                <button onClick={() => { setShowTonTopUpModal(false); setTonPaymentStep('select'); }} style={styles.closeBtn}>✕</button>
+            </div>
+
+            {tonPaymentStep === 'select' && (
+                <>
+                    <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '16px' }}>
+                        Выберите сумму:
+                    </p>
+                    <div style={styles.topUpAmounts}>
+                        {[0.5, 1, 2, 5, 10, 20].map(amount => (
+                            <button
+                                key={amount}
+                                onClick={() => setTonTopUpAmount(amount)}
+                                style={{
+                                    ...styles.topUpAmountBtn,
+                                    ...(tonTopUpAmount === amount && styles.topUpAmountBtnActive)
+                                }}
+                            >
+                                {amount} 💎
+                            </button>
+                        ))}
+                    </div>
+                    <button onClick={sendTonPayment} style={{ ...styles.approveBtn, width: '100%', marginTop: '20px', padding: '14px' }}>
+                        Оплатить {tonTopUpAmount} TON
+                    </button>
+                </>
+            )}
+
+            {tonPaymentStep === 'waiting' && (
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <div style={styles.spinner}></div>
+                    <p style={{ color: 'white' }}>Ожидание подтверждения...</p>
+                </div>
+            )}
+
+            {tonPaymentStep === 'success' && (
+                <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <p style={{ fontSize: '48px' }}>✅</p>
+                    <p style={{ color: 'white', fontSize: '18px' }}>Баланс пополнен!</p>
+                    <p style={{ color: 'rgba(255,255,255,0.6)' }}>+{tonTopUpAmount} TON</p>
+                    <button onClick={() => { setShowTonTopUpModal(false); setTonPaymentStep('select'); }} style={{ ...styles.approveBtn, marginTop: '16px' }}>
+                        Закрыть
+                    </button>
+                </div>
+            )}
+        </div>
+    </div>
+)}
 
                 {showAdminPanel && (
                     <AdminPanel onClose={() => setShowAdminPanel(false)} userId={user?.telegram_id} />
@@ -1917,6 +2026,18 @@ const styles = {
         width: '100%',
         marginBottom: '16px'
     },
+	tonTopUpBtn: {
+    background: 'linear-gradient(135deg, rgba(0,136,204,0.3) 0%, rgba(0,136,204,0.1) 100%)',
+    border: '1px solid rgba(0,136,204,0.6)',
+    borderRadius: '40px',
+    padding: '14px 28px',
+    color: '#0088CC',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontSize: '16px',
+    width: '100%',
+    marginBottom: '16px'
+},
     topUpModal: {
         background: 'rgba(20,20,40,0.98)',
         backdropFilter: 'blur(20px)',
