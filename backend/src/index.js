@@ -471,6 +471,24 @@ app.get('/api/admin/active-quests', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+const bot = require('./bot');
+
+// Webhook endpoint — Telegram будет слать сюда все события
+app.post('/webhook', bot.webhookCallback());
+
+app.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
+    
+    // Регистрируем webhook при старте сервера
+    const WEBHOOK_URL = process.env.WEBHOOK_URL;
+    if (WEBHOOK_URL) {
+        try {
+            await bot.telegram.setWebhook(`${WEBHOOK_URL}/webhook`);
+            console.log(`✅ Webhook set: ${WEBHOOK_URL}/webhook`);
+        } catch (err) {
+            console.error('❌ Webhook setup error:', err.message);
+        }
+    } else {
+        console.warn('⚠️ WEBHOOK_URL not set — bot events will not work');
+    }
 });
