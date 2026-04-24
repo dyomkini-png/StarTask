@@ -589,10 +589,22 @@ app.listen(PORT, async () => {
             const result = await bot.telegram.setWebhook(`${WEBHOOK_URL}/webhook`);
             console.log(`✅ Webhook set result:`, JSON.stringify(result));
         } catch (err) {
-            console.error('❌ Webhook setup error:', err.message, JSON.stringify(err));
+            console.error('❌ Webhook setup error:', err.message);
         }
-    } else {
-        console.warn('⚠️ WEBHOOK_URL not set');
+    }
+
+    // Устанавливаем кнопку меню глобально для всех пользователей
+    try {
+        await bot.telegram.setChatMenuButton({
+            menu_button: {
+                type: 'web_app',
+                text: '🚀 Открыть StarTask',
+                web_app: { url: MINI_APP_URL }
+            }
+        });
+        console.log('✅ Menu button set globally');
+    } catch (err) {
+        console.error('❌ Menu button error:', err.message);
     }
 });
 module.exports = bot;
