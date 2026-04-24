@@ -580,6 +580,7 @@ function App() {
     };
 	
 	const sendTonPayment = async () => {
+	alert('Wallet: ' + import.meta.env.VITE_PLATFORM_TON_WALLET);
     if (!wallet) {
         window.Telegram.WebApp.showPopup({
             title: 'Ошибка',
