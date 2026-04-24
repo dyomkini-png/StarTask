@@ -46,19 +46,20 @@ bot.on('successful_payment', async (ctx) => {
     }
 });
 
-app.post('/webhook', (req, res, next) => {
+app.post('/webhook', (req, res) => {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
         try {
-            req.body = JSON.parse(body);
-            console.log('📨 Webhook received:', JSON.stringify(req.body));
+            const update = JSON.parse(body);
+            console.log('📨 Webhook received:', JSON.stringify(update));
+            await bot.handleUpdate(update, res);
         } catch(e) {
-            req.body = {};
+            console.error('❌ Webhook parse error:', e.message);
+            res.status(400).send('Bad request');
         }
-        next();
     });
-}, bot.webhookCallback());
+});
 
 app.use(express.json());
 
