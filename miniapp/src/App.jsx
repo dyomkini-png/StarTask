@@ -4,6 +4,7 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
 
 const AdminPanel = ({ onClose, userId }) => {
+	const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
     const [pendingQuests, setPendingQuests] = useState([]);
     const [activeQuests, setActiveQuests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -24,23 +25,8 @@ const AdminPanel = ({ onClose, userId }) => {
     ];
 
     useEffect(() => {
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
-
-    // ✅ Критически важно: убираем главную кнопку, если она не нужна
-    // Если она настроена через Telegram (tg.MainButton), то openInvoice может не сработать
-    if (tg.MainButton) {
-        tg.MainButton.hide();
-        tg.MainButton.offClick();
-    }
-
-    tg.setHeaderColor('#0a0a1a');
-    tg.setBackgroundColor('#0a0a1a');
-
-    if (tg.initDataUnsafe?.user) {
-        authenticate(tg.initDataUnsafe.user);
-    }
+    fetchPendingQuests();
+    fetchActiveQuests();
 }, []);
     
     const fetchPendingQuests = async () => {
