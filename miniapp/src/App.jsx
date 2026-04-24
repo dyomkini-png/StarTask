@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { TonConnectButton, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
+import { Address } from '@ton/core';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
 
@@ -668,7 +669,17 @@ const createInvoice = async () => {
             <div style={styles.walletInfo}>
                 <span style={styles.walletLabel}>💎 TON кошелёк подключён</span>
                 <span style={styles.walletAddress}>
-                    {wallet.account.address.slice(0, 6)}...{wallet.account.address.slice(-4)}
+                    {(() => {
+    try {
+        const friendly = Address.parse(wallet.account.address).toString({
+            bounceable: false,
+            testOnly: false
+        });
+        return `${friendly.slice(0, 6)}...${friendly.slice(-4)}`;
+    } catch {
+        return `${wallet.account.address.slice(0, 6)}...${wallet.account.address.slice(-4)}`;
+    }
+})()}
                 </span>
             </div>
             <button 
