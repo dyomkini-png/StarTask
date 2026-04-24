@@ -9,6 +9,45 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
+
+const { Telegraf } = require('telegraf');
+const bot = new Telegraf(process.env.BOT_TOKEN);
+
+bot.on('pre_checkout_query', async (ctx) => {
+    console.log('📥 pre_checkout_query received');
+    try {
+        await ctx.answerPreCheckoutQuery(true);
+        console.log('✅ Pre-checkout approved');
+    } catch (error) {
+        console.error('❌ Pre-checkout error:', error);
+        await ctx.answerPreCheckoutQuery(false, 'Временная ошибка');
+    }
+});
+
+bot.on('successful_payment', async (ctx) => {
+    const payment = ctx.message.successful_payment;
+    const payload = JSON.parse(payment.invoice_payload);
+    const { userId, amount } = payload;
+    console.log(`💰 Payment received: user ${userId}, amount ${amount}`);
+    try {
+        await db.query(
+            'UPDATE users SET stars_balance = stars_balance + $1 WHERE id = $2',
+            [amount, userId]
+        );
+        await db.query(
+            `INSERT INTO transactions (user_id, amount, type, status) VALUES ($1, $2, $3, $4)`,
+            [userId, amount, 'topup', 'completed']
+        );
+        await ctx.reply(`✅ Баланс пополнен на ${amount} Stars!`);
+        console.log(`✅ Balance updated for user ${userId}`);
+    } catch (error) {
+        console.error('❌ Error updating balance:', error);
+        await ctx.reply('✅ Платёж получен! Баланс обновится в течение минуты.');
+    }
+});
+
+app.post('/webhook', bot.webhookCallback());
+
 app.use(express.json());
 
 const db = new Pool({
@@ -470,49 +509,6 @@ app.get('/api/admin/active-quests', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
-const { Telegraf } = require('telegraf');
-const bot = new Telegraf(process.env.BOT_TOKEN);
-
-// pre_checkout_query — обязательно отвечаем
-bot.on('pre_checkout_query', async (ctx) => {
-    console.log('📥 pre_checkout_query received');
-    try {
-        await ctx.answerPreCheckoutQuery(true);
-        console.log('✅ Pre-checkout approved');
-    } catch (error) {
-        console.error('❌ Pre-checkout error:', error);
-        await ctx.answerPreCheckoutQuery(false, 'Временная ошибка');
-    }
-});
-
-// Успешный платёж — начисляем баланс
-bot.on('successful_payment', async (ctx) => {
-    const payment = ctx.message.successful_payment;
-    const payload = JSON.parse(payment.invoice_payload);
-    const { userId, amount } = payload;
-
-    console.log(`💰 Payment received: user ${userId}, amount ${amount}`);
-
-    try {
-        await db.query(
-            'UPDATE users SET stars_balance = stars_balance + $1 WHERE id = $2',
-            [amount, userId]
-        );
-        await db.query(
-            `INSERT INTO transactions (user_id, amount, type, status) VALUES ($1, $2, $3, $4)`,
-            [userId, amount, 'topup', 'completed']
-        );
-        await ctx.reply(`✅ Баланс пополнен на ${amount} Stars!`);
-        console.log(`✅ Balance updated for user ${userId}`);
-    } catch (error) {
-        console.error('❌ Error updating balance:', error);
-        await ctx.reply('✅ Платёж получен! Баланс обновится в течение минуты.');
-    }
-});
-
-// Webhook endpoint
-app.post('/webhook', bot.webhookCallback());
 
 app.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
