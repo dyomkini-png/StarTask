@@ -471,7 +471,7 @@ app.get('/api/admin/active-quests', async (req, res) => {
     }
 });
 
-const bot = require('./bot');
+const bot = require('../../bot/index.js');
 
 // Webhook endpoint — Telegram будет слать сюда все события
 app.post('/webhook', bot.webhookCallback());
@@ -492,3 +492,4 @@ app.listen(PORT, async () => {
         console.warn('⚠️ WEBHOOK_URL not set — bot events will not work');
     }
 });
+module.exports = bot;
