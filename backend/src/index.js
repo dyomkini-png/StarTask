@@ -519,11 +519,13 @@ app.listen(PORT, async () => {
     const WEBHOOK_URL = process.env.WEBHOOK_URL;
     if (WEBHOOK_URL) {
         try {
-            await bot.telegram.setWebhook(`${WEBHOOK_URL}/webhook`);
-            console.log(`✅ Webhook set: ${WEBHOOK_URL}/webhook`);
+            const result = await bot.telegram.setWebhook(`${WEBHOOK_URL}/webhook`);
+            console.log(`✅ Webhook set result:`, JSON.stringify(result));
         } catch (err) {
-            console.error('❌ Webhook setup error:', err.message);
+            console.error('❌ Webhook setup error:', err.message, JSON.stringify(err));
         }
+    } else {
+        console.warn('⚠️ WEBHOOK_URL not set');
     }
 });
 module.exports = bot;
