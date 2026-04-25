@@ -580,7 +580,6 @@ function App() {
     };
 	
 	const sendTonPayment = async () => {
-	alert('Wallet: ' + import.meta.env.VITE_PLATFORM_TON_WALLET);
     if (!wallet) {
         window.Telegram.WebApp.showPopup({
             title: 'Ошибка',
@@ -622,14 +621,16 @@ function App() {
             fetchTonBalance(user.id);
         }
     } catch (error) {
-        console.error('TON payment error:', error);
-        setTonPaymentStep('select');
-        window.Telegram.WebApp.showPopup({
-            title: 'Ошибка',
-            message: 'Платёж не прошёл. Попробуйте ещё раз.',
-            buttons: [{ type: 'ok' }]
-        });
-    }
+    console.error('TON payment error full:', error);
+    console.error('TON payment error message:', error?.message);
+    console.error('TON payment error response:', error?.response?.data);
+    setTonPaymentStep('select');
+    window.Telegram.WebApp.showPopup({
+        title: 'Ошибка',
+        message: error?.message || 'Платёж не прошёл. Попробуйте ещё раз.',
+        buttons: [{ type: 'ok' }]
+    });
+}
 };
 
 const createInvoice = async () => {
