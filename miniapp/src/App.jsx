@@ -604,7 +604,6 @@ function App() {
                 {
                     address: import.meta.env.VITE_PLATFORM_TON_WALLET,
                     amount: amountInNano,
-                    payload: ''
                 }
             ]
         });
