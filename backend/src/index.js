@@ -277,6 +277,41 @@ app.post('/api/ton-payment/verify', async (req, res) => {
     }
 });
 
+app.post('/api/ton-payment/credit', async (req, res) => {
+    const { userId, amount, boc } = req.body;
+
+    try {
+        // Проверяем что такой boc ещё не обрабатывался
+        const existing = await db.query(
+            'SELECT id FROM transactions WHERE tx_hash = $1',
+            [boc]
+        );
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: 'Transaction already processed' });
+        }
+
+        // Зачисляем TON баланс
+        await db.query(
+            'UPDATE users SET ton_balance = ton_balance + $1 WHERE id = $2',
+            [amount, userId]
+        );
+
+        // Сохраняем транзакцию
+        await db.query(
+            `INSERT INTO transactions (user_id, amount, type, status, tx_hash, ton_amount)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [userId, 0, 'ton_topup', 'completed', boc, amount]
+        );
+
+        console.log(`✅ TON credited: user ${userId}, amount ${amount} TON`);
+        res.json({ success: true, amount });
+
+    } catch (error) {
+        console.error('❌ TON credit error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ========== ПОПОЛНЕНИЕ БАЛАНСА ==========
 
 // ✅ ФУНКЦИЯ СОЗДАНИЯ И ОТПРАВКИ ИНВОЙСА (РАБОТАЕТ С MINI APP)

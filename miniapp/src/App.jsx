@@ -608,17 +608,17 @@ function App() {
             ]
         });
 
-        // Верифицируем на бэкенде
-        const response = await axios.post(`${API_URL}/api/ton-payment/verify`, {
-            userId: user.id,
-            txHash: tx.boc,
-            amount: tonTopUpAmount
-        });
+        // Зачисляем баланс сразу после подтверждения
+const response = await axios.post(`${API_URL}/api/ton-payment/credit`, {
+    userId: user.id,
+    amount: tonTopUpAmount,
+    boc: tx.boc
+});
 
-        if (response.data.success) {
-            setTonPaymentStep('success');
-            fetchTonBalance(user.id);
-        }
+if (response.data.success) {
+    setTonPaymentStep('success');
+    fetchTonBalance(user.id);
+}
     } catch (error) {
     console.error('TON payment error full:', error);
     console.error('TON payment error message:', error?.message);
