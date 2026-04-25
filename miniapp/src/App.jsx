@@ -1,6 +1,3 @@
-Вот ваш обновлённый файл `App.jsx`, в котором исходный код полностью заменён на предоставленный вами новый интерфейс:
-
-```jsx
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
