@@ -390,7 +390,7 @@ app.get('/api/user/:userId/balance', async (req, res) => {
 app.get('/api/user/:userId/ton-balance', async (req, res) => {
     try {
         const user = await db.query('SELECT ton_balance FROM users WHERE id = $1', [req.params.userId]);
-        res.json({ balance: user.rows[0]?.ton_balance || 0 });
+        res.json({ balance: parseFloat(user.rows[0]?.ton_balance || 0) });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

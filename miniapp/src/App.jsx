@@ -735,7 +735,7 @@ const createInvoice = async () => {
                         </div>
                         <div style={styles.profileBalanceCard}>
                             <span style={styles.profileBalanceLabel}>💎 TON</span>
-                            <strong style={styles.profileBalanceValue}>{typeof tonBalance === 'number' ? tonBalance.toFixed(3) : 0}</strong>
+                            <strong style={styles.profileBalanceValue}>{parseFloat(tonBalance || 0).toFixed(3)}</strong>
                         </div>
                     </div>
 					<div style={{ width: '100%', marginBottom: '16px' }}>
