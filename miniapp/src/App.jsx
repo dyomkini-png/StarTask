@@ -1,12 +1,16 @@
+Вот ваш обновлённый файл `App.jsx`, в котором исходный код полностью заменён на предоставленный вами новый интерфейс:
+
+```jsx
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { TonConnectButton, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
+import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { Address } from '@ton/core';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
 
+// ============ ADMIN PANEL ============
 const AdminPanel = ({ onClose, userId }) => {
-	const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
     const [pendingQuests, setPendingQuests] = useState([]);
     const [activeQuests, setActiveQuests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -15,7 +19,7 @@ const AdminPanel = ({ onClose, userId }) => {
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [selectedRejectReason, setSelectedRejectReason] = useState('');
     const [customRejectReason, setCustomRejectReason] = useState('');
-    
+
     const rejectReasons = [
         'Не соответствует правилам платформы',
         'Ссылка на канал недействительна',
@@ -27,268 +31,127 @@ const AdminPanel = ({ onClose, userId }) => {
     ];
 
     useEffect(() => {
-    fetchPendingQuests();
-    fetchActiveQuests();
-}, []);
-    
+        fetchPendingQuests();
+        fetchActiveQuests();
+    }, []);
+
     const fetchPendingQuests = async () => {
         try {
             const response = await axios.get(`${API_URL}/api/admin/pending-quests`);
             setPendingQuests(response.data);
-        } catch (error) {
-            console.error('Error fetching pending quests:', error);
-        }
+        } catch (error) { console.error(error); }
     };
-    
+
     const fetchActiveQuests = async () => {
         try {
             const response = await axios.get(`${API_URL}/api/admin/active-quests?adminId=${userId}`);
             setActiveQuests(response.data);
-        } catch (error) {
-            console.error('Error fetching active quests:', error);
-        } finally {
-            setLoading(false);
-        }
+        } catch (error) { console.error(error); } finally { setLoading(false); }
     };
-    
+
     const approveQuest = async (questId) => {
         try {
-            const response = await axios.post(`${API_URL}/api/admin/approve-quest/${questId}`, {
-                adminId: Number(userId)
-            });
+            const response = await axios.post(`${API_URL}/api/admin/approve-quest/${questId}`, { adminId: Number(userId) });
             if (response.data.success) {
-                fetchPendingQuests();
-                fetchActiveQuests();
-                window.Telegram.WebApp.showPopup({
-                    title: '✅ Одобрено',
-                    message: response.data.message || 'Задание опубликовано',
-                    buttons: [{ type: 'ok' }]
-                });
+                fetchPendingQuests(); fetchActiveQuests();
+                window.Telegram.WebApp.showPopup({ title: '✅ Одобрено', message: response.data.message || 'Задание опубликовано', buttons: [{ type: 'ok' }] });
             }
         } catch (error) {
-            console.error('Error approving quest:', error);
-            window.Telegram.WebApp.showPopup({
-                title: 'Ошибка',
-                message: error.response?.data?.error || 'Не удалось одобрить задание',
-                buttons: [{ type: 'ok' }]
-            });
+            window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: error.response?.data?.error || 'Не удалось одобрить', buttons: [{ type: 'ok' }] });
         }
     };
-    
-    const openRejectModal = (questId) => {
-        setCurrentQuestId(questId);
-        setSelectedRejectReason('');
-        setCustomRejectReason('');
-        setShowRejectModal(true);
-    };
-    
+
+    const openRejectModal = (questId) => { setCurrentQuestId(questId); setSelectedRejectReason(''); setCustomRejectReason(''); setShowRejectModal(true); };
+
     const handleRejectSubmit = async () => {
-        const finalReason = selectedRejectReason === 'Другая причина' 
-            ? customRejectReason 
-            : selectedRejectReason;
-            
-        if (!finalReason) {
-            window.Telegram.WebApp.showPopup({
-                title: 'Ошибка',
-                message: 'Пожалуйста, выберите или укажите причину отклонения',
-                buttons: [{ type: 'ok' }]
-            });
-            return;
-        }
-        
+        const finalReason = selectedRejectReason === 'Другая причина' ? customRejectReason : selectedRejectReason;
+        if (!finalReason) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: 'Выберите причину', buttons: [{ type: 'ok' }] }); return; }
         try {
-            const response = await axios.post(`${API_URL}/api/admin/reject-quest/${currentQuestId}`, {
-                adminId: Number(userId),
-                reason: finalReason
-            });
-            if (response.data.success) {
-                fetchPendingQuests();
-                setShowRejectModal(false);
-                window.Telegram.WebApp.showPopup({
-                    title: '❌ Отклонено',
-                    message: 'Задание отклонено',
-                    buttons: [{ type: 'ok' }]
-                });
-            }
-        } catch (error) {
-            console.error('Error rejecting quest:', error);
-            window.Telegram.WebApp.showPopup({
-                title: 'Ошибка',
-                message: error.response?.data?.error || 'Не удалось отклонить задание',
-                buttons: [{ type: 'ok' }]
-            });
-        }
+            const response = await axios.post(`${API_URL}/api/admin/reject-quest/${currentQuestId}`, { adminId: Number(userId), reason: finalReason });
+            if (response.data.success) { fetchPendingQuests(); setShowRejectModal(false); window.Telegram.WebApp.showPopup({ title: '❌ Отклонено', message: 'Задание отклонено', buttons: [{ type: 'ok' }] }); }
+        } catch (error) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: error.response?.data?.error || 'Ошибка', buttons: [{ type: 'ok' }] }); }
     };
-    
+
     const deactivateQuest = (questId) => {
-        window.Telegram.WebApp.showPopup({
-            title: '⚠️ Снять с публикации',
-            message: 'Задание будет скрыто из ленты пользователей. Продолжить?',
-            buttons: [{ type: 'ok', text: 'Да, снять' }, { type: 'cancel', text: 'Отмена' }]
-        }, async (buttonId) => {
+        window.Telegram.WebApp.showPopup({ title: '⚠️ Снять с публикации', message: 'Задание будет скрыто. Продолжить?', buttons: [{ type: 'ok', text: 'Да, снять' }, { type: 'cancel', text: 'Отмена' }] }, async (buttonId) => {
             if (buttonId === 'ok') {
                 try {
-                    const response = await axios.post(`${API_URL}/api/admin/deactivate-quest/${questId}`, {
-                        adminId: Number(userId)
-                    });
-                    if (response.data.success) {
-                        await fetchActiveQuests();
-                        window.Telegram.WebApp.showPopup({
-                            title: '✅ Снято',
-                            message: 'Задание скрыто из ленты пользователей',
-                            buttons: [{ type: 'ok' }]
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error deactivating quest:', error);
-                    window.Telegram.WebApp.showPopup({
-                        title: 'Ошибка',
-                        message: error.response?.data?.error || 'Не удалось снять задание',
-                        buttons: [{ type: 'ok' }]
-                    });
-                }
+                    const response = await axios.post(`${API_URL}/api/admin/deactivate-quest/${questId}`, { adminId: Number(userId) });
+                    if (response.data.success) { await fetchActiveQuests(); window.Telegram.WebApp.showPopup({ title: '✅ Снято', message: 'Задание скрыто', buttons: [{ type: 'ok' }] }); }
+                } catch (error) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: error.response?.data?.error || 'Ошибка', buttons: [{ type: 'ok' }] }); }
             }
         });
     };
-    
-    if (loading) {
-        return (
-            <div style={styles.modalOverlay}>
-                <div style={styles.adminPanel}>
-                    <p style={{ color: 'white', textAlign: 'center' }}>Загрузка...</p>
-                </div>
+
+    if (loading) return (
+        <div style={s.modalOverlay}>
+            <div style={s.adminPanel}>
+                <div style={s.pulseLoader}><div style={s.pulseRing}></div><div style={s.pulseDot}></div></div>
             </div>
-        );
-    }
-    
+        </div>
+    );
+
     return (
         <>
-            <div style={styles.modalOverlay}>
-                <div style={styles.adminPanel}>
-                    <div style={styles.formHeader}>
-                        <h3 style={{ color: 'white' }}>🛡️ Админ-панель</h3>
-                        <button onClick={onClose} style={styles.closeBtn}>✕</button>
+            <div style={s.modalOverlay}>
+                <div style={s.adminPanel}>
+                    <div style={s.modalHeader}>
+                        <div style={s.modalTitleRow}>
+                            <span style={s.modalIcon}>🛡️</span>
+                            <h3 style={s.modalTitle}>Админ-панель</h3>
+                        </div>
+                        <button onClick={onClose} style={s.closeBtn}>✕</button>
                     </div>
-                    
-                    <div style={styles.adminTabs}>
-                        <button onClick={() => setAdminTab('pending')} style={adminTab === 'pending' ? styles.adminTabActive : styles.adminTab}>
-                            ⏳ На модерации ({pendingQuests.length})
-                        </button>
-                        <button onClick={() => setAdminTab('active')} style={adminTab === 'active' ? styles.adminTabActive : styles.adminTab}>
-                            ✅ Активные ({activeQuests.length})
-                        </button>
+                    <div style={s.segmentedControl}>
+                        <button onClick={() => setAdminTab('pending')} style={adminTab === 'pending' ? s.segmentActive : s.segment}>⏳ На модерации <span style={s.badge}>{pendingQuests.length}</span></button>
+                        <button onClick={() => setAdminTab('active')} style={adminTab === 'active' ? s.segmentActive : s.segment}>✅ Активные <span style={s.badge}>{activeQuests.length}</span></button>
                     </div>
-                    
-                    {adminTab === 'pending' && (
-                        pendingQuests.length === 0 ? (
-                            <p style={{ color: 'white', textAlign: 'center' }}>Нет заданий на модерацию</p>
-                        ) : (
+                    <div style={s.adminListArea}>
+                        {adminTab === 'pending' && (pendingQuests.length === 0 ? <div style={s.emptyAdmin}><span style={{fontSize:'32px'}}>📭</span><p>Нет заданий на модерацию</p></div> :
                             pendingQuests.map(quest => (
-                                <div key={quest.id} style={styles.adminQuestCard}>
-                                    <div>
-                                        <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
-                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
-                                            {quest.description}
-                                        </p>
-                                        <p style={{ fontSize: '11px', color: '#FF2D95' }}>
-                                            +{quest.reward} ⭐ | от @{quest.creator_name}
-                                        </p>
-                                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                                            Ссылка: {quest.target_url}
-                                        </p>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                                        <button onClick={() => approveQuest(quest.id)} style={styles.approveBtn}>
-                                            ✅ Одобрить
-                                        </button>
-                                        <button onClick={() => openRejectModal(quest.id)} style={styles.rejectBtn}>
-                                            ❌ Отклонить
-                                        </button>
+                                <div key={quest.id} style={s.adminCard}>
+                                    <strong style={s.adminCardTitle}>{quest.title}</strong>
+                                    <p style={s.adminCardDesc}>{quest.description}</p>
+                                    <p style={s.adminCardMeta}>+{quest.reward} ⭐ · от @{quest.creator_name}</p>
+                                    <p style={s.adminCardUrl}>{quest.target_url}</p>
+                                    <div style={s.adminCardActions}>
+                                        <button onClick={() => approveQuest(quest.id)} style={s.approveBtn}>✅ Одобрить</button>
+                                        <button onClick={() => openRejectModal(quest.id)} style={s.rejectBtn}>❌ Отклонить</button>
                                     </div>
                                 </div>
                             ))
-                        )
-                    )}
-                    
-                    {adminTab === 'active' && (
-                        activeQuests.length === 0 ? (
-                            <p style={{ color: 'white', textAlign: 'center' }}>Нет активных заданий</p>
-                        ) : (
+                        )}
+                        {adminTab === 'active' && (activeQuests.length === 0 ? <div style={s.emptyAdmin}><span style={{fontSize:'32px'}}>🎯</span><p>Нет активных заданий</p></div> :
                             activeQuests.map(quest => (
-                                <div key={quest.id} style={styles.adminQuestCard}>
-                                    <div>
-                                        <strong style={{ color: '#00D4FF' }}>{quest.title}</strong>
-                                        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', margin: '4px 0' }}>
-                                            {quest.description}
-                                        </p>
-                                        <p style={{ fontSize: '11px', color: '#FF2D95' }}>
-                                            +{quest.reward} ⭐ | от @{quest.creator_name}
-                                        </p>
-                                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>
-                                            Ссылка: {quest.target_url}
-                                        </p>
-                                        <p style={{ fontSize: '10px', color: '#4ECDC4' }}>
-                                            Выполнено: {quest.budget - quest.remaining} / {quest.budget}
-                                        </p>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                                        <button onClick={() => deactivateQuest(quest.id)} style={styles.deactivateBtn}>
-                                            ❌ Снять с публикации
-                                        </button>
-                                    </div>
+                                <div key={quest.id} style={s.adminCard}>
+                                    <strong style={s.adminCardTitle}>{quest.title}</strong>
+                                    <p style={s.adminCardDesc}>{quest.description}</p>
+                                    <p style={s.adminCardMeta}>+{quest.reward} ⭐ · от @{quest.creator_name}</p>
+                                    <p style={{...s.adminCardMeta, color: '#4ECDC4'}}>Выполнено: {quest.budget - quest.remaining} / {quest.budget}</p>
+                                    <button onClick={() => deactivateQuest(quest.id)} style={s.deactivateBtn}>❌ Снять с публикации</button>
                                 </div>
                             ))
-                        )
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
-            
             {showRejectModal && (
-                <div style={styles.modalOverlay}>
-                    <div style={styles.rejectModal}>
-                        <div style={styles.formHeader}>
-                            <h3 style={{ color: 'white' }}>❌ Причина отклонения</h3>
-                            <button onClick={() => setShowRejectModal(false)} style={styles.closeBtn}>✕</button>
+                <div style={s.modalOverlay}>
+                    <div style={s.sheet}>
+                        <div style={s.modalHeader}>
+                            <div style={s.modalTitleRow}><span style={s.modalIcon}>❌</span><h3 style={s.modalTitle}>Причина отклонения</h3></div>
+                            <button onClick={() => setShowRejectModal(false)} style={s.closeBtn}>✕</button>
                         </div>
-                        
-                        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', marginBottom: '16px' }}>
-                            Выберите причину из списка или укажите свою:
-                        </p>
-                        
-                        <select 
-                            value={selectedRejectReason}
-                            onChange={(e) => setSelectedRejectReason(e.target.value)}
-                            style={styles.rejectSelect}
-                        >
-                            <option value="">-- Выберите причину --</option>
-                            {rejectReasons.map((reason, index) => (
-                                <option key={index} value={reason}>{reason}</option>
-                            ))}
+                        <select value={selectedRejectReason} onChange={(e) => setSelectedRejectReason(e.target.value)} style={s.select}>
+                            <option value="">— Выберите причину —</option>
+                            {rejectReasons.map((r, i) => <option key={i} value={r}>{r}</option>)}
                         </select>
-                        
                         {selectedRejectReason === 'Другая причина' && (
-                            <textarea
-                                placeholder="Укажите причину отклонения..."
-                                value={customRejectReason}
-                                onChange={(e) => setCustomRejectReason(e.target.value)}
-                                style={styles.rejectTextarea}
-                                rows={3}
-                            />
+                            <textarea placeholder="Укажите причину..." value={customRejectReason} onChange={(e) => setCustomRejectReason(e.target.value)} style={s.textarea} rows={3} />
                         )}
-                        
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                            <button 
-                                onClick={() => setShowRejectModal(false)} 
-                                style={{...styles.rejectBtn, flex: 1}}
-                            >
-                                Отмена
-                            </button>
-                            <button 
-                                onClick={handleRejectSubmit} 
-                                style={{...styles.approveBtn, flex: 1, background: 'rgba(255,45,149,0.3)', color: '#FF2D95' }}
-                            >
-                                Отклонить
-                            </button>
+                        <div style={s.rowBtns}>
+                            <button onClick={() => setShowRejectModal(false)} style={s.ghostBtn}>Отмена</button>
+                            <button onClick={handleRejectSubmit} style={s.dangerBtn}>Отклонить</button>
                         </div>
                     </div>
                 </div>
@@ -297,6 +160,7 @@ const AdminPanel = ({ onClose, userId }) => {
     );
 };
 
+// ============ MAIN APP ============
 function App() {
     const [user, setUser] = useState(null);
     const [balance, setBalance] = useState(0);
@@ -314,1889 +178,767 @@ function App() {
     const [questStatusFilter, setQuestStatusFilter] = useState('pending');
     const [showTopUpModal, setShowTopUpModal] = useState(false);
     const [topUpAmount, setTopUpAmount] = useState(50);
-	const [tonConnectUI] = useTonConnectUI();
-    const wallet = useTonWallet();
-	const [showTonTopUpModal, setShowTonTopUpModal] = useState(false);
+    const [showTonTopUpModal, setShowTonTopUpModal] = useState(false);
     const [tonTopUpAmount, setTonTopUpAmount] = useState(1);
     const [tonPaymentStep, setTonPaymentStep] = useState('select');
-	useEffect(() => {
-    if (wallet && user) {
-        try {
-            const friendlyAddress = Address.parse(wallet.account.address).toString({
-                bounceable: false,
-                testOnly: false
-            });
-            axios.post(`${API_URL}/api/user/connect-wallet`, {
-                userId: user.id,
-                walletAddress: friendlyAddress
-            }).then(() => {
-                console.log('✅ Wallet saved to DB');
-            });
-        } catch (e) {
-            console.error('Wallet address parse error:', e);
-        }
-    }
-}, [wallet, user]);
-    
+    const [mounted, setMounted] = useState(false);
+
+    const [tonConnectUI] = useTonConnectUI();
+    const wallet = useTonWallet();
+
     const titleInput = useRef(null);
     const descInput = useRef(null);
     const rewardInput = useRef(null);
     const channelInput = useRef(null);
 
+    useEffect(() => { setTimeout(() => setMounted(true), 100); }, []);
+
+    useEffect(() => {
+        if (wallet && user) {
+            try {
+                const friendlyAddress = Address.parse(wallet.account.address).toString({ bounceable: false, testOnly: false });
+                axios.post(`${API_URL}/api/user/connect-wallet`, { userId: user.id, walletAddress: friendlyAddress });
+            } catch (e) { console.error(e); }
+        }
+    }, [wallet, user]);
+
     useEffect(() => {
         const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        tg.MainButton.hide();
-        tg.setHeaderColor('#0a0a1a');
-        tg.setBackgroundColor('#0a0a1a');
-
-        if (tg.initDataUnsafe?.user) {
-            authenticate(tg.initDataUnsafe.user);
-        }
+        tg.ready(); tg.expand(); tg.MainButton.hide();
+        tg.setHeaderColor('#060612'); tg.setBackgroundColor('#060612');
+        if (tg.initDataUnsafe?.user) authenticate(tg.initDataUnsafe.user);
     }, []);
 
     const authenticate = async (telegramUser) => {
         try {
             const userPhotoUrl = window.Telegram.WebApp.initDataUnsafe?.user?.photo_url;
-            
-            const response = await axios.post(`${API_URL}/api/auth`, {
-                telegramId: telegramUser.id,
-                username: telegramUser.username
-            });
-            
-            setUser({
-                ...response.data.user,
-                photo_url: userPhotoUrl,
-                first_name: telegramUser.first_name,
-                last_name: telegramUser.last_name
-            });
+            const response = await axios.post(`${API_URL}/api/auth`, { telegramId: telegramUser.id, username: telegramUser.username });
+            setUser({ ...response.data.user, photo_url: userPhotoUrl, first_name: telegramUser.first_name, last_name: telegramUser.last_name });
             localStorage.setItem('token', response.data.token);
-            
             fetchBalance(response.data.user.id);
             fetchTonBalance(response.data.user.id);
             fetchTasks(response.data.user.id);
             fetchMyQuests(response.data.user.id);
-        } catch (error) {
-            console.error('Auth error:', error);
-        } finally {
-            setLoading(false);
-        }
+        } catch (error) { console.error('Auth error:', error); } finally { setLoading(false); }
     };
 
     const fetchBalance = async (userId) => {
-        try {
-            const response = await axios.get(`${API_URL}/api/user/${userId}/balance`);
-            setBalance(response.data.balance);
-        } catch (error) {
-            console.error('Balance error:', error);
-        }
+        try { const r = await axios.get(`${API_URL}/api/user/${userId}/balance`); setBalance(r.data.balance); } catch (e) { console.error(e); }
     };
-
     const fetchTonBalance = async (userId) => {
-        try {
-            const response = await axios.get(`${API_URL}/api/user/${userId}/ton-balance`);
-            setTonBalance(response.data.balance);
-        } catch (error) {
-            console.error('TON Balance error:', error);
-        }
+        try { const r = await axios.get(`${API_URL}/api/user/${userId}/ton-balance`); setTonBalance(r.data.balance); } catch (e) { console.error(e); }
     };
-
     const fetchTasks = async (userId) => {
         try {
             const response = await axios.get(`${API_URL}/api/quests`);
             const allTasks = response.data;
-            
             const completionsResponse = await axios.get(`${API_URL}/api/user/${userId}/completions`);
             const completedIds = completionsResponse.data.map(c => c.quest_id);
-            
-            const active = allTasks.filter(task => !completedIds.includes(task.id) && task.advertiser_id !== userId);
-            const completed = allTasks.filter(task => completedIds.includes(task.id));
-            
-            setActiveTasks(active);
-            setCompletedTasks(completed);
-            
-            for (const task of [...active, ...completed]) {
+            setActiveTasks(allTasks.filter(t => !completedIds.includes(t.id) && t.advertiser_id !== userId));
+            setCompletedTasks(allTasks.filter(t => completedIds.includes(t.id)));
+            for (const task of allTasks) {
                 if (task.type === 'subscription' && task.target_url.includes('t.me/')) {
-                    let username = task.target_url.split('t.me/')[1];
-                    username = username.replace('/', '');
+                    let username = task.target_url.split('t.me/')[1].replace('/', '');
                     await fetchChannelAvatar(username, task.id);
                 }
             }
-        } catch (error) {
-            console.error('Tasks error:', error);
-        }
+        } catch (e) { console.error(e); }
     };
-
     const fetchMyQuests = async (userId) => {
-        try {
-            const response = await axios.get(`${API_URL}/api/user/${userId}/quests`);
-            setMyQuests(response.data);
-        } catch (error) {
-            console.error('My quests error:', error);
-        }
+        try { const r = await axios.get(`${API_URL}/api/user/${userId}/quests`); setMyQuests(r.data); } catch (e) { console.error(e); }
     };
-
     const fetchChannelAvatar = async (username, taskId) => {
         try {
-            const response = await axios.get(`${API_URL}/api/channel/avatar/${username}`);
-            if (response.data.success && response.data.avatar) {
-                setChannelAvatars(prev => ({ ...prev, [taskId]: response.data.avatar }));
-            } else {
-                setChannelAvatars(prev => ({ ...prev, [taskId]: null }));
-            }
-        } catch (error) {
-            console.error('Avatar fetch error:', error);
-            setChannelAvatars(prev => ({ ...prev, [taskId]: null }));
-        }
+            const r = await axios.get(`${API_URL}/api/channel/avatar/${username}`);
+            setChannelAvatars(prev => ({ ...prev, [taskId]: r.data.success ? r.data.avatar : null }));
+        } catch (e) { setChannelAvatars(prev => ({ ...prev, [taskId]: null })); }
     };
 
     const completeTask = async (taskId, taskUrl, channelUsername) => {
         const tg = window.Telegram.WebApp;
-        
         tg.openLink(taskUrl);
-        
-        tg.MainButton.show();
-        tg.MainButton.setText('⏳ Проверка подписки...');
-        tg.MainButton.disable();
-        
+        tg.MainButton.show(); tg.MainButton.setText('⏳ Проверка...'); tg.MainButton.disable();
         setTimeout(async () => {
             try {
-                const response = await axios.post(`${API_URL}/api/check-subscription`, {
-                    userId: user.id,
-                    channelUsername: channelUsername,
-                    questId: taskId
-                });
-                
+                const response = await axios.post(`${API_URL}/api/check-subscription`, { userId: user.id, channelUsername, questId: taskId });
                 tg.MainButton.hide();
-                
-                if (response.data.success) {
-                    tg.showPopup({
-                        title: '🎉 Задание выполнено!',
-                        message: response.data.message,
-                        buttons: [{ type: 'ok' }]
-                    });
-                    fetchBalance(user.id);
-                    fetchTasks(user.id);
-                } else {
-                    tg.showPopup({
-                        title: '❌ Подписка не найдена',
-                        message: 'Вы не подписались на канал. Попробуйте ещё раз.',
-                        buttons: [{ type: 'ok' }]
-                    });
-                }
-            } catch (error) {
-                tg.MainButton.hide();
-                console.error('Check subscription error:', error);
-                tg.showPopup({
-                    title: '⚠️ Ошибка',
-                    message: error.response?.data?.error || 'Не удалось проверить подписку',
-                    buttons: [{ type: 'ok' }]
-                });
-            }
+                if (response.data.success) { tg.showPopup({ title: '🎉 Выполнено!', message: response.data.message, buttons: [{ type: 'ok' }] }); fetchBalance(user.id); fetchTasks(user.id); }
+                else tg.showPopup({ title: '❌ Подписка не найдена', message: 'Вы не подписались на канал.', buttons: [{ type: 'ok' }] });
+            } catch (error) { tg.MainButton.hide(); tg.showPopup({ title: '⚠️ Ошибка', message: error.response?.data?.error || 'Ошибка проверки', buttons: [{ type: 'ok' }] }); }
         }, 5000);
     };
 
     const createQuest = async () => {
         const tg = window.Telegram.WebApp;
-        const title = titleInput.current?.value;
-        const description = descInput.current?.value;
-        const reward = parseInt(rewardInput.current?.value);
-        const targetUrl = channelInput.current?.value;
-        
-        if (!title || !description || !reward || !targetUrl) {
-            tg.showPopup({
-                title: 'Ошибка',
-                message: 'Заполните все поля',
-                buttons: [{ type: 'ok' }]
-            });
-            return;
-        }
-        
+        const title = titleInput.current?.value, description = descInput.current?.value, reward = parseInt(rewardInput.current?.value), targetUrl = channelInput.current?.value;
+        if (!title || !description || !reward || !targetUrl) { tg.showPopup({ title: 'Ошибка', message: 'Заполните все поля', buttons: [{ type: 'ok' }] }); return; }
         try {
-            const response = await axios.post(`${API_URL}/api/create-quest`, {
-                userId: user.id,
-                title,
-                description,
-                reward,
-                targetUrl
-            });
-            
+            const response = await axios.post(`${API_URL}/api/create-quest`, { userId: user.id, title, description, reward, targetUrl });
             if (response.data.success) {
-                tg.showPopup({
-                    title: '✅ Задание создано!',
-                    message: response.data.message || 'Оно появится в ленте после проверки',
-                    buttons: [{ type: 'ok' }]
-                });
-                setShowCreateForm(false);
-                fetchMyQuests(user.id);
-                fetchTasks(user.id);
-                
-                titleInput.current.value = '';
-                descInput.current.value = '';
-                rewardInput.current.value = '';
-                channelInput.current.value = '';
+                tg.showPopup({ title: '✅ Задание создано!', message: response.data.message, buttons: [{ type: 'ok' }] });
+                setShowCreateForm(false); fetchMyQuests(user.id); fetchTasks(user.id);
+                [titleInput, descInput, rewardInput, channelInput].forEach(ref => { if (ref.current) ref.current.value = ''; });
             }
+        } catch (error) { tg.showPopup({ title: 'Ошибка', message: error.response?.data?.error || 'Ошибка', buttons: [{ type: 'ok' }] }); }
+    };
+
+    const sendTonPayment = async () => {
+        if (!wallet) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: 'Подключите TON кошелёк', buttons: [{ type: 'ok' }] }); return; }
+        try {
+            setTonPaymentStep('waiting');
+            const tx = await tonConnectUI.sendTransaction({ validUntil: Math.floor(Date.now() / 1000) + 600, messages: [{ address: import.meta.env.VITE_PLATFORM_TON_WALLET, amount: (tonTopUpAmount * 1e9).toString() }] });
+            const response = await axios.post(`${API_URL}/api/ton-payment/credit`, { userId: user.id, amount: tonTopUpAmount, boc: tx.boc });
+            if (response.data.success) { setTonPaymentStep('success'); fetchTonBalance(user.id); }
         } catch (error) {
-            tg.showPopup({
-                title: 'Ошибка',
-                message: error.response?.data?.error || 'Не удалось создать задание',
-                buttons: [{ type: 'ok' }]
-            });
+            setTonPaymentStep('select');
+            window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: error?.message || 'Платёж не прошёл', buttons: [{ type: 'ok' }] });
         }
+    };
+
+    const createInvoice = async () => {
+        const tg = window.Telegram.WebApp;
+        if (!user?.id) { tg.showPopup({ title: 'Ошибка', message: 'Не авторизован', buttons: [{ type: 'ok' }] }); return; }
+        try {
+            const response = await axios.post(`${API_URL}/api/create-invoice`, { userId: user.id, amount: topUpAmount });
+            if (response.data.success && response.data.invoiceLink) {
+                setShowTopUpModal(false);
+                tg.openInvoice(response.data.invoiceLink, (status) => {
+                    if (status === 'paid') { fetchBalance(user.id); tg.showPopup({ title: '✅ Успешно!', message: `Баланс пополнен на ${topUpAmount} Stars!`, buttons: [{ type: 'ok' }] }); }
+                    else if (status === 'cancelled') tg.showPopup({ title: '❌ Отменено', message: 'Платёж отменён', buttons: [{ type: 'ok' }] });
+                });
+            }
+        } catch (error) { tg.showPopup({ title: 'Ошибка', message: error.response?.data?.error || 'Ошибка', buttons: [{ type: 'ok' }] }); }
     };
 
     const getChannelInitial = (taskTitle, targetUrl) => {
         if (taskTitle.includes('StarTask')) return '⭐';
-        if (taskTitle.includes('канал')) return '📢';
         const match = targetUrl.match(/t\.me\/([^\/]+)/);
-        if (match) return match[1].charAt(0).toUpperCase();
-        return taskTitle.charAt(0).toUpperCase();
+        return match ? match[1].charAt(0).toUpperCase() : taskTitle.charAt(0).toUpperCase();
     };
 
     const getChannelColor = (taskTitle) => {
-        const colors = ['#FF2D95', '#00D4FF', '#9D4EDD', '#FF6B35', '#00F5FF', '#FF007F', '#7B2FF7'];
+        const colors = ['#FF2D95', '#00D4FF', '#9D4EDD', '#FF6B35', '#00F5FF', '#7B2FF7'];
         let hash = 0;
-        for (let i = 0; i < taskTitle.length; i++) {
-            hash = ((hash << 5) - hash) + taskTitle.charCodeAt(i);
-            hash |= 0;
-        }
+        for (let i = 0; i < taskTitle.length; i++) { hash = ((hash << 5) - hash) + taskTitle.charCodeAt(i); hash |= 0; }
         return colors[Math.abs(hash) % colors.length];
     };
 
     const getReferralLink = () => `https://t.me/StarTaskBot?start=ref_${user?.id}`;
-
     const copyReferralLink = () => {
         navigator.clipboard.writeText(getReferralLink());
-        window.Telegram.WebApp.showPopup({
-            title: '🔗 Ссылка скопирована!',
-            message: 'Поделитесь с друзьями и получайте 10% от их заработка',
-            buttons: [{ type: 'ok' }]
-        });
+        window.Telegram.WebApp.showPopup({ title: '🔗 Скопировано!', message: 'Поделитесь с друзьями и получайте 10%', buttons: [{ type: 'ok' }] });
     };
 
-    const openTopUpModal = () => {
-        setShowTopUpModal(true);
+    const getFriendlyAddress = () => {
+        if (!wallet) return '';
+        try {
+            const friendly = Address.parse(wallet.account.address).toString({ bounceable: false, testOnly: false });
+            return `${friendly.slice(0, 6)}...${friendly.slice(-4)}`;
+        } catch { return `${wallet.account.address.slice(0, 6)}...${wallet.account.address.slice(-4)}`; }
     };
-	
-	const sendTonPayment = async () => {
-    if (!wallet) {
-        window.Telegram.WebApp.showPopup({
-            title: 'Ошибка',
-            message: 'Подключите TON кошелёк',
-            buttons: [{ type: 'ok' }]
-        });
-        return;
-    }
 
-    console.log('💎 Platform wallet:', import.meta.env.VITE_PLATFORM_TON_WALLET);
-    console.log('💎 Amount in nano:', (tonTopUpAmount * 1e9).toString());
-    console.log('💎 Wallet connected:', wallet.account.address);
-
-    try {
-        setTonPaymentStep('waiting');
-
-        const amountInNano = (tonTopUpAmount * 1e9).toString();
-
-        const tx = await tonConnectUI.sendTransaction({
-            validUntil: Math.floor(Date.now() / 1000) + 600,
-            messages: [
-                {
-                    address: import.meta.env.VITE_PLATFORM_TON_WALLET,
-                    amount: amountInNano,
-                }
-            ]
-        });
-
-        // Зачисляем баланс сразу после подтверждения
-const response = await axios.post(`${API_URL}/api/ton-payment/credit`, {
-    userId: user.id,
-    amount: tonTopUpAmount,
-    boc: tx.boc
-});
-
-if (response.data.success) {
-    setTonPaymentStep('success');
-    fetchTonBalance(user.id);
-}
-    } catch (error) {
-    console.error('TON payment error full:', error);
-    console.error('TON payment error message:', error?.message);
-    console.error('TON payment error response:', error?.response?.data);
-    setTonPaymentStep('select');
-    window.Telegram.WebApp.showPopup({
-        title: 'Ошибка',
-        message: error?.message || 'Платёж не прошёл. Попробуйте ещё раз.',
-        buttons: [{ type: 'ok' }]
-    });
-}
-};
-
-const createInvoice = async () => {
-    const tg = window.Telegram.WebApp;
-
-    if (!user || !user.id) {
-        tg.showPopup({ title: 'Ошибка', message: 'Пользователь не авторизован', buttons: [{ type: 'ok' }] });
-        return;
-    }
-
-    try {
-        const response = await axios.post(`${API_URL}/api/create-invoice`, {
-            userId: user.id,
-            amount: topUpAmount
-        });
-
-        if (response.data.success && response.data.invoiceLink) {
-            setShowTopUpModal(false);
-
-            // ✅ Открываем платёжный экран ВНУТРИ MiniApp — без выхода!
-            tg.openInvoice(response.data.invoiceLink, (status) => {
-                if (status === 'paid') {
-                    // Платёж прошёл — обновляем баланс
-                    fetchBalance(user.id);
-                    tg.showPopup({
-                        title: '✅ Успешно!',
-                        message: `Баланс пополнен на ${topUpAmount} Stars!`,
-                        buttons: [{ type: 'ok' }]
-                    });
-                } else if (status === 'cancelled') {
-                    tg.showPopup({
-                        title: '❌ Отменено',
-                        message: 'Платёж был отменён',
-                        buttons: [{ type: 'ok' }]
-                    });
-                } else if (status === 'failed') {
-                    tg.showPopup({
-                        title: '❌ Ошибка',
-                        message: 'Платёж не прошёл. Попробуйте ещё раз.',
-                        buttons: [{ type: 'ok' }]
-                    });
-                }
-            });
-        } else {
-            tg.showPopup({ title: 'Ошибка', message: response.data.error || 'Не удалось создать счёт', buttons: [{ type: 'ok' }] });
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        tg.showPopup({ title: 'Ошибка', message: error.response?.data?.error || 'Серверная ошибка', buttons: [{ type: 'ok' }] });
-    }
-};
-      if (loading) {
-        return (
-            <div style={styles.loadingContainer}>
-                <div style={styles.spinner}></div>
-                <p style={styles.loadingText}>Загрузка...</p>
+    // ---- LOADING ----
+    if (loading) return (
+        <div style={s.loadingScreen}>
+            <div style={s.loadingInner}>
+                <div style={s.loadingLogo}>
+                    <svg width="48" height="48" viewBox="0 0 32 32" fill="none">
+                        <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#lg)" stroke="#00D4FF" strokeWidth="1"/>
+                        <defs><linearGradient id="lg" x1="0" y1="0" x2="32" y2="32"><stop stopColor="#00D4FF"/><stop offset="1" stopColor="#FF2D95"/></linearGradient></defs>
+                    </svg>
+                </div>
+                <p style={s.loadingLabel}>StarTask</p>
+                <div style={s.loadingBar}><div style={s.loadingBarFill}></div></div>
             </div>
-        );
-    }
+        </div>
+    );
 
-    if (showProfile) {
-        return (
-            <div style={styles.container}>
-                <div style={styles.backgroundGradient}></div>
-                <div style={styles.header}>
-                    <div style={styles.logoContainer} className="clickable" onClick={() => setShowProfile(false)}>
-                        <div style={styles.logoIcon}>
-                            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#00D4FF" strokeWidth="1.2"/>
-                                <defs>
-                                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stopColor="#00D4FF"/>
-                                        <stop offset="100%" stopColor="#FF2D95"/>
-                                    </linearGradient>
-                                </defs>
-                            </svg>
+    // ---- PROFILE ----
+    if (showProfile) return (
+        <div style={s.screen}>
+            <div style={s.noiseBg}></div>
+            <div style={s.aura1}></div>
+            <div style={s.aura2}></div>
+
+            <div style={s.profileHeader}>
+                <button onClick={() => setShowProfile(false)} style={s.backBtn}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                </button>
+                <span style={s.profileHeaderTitle}>Профиль</span>
+                <div style={{width:36}}></div>
+            </div>
+
+            <div style={s.profileScroll}>
+                {/* Avatar hero */}
+                <div style={s.profileHero}>
+                    <div style={s.profileAvatarWrap}>
+                        <div style={s.avatarRing}></div>
+                        <div style={s.profileAvatarInner}>
+                            {user?.photo_url
+                                ? <img src={user.photo_url} alt="avatar" style={s.profileAvatarImg} />
+                                : <div style={s.profileAvatarPlaceholder}>{user?.username?.charAt(0).toUpperCase() || '👤'}</div>
+                            }
                         </div>
-                        <h1 style={styles.logo}>Профиль</h1>
                     </div>
-                    <button className="clickable" onClick={() => setShowProfile(false)} style={styles.closeProfileBtn}>
-                        ✕
-                    </button>
+                    <h2 style={s.profileName}>{user?.first_name || user?.username}</h2>
+                    <p style={s.profileSub}>@{user?.username} · ID {user?.telegram_id}</p>
                 </div>
 
-                <div style={styles.profileContent}>
-                    <div style={styles.profileAvatar}>
-                        {user?.photo_url ? (
-                            <img src={user.photo_url} alt="avatar" style={styles.profileAvatarImg} />
-                        ) : (
-                            <div style={styles.profileAvatarPlaceholder}>
-                                {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
+                {/* Balance cards */}
+                <div style={s.balanceGrid}>
+                    <div style={s.balanceCard}>
+                        <div style={s.balanceCardGlow} />
+                        <span style={s.balanceCardIcon}>⭐</span>
+                        <span style={s.balanceCardLabel}>Stars</span>
+                        <strong style={s.balanceCardValue}>{balance}</strong>
+                    </div>
+                    <div style={{...s.balanceCard, ...s.balanceCardTon}}>
+                        <div style={{...s.balanceCardGlow, ...s.balanceCardGlowTon}} />
+                        <span style={s.balanceCardIcon}>💎</span>
+                        <span style={s.balanceCardLabel}>TON</span>
+                        <strong style={{...s.balanceCardValue, color: '#29B6F6'}}>{parseFloat(tonBalance || 0).toFixed(3)}</strong>
+                    </div>
+                </div>
+
+                {/* Wallet */}
+                <div style={s.section}>
+                    {wallet ? (
+                        <div style={s.walletChip}>
+                            <div style={s.walletChipLeft}>
+                                <span style={s.walletDot}></span>
+                                <div>
+                                    <p style={s.walletChipLabel}>TON кошелёк</p>
+                                    <p style={s.walletChipAddr}>{getFriendlyAddress()}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => tonConnectUI.disconnect()} style={s.walletDisconnectBtn}>Отключить</button>
+                        </div>
+                    ) : (
+                        <button onClick={() => tonConnectUI.openModal()} style={s.connectWalletBtn}>
+                            <span style={s.connectWalletIcon}>💎</span>
+                            Подключить TON кошелёк
+                        </button>
+                    )}
+                </div>
+
+                {/* Action buttons */}
+                <div style={s.section}>
+                    <button onClick={() => setShowCreateForm(true)} style={s.actionBtn}>
+                        <span>✨</span> Создать задание
+                    </button>
+                    <button onClick={() => setShowTopUpModal(true)} style={{...s.actionBtn, ...s.actionBtnAlt}}>
+                        <span>⭐</span> Пополнить Stars
+                    </button>
+                    <button onClick={() => setShowTonTopUpModal(true)} style={{...s.actionBtn, ...s.actionBtnTon}}>
+                        <span>💎</span> Пополнить TON
+                    </button>
+                    {user?.telegram_id && String(user.telegram_id) === "850997324" && (
+                        <button onClick={() => setShowAdminPanel(true)} style={{...s.actionBtn, ...s.actionBtnAdmin}}>
+                            <span>🛡️</span> Панель администратора
+                        </button>
+                    )}
+                </div>
+
+                {/* My quests */}
+                {myQuests.length > 0 && (
+                    <div style={s.section}>
+                        <h3 style={s.sectionTitle}>Мои задания</h3>
+                        <div style={s.filterRow}>
+                            {[['pending','⏳ Модерация'], ['active','✅ Принято'], ['rejected','❌ Отклонено']].map(([val, label]) => (
+                                <button key={val} onClick={() => setQuestStatusFilter(val)} style={questStatusFilter === val ? s.filterBtnActive : s.filterBtn}>
+                                    {label} <span style={s.filterCount}>{myQuests.filter(q => q.status === val).length}</span>
+                                </button>
+                            ))}
+                        </div>
+                        {myQuests.filter(q => q.status === questStatusFilter).length === 0
+                            ? <div style={s.emptySmall}>Нет заданий в этой категории</div>
+                            : myQuests.filter(q => q.status === questStatusFilter).map(quest => (
+                                <div key={quest.id} style={s.myQuestCard}>
+                                    <div style={{...s.myQuestAvatarBox, background: getChannelColor(quest.title)}}>
+                                        {channelAvatars[quest.id]
+                                            ? <img src={channelAvatars[quest.id]} alt="" style={s.myQuestAvatarImg} />
+                                            : <span style={{fontSize:'18px'}}>{getChannelInitial(quest.title, quest.target_url)}</span>
+                                        }
+                                    </div>
+                                    <div style={s.myQuestBody}>
+                                        <p style={s.myQuestTitle}>{quest.title}</p>
+                                        <p style={s.myQuestDesc}>{quest.description}</p>
+                                        <div style={s.myQuestMeta}>
+                                            <span style={s.rewardPill}>+{quest.reward} ⭐</span>
+                                            <span style={{
+                                                ...s.statusPill,
+                                                ...(quest.status === 'pending' && {background:'rgba(255,193,7,0.15)', color:'#FFC107'}),
+                                                ...(quest.status === 'active' && {background:'rgba(76,175,80,0.15)', color:'#4CAF50'}),
+                                                ...(quest.status === 'rejected' && {background:'rgba(244,67,54,0.15)', color:'#F44336'}),
+                                            }}>
+                                                {quest.status === 'pending' && '⏳ На модерации'}
+                                                {quest.status === 'active' && '✅ Опубликовано'}
+                                                {quest.status === 'rejected' && '❌ Отклонено'}
+                                                {quest.status === 'inactive' && '📦 Снято'}
+                                            </span>
+                                        </div>
+                                        {quest.status === 'rejected' && quest.rejection_reason && (
+                                            <p style={s.rejectReason}>📝 {quest.rejection_reason}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        }
+                    </div>
+                )}
+            </div>
+
+            {/* Modals */}
+            {showCreateForm && (
+                <div style={s.modalOverlay}>
+                    <div style={s.sheet}>
+                        <div style={s.modalHeader}>
+                            <div style={s.modalTitleRow}><span style={s.modalIcon}>✨</span><h3 style={s.modalTitle}>Создать задание</h3></div>
+                            <button onClick={() => setShowCreateForm(false)} style={s.closeBtn}>✕</button>
+                        </div>
+                        <input type="text" placeholder="Ссылка на канал (t.me/...)" style={s.input} ref={channelInput} />
+                        <input type="text" placeholder="Название задания" style={s.input} ref={titleInput} />
+                        <textarea placeholder="Описание задания" style={s.textarea} ref={descInput} />
+                        <input type="number" placeholder="Награда (Stars)" style={s.input} ref={rewardInput} />
+                        <button onClick={createQuest} style={s.primaryBtn}>➕ Создать задание</button>
+                    </div>
+                </div>
+            )}
+
+            {showTonTopUpModal && (
+                <div style={s.modalOverlay}>
+                    <div style={s.sheet}>
+                        <div style={s.modalHeader}>
+                            <div style={s.modalTitleRow}><span style={s.modalIcon}>💎</span><h3 style={s.modalTitle}>Пополнение TON</h3></div>
+                            <button onClick={() => { setShowTonTopUpModal(false); setTonPaymentStep('select'); }} style={s.closeBtn}>✕</button>
+                        </div>
+                        {tonPaymentStep === 'select' && <>
+                            <p style={s.modalSubtitle}>Выберите сумму пополнения:</p>
+                            <div style={s.amountGrid}>
+                                {[0.5, 1, 2, 5, 10, 20].map(amt => (
+                                    <button key={amt} onClick={() => setTonTopUpAmount(amt)} style={tonTopUpAmount === amt ? s.amountBtnActive : s.amountBtn}>{amt} 💎</button>
+                                ))}
+                            </div>
+                            <button onClick={sendTonPayment} style={s.primaryBtnTon}>Оплатить {tonTopUpAmount} TON</button>
+                        </>}
+                        {tonPaymentStep === 'waiting' && (
+                            <div style={s.paymentWaiting}>
+                                <div style={s.spinnerRing}></div>
+                                <p style={s.paymentWaitingText}>Ожидание подтверждения...</p>
+                            </div>
+                        )}
+                        {tonPaymentStep === 'success' && (
+                            <div style={s.paymentSuccess}>
+                                <div style={s.successCircle}>✅</div>
+                                <p style={s.paymentSuccessTitle}>Баланс пополнен!</p>
+                                <p style={s.paymentSuccessSub}>+{tonTopUpAmount} TON зачислено</p>
+                                <button onClick={() => { setShowTonTopUpModal(false); setTonPaymentStep('select'); }} style={s.primaryBtn}>Готово</button>
                             </div>
                         )}
                     </div>
-                    <h2 style={styles.profileName}>{user?.first_name || user?.username}</h2>
-                    <p style={styles.profileUsername}>@{user?.username}</p>
-                    <p style={styles.profileId}>ID: {user?.telegram_id}</p>
-                    
-                    <div style={styles.profileBalances}>
-                        <div style={styles.profileBalanceCard}>
-                            <span style={styles.profileBalanceLabel}>⭐ Баланс</span>
-                            <strong style={styles.profileBalanceValue}>{balance}</strong>
+                </div>
+            )}
+
+            {showTopUpModal && (
+                <div style={s.modalOverlay}>
+                    <div style={s.sheet}>
+                        <div style={s.modalHeader}>
+                            <div style={s.modalTitleRow}><span style={s.modalIcon}>⭐</span><h3 style={s.modalTitle}>Пополнение Stars</h3></div>
+                            <button onClick={() => setShowTopUpModal(false)} style={s.closeBtn}>✕</button>
                         </div>
-                        <div style={styles.profileBalanceCard}>
-                            <span style={styles.profileBalanceLabel}>💎 TON</span>
-                            <strong style={styles.profileBalanceValue}>{parseFloat(tonBalance || 0).toFixed(3)}</strong>
+                        <p style={s.modalSubtitle}>Выберите сумму пополнения:</p>
+                        <div style={s.amountGrid}>
+                            {[1, 50, 100, 250, 500, 1000].map(amt => (
+                                <button key={amt} onClick={() => setTopUpAmount(amt)} style={topUpAmount === amt ? s.amountBtnActive : s.amountBtn}>{amt} ⭐</button>
+                            ))}
+                        </div>
+                        <div style={s.rowBtns}>
+                            <button onClick={() => setShowTopUpModal(false)} style={s.ghostBtn}>Отмена</button>
+                            <button onClick={createInvoice} style={s.primaryBtn}>Оплатить</button>
                         </div>
                     </div>
-					<div style={{ width: '100%', marginBottom: '16px' }}>
-    {wallet ? (
-        <div style={styles.walletConnected}>
-            <div style={styles.walletInfo}>
-                <span style={styles.walletLabel}>💎 TON кошелёк подключён</span>
-                <span style={styles.walletAddress}>
-                    {(() => {
-    try {
-        const friendly = Address.parse(wallet.account.address).toString({
-            bounceable: false,
-            testOnly: false
-        });
-        return `${friendly.slice(0, 6)}...${friendly.slice(-4)}`;
-    } catch {
-        return `${wallet.account.address.slice(0, 6)}...${wallet.account.address.slice(-4)}`;
-    }
-})()}
-                </span>
-            </div>
-            <button 
-                onClick={() => tonConnectUI.disconnect()} 
-                style={styles.walletDisconnectBtn}
-            >
-                Отключить
-            </button>
+                </div>
+            )}
+
+            {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} userId={user?.telegram_id} />}
         </div>
-    ) : (
-        <button 
-            onClick={() => tonConnectUI.openModal()} 
-            style={styles.walletConnectBtn}
-        >
-            💎 Подключить TON кошелёк
-        </button>
-    )}
-</div>
-                    <button onClick={() => setShowCreateForm(true)} style={styles.createQuestBtn}>
-                        ✨ Создать задание
-                    </button>
-                    {/* Кнопка пополнения баланса */}
-                    <button onClick={openTopUpModal} style={styles.topUpBtn}>
-                        💰 Пополнить баланс
-                    </button>
-					<button onClick={() => setShowTonTopUpModal(true)} style={styles.tonTopUpBtn}>
-    💎 Пополнить TON баланс
-</button>
-                    {user?.telegram_id && String(user.telegram_id) === "850997324" && (
-                        <button onClick={() => setShowAdminPanel(true)} style={styles.adminBtn}>
-                            🛡️ Админ-панель
-                        </button>
-                    )}
-                    
-                    {myQuests.length > 0 && (
-                        <div style={styles.myQuestsSection}>
-                            <h3 style={styles.myQuestsTitle}>Мои задания</h3>
-                            
-                            <div style={styles.questStatusTabs}>
-                                <button onClick={() => setQuestStatusFilter('pending')} style={questStatusFilter === 'pending' ? styles.questStatusTabActive : styles.questStatusTab}>
-                                    ⏳ На модерации ({myQuests.filter(q => q.status === 'pending').length})
-                                </button>
-                                <button onClick={() => setQuestStatusFilter('active')} style={questStatusFilter === 'active' ? styles.questStatusTabActive : styles.questStatusTab}>
-                                    ✅ Принято ({myQuests.filter(q => q.status === 'active').length})
-                                </button>
-                                <button onClick={() => setQuestStatusFilter('rejected')} style={questStatusFilter === 'rejected' ? styles.questStatusTabActive : styles.questStatusTab}>
-                                    ❌ Отклонено ({myQuests.filter(q => q.status === 'rejected').length})
-                                </button>
-                            </div>
-                            
-                            {myQuests.filter(q => q.status === questStatusFilter).length === 0 ? (
-                                <div style={styles.emptyMyQuests}>
-                                    <p>Нет заданий в этой категории</p>
+    );
+
+    // ---- MAIN ----
+    return (
+        <div style={s.screen}>
+            <div style={s.noiseBg}></div>
+            <div style={s.aura1}></div>
+            <div style={s.aura2}></div>
+
+            {/* Header */}
+            <div style={s.header}>
+                <button style={s.logoBtn} onClick={() => window.Telegram.WebApp.openLink('https://t.me/startask_official')}>
+                    <div style={s.logoMark}>
+                        <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+                            <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#hg)" stroke="#00D4FF" strokeWidth="1"/>
+                            <defs><linearGradient id="hg" x1="0" y1="0" x2="32" y2="32"><stop stopColor="#00D4FF"/><stop offset="1" stopColor="#FF2D95"/></linearGradient></defs>
+                        </svg>
+                    </div>
+                    <span style={s.logoText}>StarTask</span>
+                </button>
+
+                <button style={s.userChip} onClick={() => setShowProfile(true)}>
+                    <div style={s.userChipBalances}>
+                        <span style={s.chipStars}>⭐ {balance}</span>
+                        <span style={s.chipTon}>💎 {parseFloat(tonBalance||0).toFixed(2)}</span>
+                    </div>
+                    <div style={s.chipAvatar}>
+                        {user?.photo_url
+                            ? <img src={user.photo_url} alt="av" style={s.chipAvatarImg} />
+                            : <span style={s.chipAvatarLetter}>{user?.username?.charAt(0).toUpperCase() || '?'}</span>
+                        }
+                    </div>
+                </button>
+            </div>
+
+            {/* Content */}
+            <div style={s.scrollArea}>
+                {mainTab === 'tasks' && (
+                    <>
+                        <div style={s.tabBar}>
+                            <button onClick={() => setActiveTab('active')} style={activeTab === 'active' ? s.tabActive : s.tab}>
+                                Активные <span style={s.tabCount}>{activeTasks.length}</span>
+                            </button>
+                            <button onClick={() => setActiveTab('completed')} style={activeTab === 'completed' ? s.tabActive : s.tab}>
+                                Выполненные <span style={s.tabCount}>{completedTasks.length}</span>
+                            </button>
+                        </div>
+
+                        {activeTab === 'active' && (
+                            activeTasks.length === 0
+                                ? <div style={s.emptyState}>
+                                    <div style={s.emptyEmoji}>🎉</div>
+                                    <h3 style={s.emptyTitle}>Все задания выполнены!</h3>
+                                    <p style={s.emptyText}>Новые появятся скоро</p>
                                 </div>
-                            ) : (
-                                myQuests.filter(q => q.status === questStatusFilter).map(quest => (
-                                    <div key={quest.id} style={styles.myQuestCard}>
-                                        <div style={styles.myQuestAvatar}>
-                                            {channelAvatars[quest.id] ? (
-                                                <img src={channelAvatars[quest.id]} alt="" style={styles.myQuestAvatarImg} />
-                                            ) : (
-                                                <div style={styles.myQuestAvatarPlaceholder}>
-                                                    {getChannelInitial(quest.title, quest.target_url)}
-                                                </div>
-                                            )}
+                                : activeTasks.map((task, i) => (
+                                    <div key={task.id} style={{...s.taskCard, animationDelay: `${i * 60}ms`}} className="taskCard">
+                                        <div style={s.taskCardShine} />
+                                        <div style={{...s.taskAvatarBox, background: channelAvatars[task.id] ? 'transparent' : getChannelColor(task.title)}}>
+                                            {channelAvatars[task.id]
+                                                ? <img src={channelAvatars[task.id]} alt="" style={s.taskAvatarImg} />
+                                                : <span style={s.taskAvatarLetter}>{getChannelInitial(task.title, task.target_url)}</span>
+                                            }
                                         </div>
-                                        <div style={styles.myQuestContent}>
-                                            <h4 style={styles.myQuestTitle}>{quest.title}</h4>
-                                            <p style={styles.myQuestDescription}>{quest.description}</p>
-                                            <div style={styles.myQuestFooter}>
-                                                <span style={styles.myQuestReward}>+{quest.reward} ⭐</span>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                                                    <span style={{
-                                                        ...styles.myQuestStatus,
-                                                        ...(quest.status === 'pending' && styles.statusPending),
-                                                        ...(quest.status === 'active' && styles.statusActive),
-                                                        ...(quest.status === 'rejected' && styles.statusRejected),
-                                                        ...(quest.status === 'inactive' && styles.statusInactive)
-                                                    }}>
-                                                        {quest.status === 'pending' && '⏳ На модерации'}
-                                                        {quest.status === 'active' && '✅ Опубликовано'}
-                                                        {quest.status === 'rejected' && '❌ Отклонено'}
-                                                        {quest.status === 'inactive' && '📦 Снято с публикации'}
-                                                    </span>
-                                                    {quest.status === 'rejected' && quest.rejection_reason && (
-                                                        <span style={{ fontSize: '11px', color: '#FF2D95', background: 'rgba(255,45,149,0.1)', padding: '3px 8px', borderRadius: '16px' }}>
-                                                            📝 {quest.rejection_reason}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                        <div style={s.taskBody}>
+                                            <p style={s.taskTitle}>{task.title}</p>
+                                            <p style={s.taskDesc}>{task.description}</p>
+                                            <div style={s.taskFooter}>
+                                                <span style={s.rewardPill}>+{task.reward} ⭐</span>
+                                                <button onClick={() => completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1])} style={s.doBtn}>Выполнить →</button>
                                             </div>
                                         </div>
                                     </div>
                                 ))
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {showCreateForm && (
-                    <div style={styles.modalOverlay}>
-                        <div style={styles.createForm}>
-                            <div style={styles.formHeader}>
-                                <h3 style={{ color: 'white' }}>✨ Создать задание</h3>
-                                <button onClick={() => setShowCreateForm(false)} style={styles.closeBtn}>✕</button>
-                            </div>
-                            <input type="text" placeholder="Ссылка на канал (t.me/...)" style={styles.formInput} ref={channelInput} />
-                            <input type="text" placeholder="Название задания" style={styles.formInput} ref={titleInput} />
-                            <textarea placeholder="Описание задания" style={styles.formTextarea} ref={descInput} />
-                            <input type="number" placeholder="Награда (Stars)" style={styles.formInput} ref={rewardInput} />
-                            <button onClick={createQuest} style={styles.submitBtn}>➕ Создать</button>
-                        </div>
-                    </div>
-                )}
-				
-				{showTonTopUpModal && (
-    <div style={styles.modalOverlay}>
-        <div style={styles.topUpModal}>
-            <div style={styles.formHeader}>
-                <h3 style={{ color: 'white' }}>💎 Пополнение TON</h3>
-                <button onClick={() => { setShowTonTopUpModal(false); setTonPaymentStep('select'); }} style={styles.closeBtn}>✕</button>
-            </div>
-
-            {tonPaymentStep === 'select' && (
-                <>
-                    <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '16px' }}>
-                        Выберите сумму:
-                    </p>
-                    <div style={styles.topUpAmounts}>
-                        {[0.5, 1, 2, 5, 10, 20].map(amount => (
-                            <button
-                                key={amount}
-                                onClick={() => setTonTopUpAmount(amount)}
-                                style={{
-                                    ...styles.topUpAmountBtn,
-                                    ...(tonTopUpAmount === amount && styles.topUpAmountBtnActive)
-                                }}
-                            >
-                                {amount} 💎
-                            </button>
-                        ))}
-                    </div>
-                    <button onClick={sendTonPayment} style={{ ...styles.approveBtn, width: '100%', marginTop: '20px', padding: '14px' }}>
-                        Оплатить {tonTopUpAmount} TON
-                    </button>
-                </>
-            )}
-
-            {tonPaymentStep === 'waiting' && (
-                <div style={{ textAlign: 'center', padding: '20px' }}>
-                    <div style={styles.spinner}></div>
-                    <p style={{ color: 'white' }}>Ожидание подтверждения...</p>
-                </div>
-            )}
-
-            {tonPaymentStep === 'success' && (
-                <div style={{ textAlign: 'center', padding: '20px' }}>
-                    <p style={{ fontSize: '48px' }}>✅</p>
-                    <p style={{ color: 'white', fontSize: '18px' }}>Баланс пополнен!</p>
-                    <p style={{ color: 'rgba(255,255,255,0.6)' }}>+{tonTopUpAmount} TON</p>
-                    <button onClick={() => { setShowTonTopUpModal(false); setTonPaymentStep('select'); }} style={{ ...styles.approveBtn, marginTop: '16px' }}>
-                        Закрыть
-                    </button>
-                </div>
-            )}
-        </div>
-    </div>
-)}
-
-                {showAdminPanel && (
-                    <AdminPanel onClose={() => setShowAdminPanel(false)} userId={user?.telegram_id} />
-                )}
-                {/* МОДАЛЬНОЕ ОКНО ПОПОЛНЕНИЯ */}
-                {showTopUpModal && (
-                    <div style={styles.modalOverlay}>
-                        <div style={styles.topUpModal}>
-                            <div style={styles.formHeader}>
-                                <h3 style={{ color: 'white' }}>💰 Пополнение баланса</h3>
-                                <button onClick={() => setShowTopUpModal(false)} style={styles.closeBtn}>✕</button>
-                            </div>
-                            
-                            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '16px' }}>
-                                Выберите сумму пополнения:
-                            </p>
-                            
-                            <div style={styles.topUpAmounts}>
-                                {[1, 50, 100, 250, 500, 1000].map(amount => (
-                                    <button
-                                        key={amount}
-                                        onClick={() => setTopUpAmount(amount)}
-                                        style={{
-                                            ...styles.topUpAmountBtn,
-                                            ...(topUpAmount === amount && styles.topUpAmountBtnActive)
-                                        }}
-                                    >
-                                        {amount} ⭐
-                                    </button>
-                                ))}
-                            </div>
-                            
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-                                <button 
-                                    onClick={() => setShowTopUpModal(false)} 
-                                    style={{...styles.rejectBtn, flex: 1}}
-                                >
-                                    Отмена
-                                </button>
-                                <button 
-                                    onClick={createInvoice} 
-                                    style={{...styles.approveBtn, flex: 1, background: 'rgba(0,212,255,0.3)' }}
-                                >
-                                    Оплатить
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}   
-            </div>
-        );
-    }
-
-    return (
-        <div style={styles.container}>
-            <div style={styles.backgroundGradient}></div>
-            
-            <div style={styles.header}>
-                <div style={styles.logoContainer} className="clickable" onClick={() => {
-                    window.Telegram.WebApp.openLink('https://t.me/startask_official');
-                }}>
-                    <div style={styles.logoIcon}>
-                        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16 2L19.5 10.5L28 12L21.5 18L23.5 26.5L16 22L8.5 26.5L10.5 18L4 12L12.5 10.5L16 2Z" fill="url(#grad)" stroke="#00D4FF" strokeWidth="1.2"/>
-                            <defs>
-                                <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stopColor="#00D4FF"/>
-                                    <stop offset="100%" stopColor="#FF2D95"/>
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                    </div>
-                    <h1 style={styles.logo}>StarTask</h1>
-                </div>
-                <div style={styles.userInfo} className="clickable" onClick={() => setShowProfile(true)}>
-                    <div style={styles.userText}>
-                        <span style={styles.userName}>{user?.first_name || user?.username || 'Пользователь'}</span>
-                        <div style={styles.userBalances}>
-                            <span style={styles.userBalance}>⭐ {balance}</span>
-                            <span style={styles.userTonBalance}>₿ {tonBalance}</span>
-                        </div>
-                    </div>
-                    <div style={styles.avatar}>
-                        {user?.photo_url ? (
-                            <img src={user.photo_url} alt="avatar" style={styles.avatarImg} />
-                        ) : (
-                            <div style={styles.avatarPlaceholder}>
-                                {user?.username ? user.username.charAt(0).toUpperCase() : '👤'}
-                            </div>
                         )}
-                    </div>
-                </div>
+
+                        {activeTab === 'completed' && (
+                            completedTasks.length === 0
+                                ? <div style={s.emptyState}><div style={s.emptyEmoji}>📭</div><h3 style={s.emptyTitle}>Нет выполненных</h3><p style={s.emptyText}>Выполните задания чтобы они появились здесь</p></div>
+                                : completedTasks.map(task => (
+                                    <div key={task.id} style={{...s.taskCard, opacity: 0.65}}>
+                                        <div style={{...s.taskAvatarBox, background: channelAvatars[task.id] ? 'transparent' : getChannelColor(task.title)}}>
+                                            {channelAvatars[task.id] ? <img src={channelAvatars[task.id]} alt="" style={s.taskAvatarImg} /> : <span style={s.taskAvatarLetter}>{getChannelInitial(task.title, task.target_url)}</span>}
+                                        </div>
+                                        <div style={s.taskBody}>
+                                            <p style={s.taskTitle}>{task.title}</p>
+                                            <p style={s.taskDesc}>{task.description}</p>
+                                            <div style={s.taskFooter}>
+                                                <span style={{...s.rewardPill, background:'rgba(157,78,221,0.15)', color:'#9D4EDD', borderColor:'rgba(157,78,221,0.3)'}}>✅ +{task.reward} ⭐</span>
+                                                <span style={s.completedLabel}>Выполнено</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                        )}
+                    </>
+                )}
+
+                {mainTab === 'referral' && (
+                    <>
+                        <div style={s.glassCard}>
+                            <div style={s.glassCardAccent} />
+                            <div style={s.glassCardIcon}>👥</div>
+                            <h3 style={s.glassCardTitle}>Партнёрская программа</h3>
+                            <p style={s.glassCardText}>Приглашайте друзей и получайте <strong style={{color:'#FF2D95'}}>10%</strong> от их заработка!</p>
+                            <div style={s.refLinkBox}>
+                                <code style={s.refLink}>{getReferralLink()}</code>
+                            </div>
+                            <button onClick={copyReferralLink} style={s.copyBtn}>📋 Скопировать ссылку</button>
+                        </div>
+                        <div style={s.glassCard}>
+                            <h4 style={s.statsHeading}>Ваша статистика</h4>
+                            <div style={s.statRow}><span style={s.statLabel}>👥 Приглашено друзей</span><strong style={s.statValue}>0</strong></div>
+                            <div style={s.statRow}><span style={s.statLabel}>💰 Заработано комиссии</span><strong style={s.statValue}>0 ⭐</strong></div>
+                        </div>
+                    </>
+                )}
+
+                {mainTab === 'info' && (
+                    <>
+                        {[
+                            { icon: '⭐', title: 'Что такое StarTask?', text: 'StarTask — B2B платформа для продвижения каналов через вознаграждения в Telegram Stars и TON.' },
+                            { icon: '💡', title: 'Как заработать?', text: 'Выберите задание → Выполните действие → Получите вознаграждение мгновенно!' },
+                            { icon: '🤝', title: 'Партнёрская программа', text: 'Приглашайте друзей и получайте 10% от каждого их заработка.' },
+                        ].map(({ icon, title, text }) => (
+                            <div key={title} style={s.glassCard}>
+                                <div style={s.glassCardIcon}>{icon}</div>
+                                <h3 style={s.glassCardTitle}>{title}</h3>
+                                <p style={s.glassCardText}>{text}</p>
+                            </div>
+                        ))}
+                    </>
+                )}
             </div>
 
-            <div style={styles.scrollArea} className="scrollArea">
-                <div style={styles.contentWrapper}>
-                    {mainTab === 'tasks' && (
-                        <>
-                            <div style={styles.subTabs}>
-                                <button onClick={() => setActiveTab('active')} style={activeTab === 'active' ? styles.subTabActive : styles.subTab}>
-                                    Активные ({activeTasks.length})
-                                </button>
-                                <button onClick={() => setActiveTab('completed')} style={activeTab === 'completed' ? styles.subTabActive : styles.subTab}>
-                                    Выполненные ({completedTasks.length})
-                                </button>
-                            </div>
-
-                            {activeTab === 'active' && (
-                                <div style={styles.tasksContainer}>
-                                    {activeTasks.length === 0 ? (
-                                        <div style={styles.emptyState}>
-                                            <div style={styles.emptyIcon}>🎉</div>
-                                            <h3 style={styles.emptyTitle}>Все задания выполнены!</h3>
-                                            <p style={styles.emptyText}>Новые задания появятся скоро</p>
-                                        </div>
-                                    ) : (
-                                        activeTasks.map(task => (
-                                            <div key={task.id} style={styles.taskCard}>
-                                                <div style={styles.taskGlow}></div>
-                                                <div style={styles.taskAvatar}>
-                                                    {channelAvatars[task.id] ? (
-                                                        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImgSmall} />
-                                                    ) : (
-                                                        <div style={{
-                                                            ...styles.avatarPlaceholderSmall,
-                                                            background: getChannelColor(task.title)
-                                                        }}>
-                                                            {getChannelInitial(task.title, task.target_url)}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div style={styles.taskContent}>
-                                                    <h3 style={styles.taskTitle}>{task.title}</h3>
-                                                    <p style={styles.taskDesc}>{task.description}</p>
-                                                    <div style={styles.taskFooter}>
-                                                        <span style={styles.taskReward}>+{task.reward} ⭐</span>
-                                                        <button onClick={() => completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1])} style={styles.taskButton}>
-                                                            Выполнить →
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            )}
-
-                            {activeTab === 'completed' && (
-                                <div style={styles.tasksContainer}>
-                                    {completedTasks.length === 0 ? (
-                                        <div style={styles.emptyState}>
-                                            <div style={styles.emptyIcon}>📭</div>
-                                            <h3 style={styles.emptyTitle}>Нет выполненных заданий</h3>
-                                            <p style={styles.emptyText}>Выполните задания, чтобы они появились здесь</p>
-                                        </div>
-                                    ) : (
-                                        completedTasks.map(task => (
-                                            <div key={task.id} style={{...styles.taskCard, opacity: 0.7}}>
-                                                <div style={styles.taskGlow}></div>
-                                                <div style={styles.taskAvatar}>
-                                                    {channelAvatars[task.id] ? (
-                                                        <img src={channelAvatars[task.id]} alt="" style={styles.avatarImgSmall} />
-                                                    ) : (
-                                                        <div style={{
-                                                            ...styles.avatarPlaceholderSmall,
-                                                            background: getChannelColor(task.title)
-                                                        }}>
-                                                            {getChannelInitial(task.title, task.target_url)}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div style={styles.taskContent}>
-                                                    <h3 style={styles.taskTitle}>{task.title}</h3>
-                                                    <p style={styles.taskDesc}>{task.description}</p>
-                                                    <div style={styles.taskFooter}>
-                                                        <span style={styles.completedReward}>✅ +{task.reward} ⭐</span>
-                                                        <span style={styles.completedBadge}>Выполнено</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            )}
-                        </>
-                    )}
-
-                    {mainTab === 'referral' && (
-                        <div>
-                            <div style={styles.glassCard}>
-                                <div style={styles.glassCardGlow}></div>
-                                <div style={styles.infoIcon}>👥</div>
-                                <h3 style={styles.glassTitle}>Партнёрская программа</h3>
-                                <p style={styles.glassText}>Приглашайте друзей и получайте <strong style={{color: '#FF2D95'}}>10%</strong> от их заработка!</p>
-                                <div style={styles.referralLinkBox}>
-                                    <code style={styles.referralLink}>{getReferralLink()}</code>
-                                </div>
-                                <button onClick={copyReferralLink} style={styles.copyButton}>
-                                    📋 Скопировать ссылку
-                                </button>
-                            </div>
-
-                            <div style={styles.glassCard}>
-                                <h4 style={styles.statsTitle}>Ваша статистика</h4>
-                                <div style={styles.statsRow}>
-                                    <span>👥 Приглашено друзей:</span>
-                                    <strong>0</strong>
-                                </div>
-                                <div style={styles.statsRow}>
-                                    <span>💰 Заработано комиссии:</span>
-                                    <strong>0 ⭐</strong>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {mainTab === 'info' && (
-                        <div>
-                            <div style={styles.glassCard}>
-                                <div style={styles.infoIcon}>⭐</div>
-                                <h3 style={styles.glassTitle}>Что такое StarTask?</h3>
-                                <p style={styles.glassText}>StarTask — неоновая платформа для заработка Telegram Stars на выполнении простых заданий.</p>
-                            </div>
-                            <div style={styles.glassCard}>
-                                <div style={styles.infoIcon}>💡</div>
-                                <h3 style={styles.glassTitle}>Как заработать?</h3>
-                                <ol style={styles.infoList}>
-                                    <li>Выберите задание из списка</li>
-                                    <li>Перейдите по ссылке и выполните действие</li>
-                                    <li>Нажмите "Выполнить"</li>
-                                    <li>Получите Stars мгновенно!</li>
-                                </ol>
-                            </div>
-                            <div style={styles.glassCard}>
-                                <div style={styles.infoIcon}>🤝</div>
-                                <h3 style={styles.glassTitle}>Партнёрская программа</h3>
-                                <p style={styles.glassText}>Приглашайте друзей и получайте 10% от их заработка.</p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div style={styles.bottomNav}>
-                <button onClick={() => setMainTab('tasks')} style={mainTab === 'tasks' ? styles.navButtonActive : styles.navButton}>
-                    <span style={styles.navIcon}>📋</span>
-                    <span style={styles.navLabel}>Задания</span>
-                </button>
-                <button onClick={() => setMainTab('referral')} style={mainTab === 'referral' ? styles.navButtonActive : styles.navButton}>
-                    <span style={styles.navIcon}>👥</span>
-                    <span style={styles.navLabel}>Партнёры</span>
-                </button>
-                <button onClick={() => setMainTab('info')} style={mainTab === 'info' ? styles.navButtonActive : styles.navButton}>
-                    <span style={styles.navIcon}>ℹ️</span>
-                    <span style={styles.navLabel}>О проекте</span>
-                </button>
+            {/* Bottom nav */}
+            <div style={s.bottomNav}>
+                {[
+                    { id: 'tasks', icon: '📋', label: 'Задания' },
+                    { id: 'referral', icon: '👥', label: 'Партнёры' },
+                    { id: 'info', icon: 'ℹ️', label: 'О проекте' },
+                ].map(({ id, icon, label }) => (
+                    <button key={id} onClick={() => setMainTab(id)} style={mainTab === id ? s.navBtnActive : s.navBtn}>
+                        <span style={s.navIcon}>{icon}</span>
+                        <span style={s.navLabel}>{label}</span>
+                        {mainTab === id && <div style={s.navIndicator} />}
+                    </button>
+                ))}
             </div>
         </div>
     );
 }
 
-const styles = {
-    container: {
-        minHeight: '100vh',
-        position: 'relative',
-        overflowX: 'hidden',
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        background: 'radial-gradient(ellipse at 20% 0%, #0a0a2a 0%, #050510 100%)'
-    },
-    backgroundGradient: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'radial-gradient(ellipse at 20% 0%, #0a0a2a 0%, #050510 100%)',
-        zIndex: -2
-    },
-    header: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '16px 20px',
-        background: 'transparent',
-        zIndex: 100,
-        pointerEvents: 'none'
-    },
-    logoContainer: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        cursor: 'pointer',
-        pointerEvents: 'auto'
-    },
-    logoIcon: {
-        width: '36px',
-        height: '36px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0, 212, 255, 0.1)',
-        borderRadius: '12px',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
-        boxShadow: '0 0 10px rgba(0, 212, 255, 0.3)'
-    },
-    logo: {
-        margin: 0,
-        fontSize: '20px',
-        fontWeight: '800',
-        background: 'linear-gradient(135deg, #00D4FF 0%, #FF2D95 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-        letterSpacing: '-0.5px'
-    },
-    userInfo: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        cursor: 'pointer',
-        pointerEvents: 'auto'
-    },
-    userText: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end'
-    },
-    userBalances: {
-        display: 'flex',
-        gap: '8px'
-    },
-    userName: {
-        fontSize: '14px',
-        fontWeight: '600',
-        color: 'white'
-    },
-    userBalance: {
-        fontSize: '11px',
-        color: '#00D4FF'
-    },
-    userTonBalance: {
-        fontSize: '11px',
-        color: '#9D4EDD'
-    },
-    avatar: {
-        width: '40px',
-        height: '40px',
-        borderRadius: '50%',
-        background: 'rgba(0, 212, 255, 0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-        border: '2px solid rgba(0, 212, 255, 0.4)',
-        boxShadow: '0 0 10px rgba(0, 212, 255, 0.3)'
-    },
-    avatarImg: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover'
-    },
-    avatarPlaceholder: {
-        width: '40px',
-        height: '40px',
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '20px',
-        fontWeight: '600',
-        color: '#00D4FF'
-    },
-    avatarImgSmall: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover'
-    },
-    avatarPlaceholderSmall: {
-        width: '52px',
-        height: '52px',
-        borderRadius: '26px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '24px',
-        fontWeight: 'bold',
-        color: 'white'
-    },
-    scrollArea: {
-        marginTop: '0px',
-        marginBottom: '0px',
-        padding: '0 16px',
-        paddingTop: '80px',
-        paddingBottom: '80px',
-        overflowY: 'auto',
-        height: '100vh',
-        boxSizing: 'border-box'
-    },
-    contentWrapper: {
-        paddingBottom: '20px'
-    },
-    loadingContainer: {
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        background: '#050510',
-        color: 'white'
-    },
-    spinner: {
-        width: '48px',
-        height: '48px',
-        border: '3px solid rgba(0, 212, 255, 0.1)',
-        borderTop: '3px solid #00D4FF',
-        borderRadius: '50%',
-        animation: 'spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite',
-        marginBottom: '20px',
-        boxShadow: '0 0 15px rgba(0, 212, 255, 0.5)'
-    },
-    loadingText: {
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: '14px',
-        letterSpacing: '1px'
-    },
-    subTabs: {
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '20px',
-        background: 'rgba(255,255,255,0.02)',
-        borderRadius: '40px',
-        padding: '4px'
-    },
-    subTab: {
-        flex: 1,
-        padding: '10px',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '40px',
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: '13px',
-        cursor: 'pointer'
-    },
-    subTabActive: {
-        flex: 1,
-        padding: '10px',
-        background: 'rgba(0, 212, 255, 0.15)',
-        border: 'none',
-        borderRadius: '40px',
-        color: '#00D4FF',
-        fontSize: '13px',
-        fontWeight: '600',
-        cursor: 'pointer',
-        boxShadow: '0 0 10px rgba(0, 212, 255, 0.3)'
-    },
-    tasksContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        paddingBottom: '10px'
-    },
-    taskCard: {
-        position: 'relative',
-        background: 'rgba(255,255,255,0.03)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '28px',
-        padding: '16px',
-        display: 'flex',
-        gap: '14px',
-        border: '1px solid rgba(0, 212, 255, 0.15)',
-        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-        overflow: 'hidden'
-    },
-    taskGlow: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'radial-gradient(circle at 100% 0%, rgba(0, 212, 255, 0.08) 0%, transparent 70%)',
-        pointerEvents: 'none'
-    },
-    taskAvatar: {
-        width: '52px',
-        height: '52px',
-        borderRadius: '26px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-        flexShrink: 0,
-        boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
-    },
-    taskContent: {
-        flex: 1
-    },
-    taskTitle: {
-        margin: '0 0 6px 0',
-        fontSize: '16px',
-        fontWeight: '600',
-        color: 'white',
-        letterSpacing: '-0.3px'
-    },
-    taskDesc: {
-        margin: '0 0 12px 0',
-        fontSize: '12px',
-        color: 'rgba(255,255,255,0.5)',
-        lineHeight: 1.4
-    },
-    taskFooter: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-    },
-    taskReward: {
-        fontWeight: 'bold',
-        color: '#FF2D95',
-        background: 'rgba(255,45,149,0.1)',
-        padding: '5px 12px',
-        borderRadius: '20px',
-        fontSize: '12px',
-        border: '1px solid rgba(255,45,149,0.3)'
-    },
-    taskButton: {
-        background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(255,45,149,0.05) 100%)',
-        border: '1px solid rgba(0,212,255,0.3)',
-        borderRadius: '40px',
-        padding: '7px 18px',
-        color: '#00D4FF',
-        fontWeight: '500',
-        cursor: 'pointer',
-        fontSize: '12px',
-        transition: 'all 0.2s ease'
-    },
-    completedReward: {
-        fontWeight: 'bold',
-        color: '#9D4EDD',
-        background: 'rgba(157,78,221,0.1)',
-        padding: '5px 12px',
-        borderRadius: '20px',
-        fontSize: '12px'
-    },
-    completedBadge: {
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: '12px'
-    },
-    emptyState: {
-        textAlign: 'center',
-        padding: '50px 20px',
-        background: 'rgba(255,255,255,0.03)',
-        backdropFilter: 'blur(10px)',
-        borderRadius: '28px',
-        border: '1px solid rgba(0,212,255,0.15)'
-    },
-    emptyIcon: {
-        fontSize: '48px',
-        marginBottom: '16px',
-        opacity: 0.5
-    },
-    emptyTitle: {
-        color: 'white',
-        marginBottom: '8px',
-        fontSize: '18px'
-    },
-    emptyText: {
-        color: 'rgba(255,255,255,0.4)',
-        fontSize: '14px'
-    },
-    glassCard: {
-        position: 'relative',
-        background: 'rgba(255,255,255,0.03)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '28px',
-        padding: '24px',
-        marginBottom: '16px',
-        border: '1px solid rgba(0,212,255,0.15)',
-        overflow: 'hidden'
-    },
-    glassCardGlow: {
-        position: 'absolute',
-        top: '-50%',
-        left: '-50%',
-        width: '200%',
-        height: '200%',
-        background: 'radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 70%)',
-        pointerEvents: 'none'
-    },
-    glassTitle: {
-        textAlign: 'center',
-        margin: '0 0 12px 0',
-        color: 'white',
-        fontSize: '18px',
-        fontWeight: '600'
-    },
-    glassText: {
-        color: 'rgba(255,255,255,0.6)',
-        lineHeight: 1.5,
-        textAlign: 'center',
-        margin: 0,
-        fontSize: '14px'
-    },
-    infoIcon: {
-        fontSize: '48px',
-        textAlign: 'center',
-        marginBottom: '16px'
-    },
-    infoList: {
-        color: 'rgba(255,255,255,0.6)',
-        lineHeight: 1.8,
-        paddingLeft: '20px',
-        margin: 0
-    },
-    referralLinkBox: {
-        background: 'rgba(0,0,0,0.4)',
-        borderRadius: '16px',
-        padding: '12px',
-        margin: '16px 0',
-        overflowX: 'auto',
-        border: '1px solid rgba(0,212,255,0.2)'
-    },
-    referralLink: {
-        fontSize: '11px',
-        wordBreak: 'break-all',
-        color: '#00D4FF'
-    },
-    copyButton: {
-        width: '100%',
-        padding: '12px',
-        background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(255,45,149,0.05) 100%)',
-        border: '1px solid rgba(0,212,255,0.3)',
-        borderRadius: '40px',
-        color: '#00D4FF',
-        fontWeight: '600',
-        cursor: 'pointer',
-        fontSize: '14px',
-        transition: 'all 0.2s ease'
-    },
-    statsTitle: {
-        margin: '0 0 16px 0',
-        color: 'white',
-        fontSize: '18px',
-        fontWeight: '600'
-    },
-    statsRow: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        padding: '10px 0',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: '14px'
-    },
-    bottomNav: {
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        display: 'flex',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        gap: '6px',
-        background: 'transparent',
-        padding: '8px 16px',
-        paddingBottom: 'calc(8px + env(safe-area-inset-bottom))',
-        zIndex: 100,
-        pointerEvents: 'none'
-    },
-    navButton: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '2px',
-        background: 'linear-gradient(135deg, rgba(0,212,255,0.15) 0%, rgba(255,45,149,0.08) 100%)',
-        backdropFilter: 'blur(15px)',
-        WebkitBackdropFilter: 'blur(15px)',
-        border: '1px solid rgba(0, 212, 255, 0.3)',
-        borderRadius: '40px',
-        cursor: 'pointer',
-        padding: '6px 8px',
-        transition: 'all 0.2s ease',
-        opacity: 0.8,
-        pointerEvents: 'auto'
-    },
-    navButtonActive: {
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '2px',
-        background: 'linear-gradient(135deg, rgba(0,212,255,0.25) 0%, rgba(255,45,149,0.15) 100%)',
-        backdropFilter: 'blur(15px)',
-        WebkitBackdropFilter: 'blur(15px)',
-        border: '1px solid rgba(0, 212, 255, 0.7)',
-        borderRadius: '40px',
-        cursor: 'pointer',
-        padding: '6px 8px',
-        transition: 'all 0.2s ease',
-        opacity: 1,
-        pointerEvents: 'auto',
-        boxShadow: '0 0 12px rgba(0, 212, 255, 0.4)'
-    },
-    navIcon: {
-        fontSize: '16px'
-    },
-    navLabel: {
-        fontSize: '9px',
-        fontWeight: '500',
-        color: 'white'
-    },
-    closeProfileBtn: {
-        background: 'rgba(255,255,255,0.1)',
-        border: '1px solid rgba(0,212,255,0.3)',
-        borderRadius: '30px',
-        color: 'white',
-        fontSize: '18px',
-        cursor: 'pointer',
-        pointerEvents: 'auto',
-        width: '36px',
-        height: '36px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    profileContent: {
-        marginTop: '80px',
-        padding: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center'
-    },
-    profileAvatar: {
-        width: '100px',
-        height: '100px',
-        borderRadius: '50%',
-        background: 'rgba(0,212,255,0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-        border: '3px solid rgba(0,212,255,0.5)',
-        marginBottom: '16px'
-    },
-    profileAvatarImg: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover'
-    },
-    profileAvatarPlaceholder: {
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '48px',
-        fontWeight: '600',
-        color: '#00D4FF'
-    },
-    profileName: {
-        fontSize: '24px',
-        fontWeight: '700',
-        color: 'white',
-        marginBottom: '4px'
-    },
-    profileUsername: {
-        fontSize: '14px',
-        color: 'rgba(255,255,255,0.6)',
-        marginBottom: '4px'
-    },
-    profileId: {
-        fontSize: '12px',
-        color: 'rgba(255,255,255,0.4)',
-        marginBottom: '20px'
-    },
-    profileBalances: {
-        display: 'flex',
-        gap: '20px',
-        marginBottom: '30px'
-    },
-    profileBalanceCard: {
-        background: 'rgba(255,255,255,0.05)',
-        borderRadius: '20px',
-        padding: '12px 24px',
-        textAlign: 'center',
-        minWidth: '100px'
-    },
-    profileBalanceLabel: {
-        fontSize: '12px',
-        color: 'rgba(255,255,255,0.6)',
-        display: 'block',
-        marginBottom: '4px'
-    },
-    profileBalanceValue: {
-        fontSize: '20px',
-        fontWeight: '700',
-        color: '#00D4FF'
-    },
-    createQuestBtn: {
-        background: 'linear-gradient(135deg, rgba(0,212,255,0.2) 0%, rgba(255,45,149,0.1) 100%)',
-        border: '1px solid rgba(0,212,255,0.5)',
-        borderRadius: '40px',
-        padding: '14px 28px',
-        color: '#00D4FF',
-        fontWeight: '600',
-        cursor: 'pointer',
-        fontSize: '16px',
-        marginBottom: '30px',
-        width: '100%'
-    },
-    myQuestsSection: {
-        width: '100%'
-    },
-    myQuestsTitle: {
-        fontSize: '18px',
-        fontWeight: '600',
-        color: 'white',
-        marginBottom: '16px'
-    },
-    myQuestCard: {
-        background: 'rgba(255,255,255,0.05)',
-        borderRadius: '16px',
-        padding: '12px',
-        display: 'flex',
-        gap: '12px',
-        marginBottom: '12px'
-    },
-    myQuestAvatar: {
-        width: '48px',
-        height: '48px',
-        borderRadius: '24px',
-        background: 'rgba(0,212,255,0.1)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-        flexShrink: 0
-    },
-    myQuestAvatarImg: {
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover'
-    },
-    myQuestAvatarPlaceholder: {
-        width: '48px',
-        height: '48px',
-        borderRadius: '24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '20px',
-        fontWeight: '600',
-        color: '#00D4FF',
-        background: 'rgba(0,212,255,0.1)'
-    },
-    myQuestContent: {
-        flex: 1,
-        color: 'white'
-    },
-    myQuestTitle: {
-        fontSize: '15px',
-        fontWeight: '600',
-        color: 'white',
-        marginBottom: '4px'
-    },
-    myQuestDescription: {
-        fontSize: '12px',
-        color: 'rgba(255,255,255,0.6)',
-        marginBottom: '8px'
-    },
-    myQuestReward: {
-        fontSize: '12px',
-        color: '#FF2D95'
-    },
-    myQuestFooter: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: '8px'
-    },
-    myQuestStatus: {
-        fontSize: '11px',
-        padding: '3px 8px',
-        borderRadius: '20px',
-        display: 'inline-block'
-    },
-    statusPending: {
-        background: 'rgba(255, 193, 7, 0.2)',
-        color: '#FFC107'
-    },
-    statusActive: {
-        background: 'rgba(76, 175, 80, 0.2)',
-        color: '#4CAF50'
-    },
-    statusRejected: {
-        background: 'rgba(244, 67, 54, 0.2)',
-        color: '#F44336'
-    },
-    statusInactive: {
-        background: 'rgba(156, 39, 176, 0.2)',
-        color: '#9C27B0'
-    },
-    modalOverlay: {
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0,0,0,0.8)',
-        backdropFilter: 'blur(5px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 200
-    },
-    createForm: {
-        background: 'rgba(20,20,40,0.95)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '24px',
-        padding: '24px',
-        width: '320px',
-        border: '1px solid rgba(0,212,255,0.3)'
-    },
-    formHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '20px'
-    },
-    closeBtn: {
-        background: 'none',
-        border: 'none',
-        color: 'white',
-        fontSize: '24px',
-        cursor: 'pointer'
-    },
-    formInput: {
-        width: '100%',
-        padding: '12px',
-        marginBottom: '12px',
-        background: 'rgba(255,255,255,0.1)',
-        border: '1px solid rgba(0,212,255,0.3)',
-        borderRadius: '12px',
-        color: 'white',
-        fontSize: '14px',
-        boxSizing: 'border-box'
-    },
-    formTextarea: {
-        width: '100%',
-        padding: '12px',
-        marginBottom: '12px',
-        background: 'rgba(255,255,255,0.1)',
-        border: '1px solid rgba(0,212,255,0.3)',
-        borderRadius: '12px',
-        color: 'white',
-        fontSize: '14px',
-        minHeight: '80px',
-        boxSizing: 'border-box',
-        fontFamily: 'inherit'
-    },
-    submitBtn: {
-        width: '100%',
-        padding: '12px',
-        background: 'linear-gradient(135deg, rgba(0,212,255,0.3) 0%, rgba(255,45,149,0.2) 100%)',
-        border: '1px solid rgba(0,212,255,0.5)',
-        borderRadius: '40px',
-        color: '#00D4FF',
-        fontWeight: '600',
-        cursor: 'pointer',
-        fontSize: '16px'
-    },
-    adminPanel: {
-        background: 'rgba(10,10,30,0.98)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '28px',
-        padding: '20px',
-        width: '90%',
-        maxWidth: '400px',
-        maxHeight: '80vh',
-        overflowY: 'auto',
-        border: '1px solid rgba(0,212,255,0.3)'
-    },
-    adminQuestCard: {
-        background: 'rgba(255,255,255,0.05)',
-        borderRadius: '16px',
-        padding: '12px',
-        marginBottom: '12px'
-    },
-    approveBtn: {
-        background: 'rgba(0,212,255,0.2)',
-        border: '1px solid rgba(0,212,255,0.5)',
-        borderRadius: '20px',
-        padding: '6px 12px',
-        color: '#00D4FF',
-        cursor: 'pointer',
-        fontSize: '12px'
-    },
-    rejectBtn: {
-        background: 'rgba(255,45,149,0.2)',
-        border: '1px solid rgba(255,45,149,0.5)',
-        borderRadius: '20px',
-        padding: '6px 12px',
-        color: '#FF2D95',
-        cursor: 'pointer',
-        fontSize: '12px'
-    },
-    adminBtn: {
-        background: 'rgba(255,45,149,0.2)',
-        border: '1px solid rgba(255,45,149,0.5)',
-        borderRadius: '40px',
-        padding: '12px 20px',
-        color: '#FF2D95',
-        fontWeight: '600',
-        cursor: 'pointer',
-        fontSize: '14px',
-        width: '100%',
-        marginBottom: '16px'
-    },
-    adminTabs: {
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '20px',
-        background: 'rgba(255,255,255,0.05)',
-        borderRadius: '40px',
-        padding: '4px'
-    },
-    adminTab: {
-        flex: 1,
-        padding: '10px',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '40px',
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: '13px',
-        cursor: 'pointer'
-    },
-    adminTabActive: {
-        flex: 1,
-        padding: '10px',
-        background: 'rgba(0, 212, 255, 0.15)',
-        border: 'none',
-        borderRadius: '40px',
-        color: '#00D4FF',
-        fontSize: '13px',
-        fontWeight: '600',
-        cursor: 'pointer'
-    },
-    deactivateBtn: {
-        background: 'rgba(255,45,149,0.2)',
-        border: '1px solid rgba(255,45,149,0.5)',
-        borderRadius: '20px',
-        padding: '6px 12px',
-        color: '#FF2D95',
-        cursor: 'pointer',
-        fontSize: '12px',
-        width: '100%'
-    },
-    questStatusTabs: {
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '16px',
-        background: 'rgba(255,255,255,0.05)',
-        borderRadius: '40px',
-        padding: '4px'
-    },
-    questStatusTab: {
-        flex: 1,
-        padding: '8px',
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '40px',
-        color: 'rgba(255,255,255,0.5)',
-        fontSize: '11px',
-        cursor: 'pointer'
-    },
-    questStatusTabActive: {
-        flex: 1,
-        padding: '8px',
-        background: 'rgba(0, 212, 255, 0.15)',
-        border: 'none',
-        borderRadius: '40px',
-        color: '#00D4FF',
-        fontSize: '11px',
-        fontWeight: '600',
-        cursor: 'pointer'
-    },
-    emptyMyQuests: {
-        textAlign: 'center',
-        padding: '30px',
-        background: 'rgba(255,255,255,0.03)',
-        borderRadius: '16px',
-        color: 'rgba(255,255,255,0.4)',
-        fontSize: '13px'
-    },
-    topUpBtn: {
-        background: 'linear-gradient(135deg, rgba(0,212,255,0.2) 0%, rgba(0,212,255,0.1) 100%)',
-        border: '1px solid rgba(0,212,255,0.5)',
-        borderRadius: '40px',
-        padding: '14px 28px',
-        color: '#00D4FF',
-        fontWeight: '600',
-        cursor: 'pointer',
-        fontSize: '16px',
-        width: '100%',
-        marginBottom: '16px'
-    },
-	tonTopUpBtn: {
-    background: 'linear-gradient(135deg, rgba(0,136,204,0.3) 0%, rgba(0,136,204,0.1) 100%)',
-    border: '1px solid rgba(0,136,204,0.6)',
-    borderRadius: '40px',
-    padding: '14px 28px',
-    color: '#0088CC',
-    fontWeight: '600',
-    cursor: 'pointer',
-    fontSize: '16px',
-    width: '100%',
-    marginBottom: '16px'
-},
-    topUpModal: {
-        background: 'rgba(20,20,40,0.98)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '24px',
-        padding: '24px',
-        width: '320px',
-        border: '1px solid rgba(0,212,255,0.3)'
-    },
-    topUpAmounts: {
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '10px',
-        justifyContent: 'center'
-    },
-    topUpAmountBtn: {
-        background: 'rgba(255,255,255,0.1)',
-        border: '1px solid rgba(0,212,255,0.3)',
-        borderRadius: '30px',
-        padding: '10px 16px',
-        color: 'white',
-        fontSize: '14px',
-        cursor: 'pointer',
-        minWidth: '70px'
-    },
-    topUpAmountBtnActive: {
-        background: 'rgba(0,212,255,0.2)',
-        border: '1px solid rgba(0,212,255,0.7)',
-        color: '#00D4FF'
-    },
-    rejectModal: {
-        background: 'rgba(20,20,40,0.98)',
-        backdropFilter: 'blur(20px)',
-        borderRadius: '24px',
-        padding: '24px',
-        width: '320px',
-        border: '1px solid rgba(0,212,255,0.3)'
-    },
-    rejectSelect: {
-        width: '100%',
-        padding: '12px',
-        marginBottom: '16px',
-        background: 'rgba(20,20,40,0.95)',
-        border: '1px solid rgba(0,212,255,0.3)',
-        borderRadius: '12px',
-        color: 'white',
-        fontSize: '14px',
-        boxSizing: 'border-box',
-        cursor: 'pointer'
-    },
-    rejectTextarea: {
-        width: '100%',
-        padding: '12px',
-        background: 'rgba(255,255,255,0.1)',
-        border: '1px solid rgba(0,212,255,0.3)',
-        borderRadius: '12px',
-        color: 'white',
-        fontSize: '14px',
-        fontFamily: 'inherit',
-        resize: 'vertical',
-        boxSizing: 'border-box',
-        minHeight: '80px'
-    },
-	walletConnectBtn: {
-    background: 'linear-gradient(135deg, rgba(0,136,204,0.3) 0%, rgba(0,136,204,0.1) 100%)',
-    border: '1px solid rgba(0,136,204,0.6)',
-    borderRadius: '40px',
-    padding: '14px 28px',
-    color: '#0088CC',
-    fontWeight: '600',
-    cursor: 'pointer',
-    fontSize: '16px',
-    width: '100%',
-    marginBottom: '8px'
-},
-walletConnected: {
-    background: 'rgba(0,136,204,0.1)',
-    border: '1px solid rgba(0,136,204,0.3)',
-    borderRadius: '20px',
-    padding: '12px 16px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '8px'
-},
-walletInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px'
-},
-walletLabel: {
-    fontSize: '13px',
-    color: '#0088CC',
-    fontWeight: '600'
-},
-walletAddress: {
-    fontSize: '11px',
-    color: 'rgba(255,255,255,0.5)',
-    fontFamily: 'monospace'
-},
-walletDisconnectBtn: {
-    background: 'rgba(255,45,149,0.2)',
-    border: '1px solid rgba(255,45,149,0.3)',
-    borderRadius: '20px',
-    padding: '6px 12px',
-    color: '#FF2D95',
-    fontSize: '12px',
-    cursor: 'pointer'
-},
+// ============ STYLES ============
+const s = {
+    // Layout
+    screen: { minHeight: '100vh', position: 'relative', overflowX: 'hidden', fontFamily: "'SF Pro Display', -apple-system, 'Helvetica Neue', sans-serif", background: '#060612' },
+    noiseBg: { position: 'fixed', inset: 0, zIndex: 0, backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E")`, opacity: 0.6 },
+    aura1: { position: 'fixed', top: '-20vh', left: '-20vw', width: '70vw', height: '70vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,212,255,0.12) 0%, transparent 70%)', zIndex: 0, pointerEvents: 'none', filter: 'blur(40px)' },
+    aura2: { position: 'fixed', bottom: '-10vh', right: '-10vw', width: '60vw', height: '60vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,45,149,0.10) 0%, transparent 70%)', zIndex: 0, pointerEvents: 'none', filter: 'blur(40px)' },
+
+    // Loading
+    loadingScreen: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#060612', flexDirection: 'column' },
+    loadingInner: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' },
+    loadingLogo: { width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,212,255,0.08)', borderRadius: '24px', border: '1px solid rgba(0,212,255,0.2)', boxShadow: '0 0 40px rgba(0,212,255,0.15)', animation: 'pulse 2s ease infinite' },
+    loadingLabel: { color: 'white', fontSize: '22px', fontWeight: '700', letterSpacing: '-0.5px', margin: 0, background: 'linear-gradient(135deg, #00D4FF, #FF2D95)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
+    loadingBar: { width: '120px', height: '3px', background: 'rgba(255,255,255,0.1)', borderRadius: '10px', overflow: 'hidden' },
+    loadingBarFill: { height: '100%', width: '40%', background: 'linear-gradient(90deg, #00D4FF, #FF2D95)', borderRadius: '10px', animation: 'loadbar 1.4s ease infinite' },
+
+    // Header
+    header: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', background: 'rgba(6,6,18,0.7)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.04)' },
+    logoBtn: { display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', padding: 0 },
+    logoMark: { width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,212,255,0.08)', borderRadius: '10px', border: '1px solid rgba(0,212,255,0.2)' },
+    logoText: { fontSize: '19px', fontWeight: '800', background: 'linear-gradient(135deg, #00D4FF 0%, #FF2D95 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.5px' },
+    userChip: { display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '40px', padding: '6px 6px 6px 12px', cursor: 'pointer' },
+    userChipBalances: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px' },
+    chipStars: { fontSize: '11px', fontWeight: '600', color: '#00D4FF' },
+    chipTon: { fontSize: '11px', fontWeight: '600', color: '#29B6F6' },
+    chipAvatar: { width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0,212,255,0.15)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid rgba(0,212,255,0.3)' },
+    chipAvatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
+    chipAvatarLetter: { color: '#00D4FF', fontWeight: '700', fontSize: '14px' },
+
+    // Scroll area
+    scrollArea: { position: 'relative', zIndex: 1, paddingTop: '76px', paddingBottom: '90px', padding: '76px 16px 90px', minHeight: '100vh', boxSizing: 'border-box' },
+
+    // Tab bar
+    tabBar: { display: 'flex', gap: '0', marginBottom: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', padding: '4px', border: '1px solid rgba(255,255,255,0.06)' },
+    tab: { flex: 1, padding: '10px 8px', background: 'transparent', border: 'none', borderRadius: '12px', color: 'rgba(255,255,255,0.4)', fontSize: '13px', cursor: 'pointer', fontWeight: '500', transition: 'all 0.2s ease' },
+    tabActive: { flex: 1, padding: '10px 8px', background: 'rgba(0,212,255,0.12)', border: 'none', borderRadius: '12px', color: '#00D4FF', fontSize: '13px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,212,255,0.15)' },
+    tabCount: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', fontSize: '11px', padding: '1px 6px', marginLeft: '4px' },
+
+    // Task cards
+    taskCard: { position: 'relative', background: 'rgba(255,255,255,0.025)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '14px', display: 'flex', gap: '12px', marginBottom: '12px', overflow: 'hidden', transition: 'transform 0.2s ease, box-shadow 0.2s ease' },
+    taskCardShine: { position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' },
+    taskAvatarBox: { width: '48px', height: '48px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 },
+    taskAvatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
+    taskAvatarLetter: { fontSize: '22px', fontWeight: '700', color: 'white' },
+    taskBody: { flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' },
+    taskTitle: { margin: 0, fontSize: '15px', fontWeight: '700', color: 'white', letterSpacing: '-0.2px' },
+    taskDesc: { margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.45)', lineHeight: 1.4 },
+    taskFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' },
+    rewardPill: { fontSize: '12px', fontWeight: '700', color: '#FF2D95', background: 'rgba(255,45,149,0.1)', border: '1px solid rgba(255,45,149,0.25)', borderRadius: '20px', padding: '4px 10px' },
+    doBtn: { fontSize: '12px', fontWeight: '600', color: '#00D4FF', background: 'rgba(0,212,255,0.08)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '20px', padding: '6px 14px', cursor: 'pointer', transition: 'all 0.2s ease' },
+    completedLabel: { fontSize: '12px', color: 'rgba(255,255,255,0.3)' },
+
+    // Empty state
+    emptyState: { textAlign: 'center', padding: '60px 20px', background: 'rgba(255,255,255,0.02)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.05)' },
+    emptyEmoji: { fontSize: '52px', marginBottom: '16px', display: 'block' },
+    emptyTitle: { color: 'white', fontSize: '18px', fontWeight: '700', marginBottom: '8px' },
+    emptyText: { color: 'rgba(255,255,255,0.35)', fontSize: '14px', margin: 0 },
+
+    // Glass cards (referral/info)
+    glassCard: { position: 'relative', background: 'rgba(255,255,255,0.025)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '24px', padding: '24px', marginBottom: '14px', overflow: 'hidden', textAlign: 'center' },
+    glassCardAccent: { position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '60%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.4), transparent)' },
+    glassCardIcon: { fontSize: '44px', marginBottom: '14px', display: 'block' },
+    glassCardTitle: { color: 'white', fontSize: '18px', fontWeight: '700', margin: '0 0 10px', letterSpacing: '-0.3px' },
+    glassCardText: { color: 'rgba(255,255,255,0.55)', fontSize: '14px', lineHeight: 1.6, margin: 0 },
+    refLinkBox: { background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '10px 14px', margin: '16px 0', border: '1px solid rgba(0,212,255,0.15)', textAlign: 'left', overflowX: 'auto' },
+    refLink: { fontSize: '11px', color: '#00D4FF', wordBreak: 'break-all' },
+    copyBtn: { width: '100%', padding: '13px', background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.25)', borderRadius: '14px', color: '#00D4FF', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.2s ease' },
+    statsHeading: { color: 'white', fontSize: '17px', fontWeight: '700', margin: '0 0 16px', textAlign: 'left' },
+    statRow: { display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' },
+    statLabel: { color: 'rgba(255,255,255,0.5)', fontSize: '14px' },
+    statValue: { color: 'white', fontSize: '14px', fontWeight: '700' },
+
+    // Bottom nav
+    bottomNav: { position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, display: 'flex', padding: '8px 12px', paddingBottom: 'calc(8px + env(safe-area-inset-bottom))', background: 'rgba(6,6,18,0.85)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.05)', gap: '4px' },
+    navBtn: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px 4px', borderRadius: '12px', position: 'relative', transition: 'all 0.2s ease' },
+    navBtnActive: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', background: 'rgba(0,212,255,0.08)', border: 'none', cursor: 'pointer', padding: '8px 4px', borderRadius: '12px', position: 'relative' },
+    navIcon: { fontSize: '18px' },
+    navLabel: { fontSize: '10px', fontWeight: '500', color: 'rgba(255,255,255,0.5)' },
+    navIndicator: { position: 'absolute', bottom: '4px', width: '16px', height: '2px', background: '#00D4FF', borderRadius: '10px' },
+
+    // Profile
+    profileHeader: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'rgba(6,6,18,0.7)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.04)' },
+    profileHeaderTitle: { color: 'white', fontSize: '17px', fontWeight: '700' },
+    backBtn: { width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '10px', color: 'white', cursor: 'pointer' },
+    profileScroll: { position: 'relative', zIndex: 1, paddingTop: '70px', paddingBottom: '30px' },
+    profileHero: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 20px 10px' },
+    profileAvatarWrap: { position: 'relative', marginBottom: '16px' },
+    avatarRing: { position: 'absolute', inset: '-6px', borderRadius: '50%', border: '2px solid transparent', background: 'linear-gradient(135deg, rgba(0,212,255,0.5), rgba(255,45,149,0.5)) border-box', WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'destination-out', maskComposite: 'exclude' },
+    profileAvatarInner: { width: '90px', height: '90px', borderRadius: '50%', overflow: 'hidden', background: 'rgba(0,212,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    profileAvatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
+    profileAvatarPlaceholder: { fontSize: '40px', fontWeight: '700', color: '#00D4FF' },
+    profileName: { fontSize: '22px', fontWeight: '800', color: 'white', margin: '0 0 4px', letterSpacing: '-0.5px' },
+    profileSub: { fontSize: '13px', color: 'rgba(255,255,255,0.4)', margin: 0 },
+
+    // Balance grid
+    balanceGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', padding: '10px 16px 6px' },
+    balanceCard: { position: 'relative', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: '20px', padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', overflow: 'hidden' },
+    balanceCardTon: { border: '1px solid rgba(41,182,246,0.15)' },
+    balanceCardGlow: { position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '80%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.5), transparent)' },
+    balanceCardGlowTon: { background: 'linear-gradient(90deg, transparent, rgba(41,182,246,0.5), transparent)' },
+    balanceCardIcon: { fontSize: '24px' },
+    balanceCardLabel: { fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: '500' },
+    balanceCardValue: { fontSize: '26px', fontWeight: '800', color: '#00D4FF', letterSpacing: '-0.5px' },
+
+    // Section
+    section: { padding: '8px 16px' },
+    sectionTitle: { color: 'white', fontSize: '17px', fontWeight: '700', margin: '0 0 12px', letterSpacing: '-0.3px' },
+
+    // Wallet chip
+    walletChip: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(41,182,246,0.06)', border: '1px solid rgba(41,182,246,0.2)', borderRadius: '16px', padding: '12px 14px' },
+    walletChipLeft: { display: 'flex', alignItems: 'center', gap: '10px' },
+    walletDot: { width: '8px', height: '8px', borderRadius: '50%', background: '#29B6F6', boxShadow: '0 0 8px rgba(41,182,246,0.6)', flexShrink: 0 },
+    walletChipLabel: { margin: 0, fontSize: '12px', color: '#29B6F6', fontWeight: '600' },
+    walletChipAddr: { margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' },
+    walletDisconnectBtn: { background: 'rgba(255,45,149,0.12)', border: '1px solid rgba(255,45,149,0.25)', borderRadius: '10px', padding: '6px 12px', color: '#FF2D95', fontSize: '12px', fontWeight: '600', cursor: 'pointer' },
+    connectWalletBtn: { width: '100%', padding: '14px', background: 'rgba(41,182,246,0.08)', border: '1px solid rgba(41,182,246,0.25)', borderRadius: '16px', color: '#29B6F6', fontWeight: '700', fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s ease' },
+    connectWalletIcon: { fontSize: '20px' },
+
+    // Action buttons
+    actionBtn: { width: '100%', padding: '14px 20px', marginBottom: '10px', background: 'rgba(0,212,255,0.07)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: '16px', color: '#00D4FF', fontWeight: '700', fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s ease' },
+    actionBtnAlt: { background: 'rgba(255,210,0,0.07)', border: '1px solid rgba(255,210,0,0.2)', color: '#FFD200' },
+    actionBtnTon: { background: 'rgba(41,182,246,0.07)', border: '1px solid rgba(41,182,246,0.2)', color: '#29B6F6' },
+    actionBtnAdmin: { background: 'rgba(255,45,149,0.07)', border: '1px solid rgba(255,45,149,0.2)', color: '#FF2D95' },
+
+    // Filter row (my quests)
+    filterRow: { display: 'flex', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' },
+    filterBtn: { padding: '7px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', color: 'rgba(255,255,255,0.4)', fontSize: '12px', cursor: 'pointer' },
+    filterBtnActive: { padding: '7px 12px', background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.25)', borderRadius: '20px', color: '#00D4FF', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
+    filterCount: { display: 'inline-block', background: 'rgba(255,255,255,0.1)', borderRadius: '6px', padding: '0 5px', fontSize: '10px', marginLeft: '3px' },
+
+    // My quest cards
+    myQuestCard: { display: 'flex', gap: '12px', padding: '12px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', marginBottom: '10px' },
+    myQuestAvatarBox: { width: '44px', height: '44px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' },
+    myQuestAvatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
+    myQuestBody: { flex: 1 },
+    myQuestTitle: { margin: '0 0 3px', fontSize: '14px', fontWeight: '700', color: 'white' },
+    myQuestDesc: { margin: '0 0 8px', fontSize: '12px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 },
+    myQuestMeta: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+    statusPill: { fontSize: '11px', padding: '3px 8px', borderRadius: '20px' },
+    rejectReason: { margin: '6px 0 0', fontSize: '11px', color: '#FF2D95', background: 'rgba(255,45,149,0.08)', padding: '4px 10px', borderRadius: '10px', display: 'inline-block' },
+    emptySmall: { textAlign: 'center', padding: '24px', color: 'rgba(255,255,255,0.3)', fontSize: '14px', background: 'rgba(255,255,255,0.02)', borderRadius: '14px' },
+
+    // Modal / Sheet
+    modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 300 },
+    sheet: { background: 'rgba(12,12,28,0.98)', backdropFilter: 'blur(30px)', borderRadius: '28px 28px 0 0', padding: '24px', width: '100%', maxWidth: '480px', border: '1px solid rgba(255,255,255,0.07)', borderBottom: 'none', boxSizing: 'border-box' },
+    modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
+    modalTitleRow: { display: 'flex', alignItems: 'center', gap: '10px' },
+    modalIcon: { fontSize: '22px' },
+    modalTitle: { color: 'white', fontSize: '18px', fontWeight: '800', margin: 0, letterSpacing: '-0.3px' },
+    modalSubtitle: { color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginBottom: '16px', margin: '0 0 16px' },
+    closeBtn: { background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '10px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', fontSize: '16px', cursor: 'pointer' },
+
+    // Form elements
+    input: { width: '100%', padding: '13px 14px', marginBottom: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'white', fontSize: '14px', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' },
+    textarea: { width: '100%', padding: '13px 14px', marginBottom: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'white', fontSize: '14px', boxSizing: 'border-box', minHeight: '80px', fontFamily: 'inherit', resize: 'vertical', outline: 'none' },
+    select: { width: '100%', padding: '13px 14px', marginBottom: '14px', background: 'rgba(12,12,28,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'white', fontSize: '14px', boxSizing: 'border-box', cursor: 'pointer', outline: 'none' },
+
+    // Buttons
+    primaryBtn: { width: '100%', padding: '14px', background: 'linear-gradient(135deg, rgba(0,212,255,0.25), rgba(255,45,149,0.15))', border: '1px solid rgba(0,212,255,0.4)', borderRadius: '14px', color: '#00D4FF', fontWeight: '700', fontSize: '15px', cursor: 'pointer', transition: 'all 0.2s ease', marginTop: '4px' },
+    primaryBtnTon: { width: '100%', padding: '14px', background: 'linear-gradient(135deg, rgba(41,182,246,0.2), rgba(41,182,246,0.08))', border: '1px solid rgba(41,182,246,0.35)', borderRadius: '14px', color: '#29B6F6', fontWeight: '700', fontSize: '15px', cursor: 'pointer', marginTop: '16px' },
+    ghostBtn: { flex: 1, padding: '13px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'rgba(255,255,255,0.6)', fontWeight: '600', fontSize: '14px', cursor: 'pointer' },
+    dangerBtn: { flex: 1, padding: '13px', background: 'rgba(255,45,149,0.12)', border: '1px solid rgba(255,45,149,0.3)', borderRadius: '14px', color: '#FF2D95', fontWeight: '600', fontSize: '14px', cursor: 'pointer' },
+    approveBtn: { flex: 1, padding: '9px 14px', background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: '12px', color: '#00D4FF', fontWeight: '600', fontSize: '13px', cursor: 'pointer' },
+    rejectBtn: { flex: 1, padding: '9px 14px', background: 'rgba(255,45,149,0.1)', border: '1px solid rgba(255,45,149,0.3)', borderRadius: '12px', color: '#FF2D95', fontWeight: '600', fontSize: '13px', cursor: 'pointer' },
+    deactivateBtn: { width: '100%', padding: '9px 14px', background: 'rgba(255,45,149,0.1)', border: '1px solid rgba(255,45,149,0.25)', borderRadius: '12px', color: '#FF2D95', fontWeight: '600', fontSize: '13px', cursor: 'pointer', marginTop: '8px' },
+    rowBtns: { display: 'flex', gap: '10px', marginTop: '16px' },
+
+    // Amount grid
+    amountGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' },
+    amountBtn: { padding: '12px 6px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', color: 'rgba(255,255,255,0.7)', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.15s ease' },
+    amountBtnActive: { padding: '12px 6px', background: 'rgba(0,212,255,0.12)', border: '1px solid rgba(0,212,255,0.4)', borderRadius: '14px', color: '#00D4FF', fontSize: '14px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 0 16px rgba(0,212,255,0.12)' },
+
+    // Payment states
+    paymentWaiting: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 20px', gap: '16px' },
+    spinnerRing: { width: '52px', height: '52px', border: '3px solid rgba(0,212,255,0.15)', borderTop: '3px solid #00D4FF', borderRadius: '50%', animation: 'spin 0.9s linear infinite' },
+    paymentWaitingText: { color: 'rgba(255,255,255,0.6)', fontSize: '14px', margin: 0 },
+    paymentSuccess: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', gap: '8px', textAlign: 'center' },
+    successCircle: { fontSize: '52px', marginBottom: '8px' },
+    paymentSuccessTitle: { color: 'white', fontSize: '20px', fontWeight: '800', margin: 0 },
+    paymentSuccessSub: { color: 'rgba(255,255,255,0.5)', fontSize: '14px', margin: '0 0 16px' },
+
+    // Admin
+    adminPanel: { background: 'rgba(10,10,24,0.98)', backdropFilter: 'blur(30px)', borderRadius: '28px 28px 0 0', padding: '24px', width: '100%', maxWidth: '480px', maxHeight: '82vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.07)', borderBottom: 'none', boxSizing: 'border-box' },
+    adminListArea: { display: 'flex', flexDirection: 'column', gap: '10px' },
+    adminCard: { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', padding: '14px' },
+    adminCardTitle: { color: '#00D4FF', fontSize: '15px', display: 'block', marginBottom: '4px' },
+    adminCardDesc: { color: 'rgba(255,255,255,0.5)', fontSize: '12px', margin: '0 0 6px', lineHeight: 1.4 },
+    adminCardMeta: { color: '#FF2D95', fontSize: '11px', margin: '0 0 4px' },
+    adminCardUrl: { color: 'rgba(255,255,255,0.3)', fontSize: '10px', margin: '0 0 10px', wordBreak: 'break-all' },
+    adminCardActions: { display: 'flex', gap: '8px' },
+    emptyAdmin: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '30px', color: 'rgba(255,255,255,0.3)', fontSize: '14px' },
+
+    // Segmented control
+    segmentedControl: { display: 'flex', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '4px', marginBottom: '16px', gap: '4px' },
+    segment: { flex: 1, padding: '9px', background: 'transparent', border: 'none', borderRadius: '8px', color: 'rgba(255,255,255,0.4)', fontSize: '13px', cursor: 'pointer', fontWeight: '500' },
+    segmentActive: { flex: 1, padding: '9px', background: 'rgba(0,212,255,0.12)', border: 'none', borderRadius: '8px', color: '#00D4FF', fontSize: '13px', fontWeight: '700', cursor: 'pointer' },
+    badge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.1)', borderRadius: '6px', fontSize: '10px', padding: '0 5px', marginLeft: '4px' },
+
+    // Pulse loader
+    pulseLoader: { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', position: 'relative' },
+    pulseRing: { width: '48px', height: '48px', border: '2px solid rgba(0,212,255,0.3)', borderRadius: '50%', animation: 'pulse 1.5s ease-out infinite', position: 'absolute' },
+    pulseDot: { width: '16px', height: '16px', background: '#00D4FF', borderRadius: '50%', boxShadow: '0 0 16px rgba(0,212,255,0.6)' },
 };
 
+// Global styles + keyframes
 const styleSheet = document.createElement("style");
 styleSheet.textContent = `
-    html, body, #root {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        background: #050510;
-    }
-    select, select option {
-        background: rgba(20, 20, 40, 0.95);
-        color: white;
-        border: 1px solid rgba(0, 212, 255, 0.3);
-    }
-    select option {
-        padding: 8px;
-    }
-    button {
-        -webkit-tap-highlight-color: transparent;
-        outline: none;
-    }
-    .clickable {
-        -webkit-tap-highlight-color: transparent;
-        cursor: pointer;
-        transition: opacity 0.1s ease;
-    }
-    .clickable:active {
-        opacity: 0.6;
-    }
-    .scrollArea {
-        mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
-        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%);
-    }
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-    }
-    button:active {
-        transform: translateY(0px);
-    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body, #root { margin: 0; padding: 0; height: 100%; background: #060612; }
+    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.25); }
+    input:focus, textarea:focus, select:focus { border-color: rgba(0,212,255,0.4) !important; }
+    select, select option { background: rgba(10,10,28,0.98); color: white; }
+    button { -webkit-tap-highlight-color: transparent; outline: none; font-family: inherit; }
+    .taskCard:active { transform: scale(0.98); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.8); opacity: 0; } }
+    @keyframes loadbar { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .taskCard { animation: fadeUp 0.4s ease both; }
+    button:not(:disabled):hover { filter: brightness(1.1); }
+    button:not(:disabled):active { transform: scale(0.97); }
+    ::-webkit-scrollbar { width: 0; }
 `;
 document.head.appendChild(styleSheet);
 
 export default App;
+```
