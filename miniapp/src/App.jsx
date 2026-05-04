@@ -1012,45 +1012,68 @@ function App() {
                     </div>
 
                     {activeTab === 'active' && (activeTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>✨</div><h3 style={st.emptyStateTitle}>Всё выполнено</h3><p style={st.emptyStateText}>Новые задания появятся в ближайшее время</p></div> : activeTasks.map((task, i) => (
-                        <motion.div 
-    key={task.id} 
-    style={{
-        ...st.questCardUltra, 
-        cursor: 'pointer', 
-        background: nftBackgrounds[task.id]?.background 
-            ? `url(${nftBackgrounds[task.id].background}) center/cover no-repeat` 
-            : 'radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.08), transparent 60%), rgba(255,255,255,0.04)',
-        backgroundColor: nftBackgrounds[task.id]?.color || 'transparent',
-        position: 'relative'
-    }}
-    ...
->
-						onMouseMove={(e) => handleCardMove(e)} initial={{ opacity: 0, y: 25 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileTap={{ scale: 0.97 }} onClick={() => setSelectedTask(task)}>
-                            {nftBackgrounds[task.id]?.pattern && (
-    <div style={{
-        position: 'absolute',
-        inset: 0,
-        background: `url(${nftBackgrounds[task.id].pattern}) repeat`,
-        opacity: 0.15,
-        mixBlendMode: 'overlay',
-        pointerEvents: 'none',
-        zIndex: 1
-    }} />
-)}
-							<div style={st.cardGlow}></div>
-                            <div style={{...st.questAvatar, background: channelAvatars[task.id] ? 'transparent' : getChannelColor(task.title)}}>
-                                {channelAvatars[task.id] ? <img src={channelAvatars[task.id]} alt="" style={st.questAvatarImg} /> : <span style={st.questAvatarLetter}>{getChannelInitial(task.title, task.target_url)}</span>}
-                            </div>
-                            <div style={st.questBody}>
-                                <h4 style={st.questTitle}>{task.title}</h4>
-                                <p style={st.questDesc}>{task.description}</p>
-                                <div style={st.questFooter}>
-                                    <div style={st.rewardTag}>+{task.reward} ⭐</div>
-                                    <motion.button whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); createRipple(e); completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1], task.invite_link, task.verification_type); }} style={{...st.actionBtnUltra, position: 'relative', overflow: 'hidden'}}>Выполнить<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14M12 5l7 7-7 7" /></svg></motion.button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )))}
+    <motion.div 
+        key={task.id} 
+        style={{
+            ...st.questCardUltra, 
+            cursor: 'pointer', 
+            background: nftBackgrounds[task.id]?.background 
+                ? `url(${nftBackgrounds[task.id].background}) center/cover no-repeat` 
+                : 'radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.08), transparent 60%), rgba(255,255,255,0.04)',
+            backgroundColor: nftBackgrounds[task.id]?.color || 'transparent',
+            position: 'relative'
+        }}
+        onMouseMove={(e) => handleCardMove(e)} 
+        initial={{ opacity: 0, y: 25 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ delay: i * 0.05 }} 
+        whileTap={{ scale: 0.97 }} 
+        onClick={() => setSelectedTask(task)}
+    >
+        {nftBackgrounds[task.id]?.pattern && (
+            <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: `url(${nftBackgrounds[task.id].pattern}) repeat`,
+                opacity: 0.15,
+                mixBlendMode: 'overlay',
+                pointerEvents: 'none',
+                zIndex: 1
+            }} />
+        )}
+        
+        <div style={st.cardGlow}></div>
+        <div style={{...st.questAvatar, background: channelAvatars[task.id] ? 'transparent' : getChannelColor(task.title)}}>
+            {channelAvatars[task.id] ? <img src={channelAvatars[task.id]} alt="" style={st.questAvatarImg} /> : <span style={st.questAvatarLetter}>{getChannelInitial(task.title, task.target_url)}</span>}
+        </div>
+        <div style={st.questBody}>
+            {nftBackgrounds[task.id] && (
+                <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'rgba(255,215,0,0.1)',
+                    border: '1px solid rgba(255,215,0,0.2)',
+                    borderRadius: '10px',
+                    padding: '3px 8px',
+                    fontSize: '10px',
+                    color: '#FFD700',
+                    fontWeight: '600',
+                    marginBottom: '6px',
+                    width: 'fit-content'
+                }}>
+                    🎁 NFT Gift
+                </div>
+            )}
+            <h4 style={st.questTitle}>{task.title}</h4>
+            <p style={st.questDesc}>{task.description}</p>
+            <div style={st.questFooter}>
+                <div style={st.rewardTag}>+{task.reward} ⭐</div>
+                <motion.button whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); createRipple(e); completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1], task.invite_link, task.verification_type); }} style={{...st.actionBtnUltra, position: 'relative', overflow: 'hidden'}}>Выполнить<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14M12 5l7 7-7 7" /></svg></motion.button>
+            </div>
+        </div>
+    </motion.div>
+)))}
 
                     {activeTab === 'completed' && (completedTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>📋</div><h3 style={st.emptyStateTitle}>Пока пусто</h3><p style={st.emptyStateText}>Выполняйте задания и получайте награды</p></div> : completedTasks.map(task => (
                         <div key={task.id} style={{...st.questCard, opacity: 0.5}}>
