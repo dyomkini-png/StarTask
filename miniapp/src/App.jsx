@@ -1093,7 +1093,7 @@ function App() {
                     {activeTab === 'active' && (activeTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>✨</div><h3 style={st.emptyStateTitle}>Всё выполнено</h3><p style={st.emptyStateText}>Новые задания появятся в ближайшее время</p></div> : activeTasks.map((task, i) => (
     <motion.div 
         key={task.id} 
-                style={{
+        style={{
             ...st.questCardUltra, 
             cursor: 'pointer', 
             background: nftBackgrounds[task.id]?.background 
@@ -1109,6 +1109,13 @@ function App() {
             backfaceVisibility: 'hidden',
             transform: 'translateZ(0)'
         }}
+        onMouseMove={(e) => handleCardMove(e)} 
+        initial={{ opacity: 0, y: 25 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ delay: i * 0.05 }} 
+        whileTap={{ scale: 0.97 }} 
+        onClick={() => setSelectedTask(task)}
+    >
         {nftBackgrounds[task.id]?.pattern && (
             <div style={{
                 position: 'absolute',
@@ -1122,9 +1129,11 @@ function App() {
         )}
         
         <div style={st.cardGlow}></div>
+        
         <div style={{...st.questAvatar, background: channelAvatars[task.id] ? 'transparent' : getChannelColor(task.title)}}>
             {channelAvatars[task.id] ? <img src={channelAvatars[task.id]} alt="" style={st.questAvatarImg} /> : <span style={st.questAvatarLetter}>{getChannelInitial(task.title, task.target_url)}</span>}
         </div>
+        
         <div style={st.questBody}>
             {nftBackgrounds[task.id] && (
                 <div style={{
@@ -1144,11 +1153,26 @@ function App() {
                     🎁 NFT Gift
                 </div>
             )}
+            
             <h4 style={st.questTitle}>{task.title}</h4>
             <p style={st.questDesc}>{task.description}</p>
+            
             <div style={st.questFooter}>
                 <div style={st.rewardTag}>+{task.reward} ⭐</div>
-                <motion.button whileTap={{ scale: 0.9 }} onClick={(e) => { e.stopPropagation(); createRipple(e); completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1], task.invite_link, task.verification_type); }} style={{...st.actionBtnUltra, position: 'relative', overflow: 'hidden'}}>Выполнить<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14M12 5l7 7-7 7" /></svg></motion.button>
+                <motion.button 
+                    whileTap={{ scale: 0.9 }} 
+                    onClick={(e) => { 
+                        e.stopPropagation(); 
+                        createRipple(e); 
+                        completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1], task.invite_link, task.verification_type); 
+                    }} 
+                    style={{...st.actionBtnUltra, position: 'relative', overflow: 'hidden'}}
+                >
+                    Выполнить
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                </motion.button>
             </div>
         </div>
     </motion.div>
