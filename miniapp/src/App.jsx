@@ -498,7 +498,6 @@ function App() {
         }
     } catch (e) { /* фон не загрузился */ }
 }
-					await fetchNftBackground(username, task.id);
                 }
             }
         } catch (e) { console.error(e); }
@@ -558,24 +557,6 @@ function App() {
             setChannelAvatars(prev => ({ ...prev, [taskId]: r.data.success ? r.data.avatar : null }));
         } catch (e) { setChannelAvatars(prev => ({ ...prev, [taskId]: null })); }
     };
-	
-	const fetchNftBackground = async (username, taskId) => {
-    try {
-        const r = await axios.get(`${API_URL}/api/channel/nft-gift/${username}`);
-        if (r.data.success && r.data.backgroundImage) {
-            setNftBackgrounds(prev => ({
-                ...prev,
-                [taskId]: {
-                    background: r.data.backgroundImage,
-                    pattern: r.data.patternImage,
-                    color: r.data.backgroundColor
-                }
-            }));
-        }
-    } catch (e) {
-        // Канал без NFT — оставляем обычную карточку
-    }
-};
 
     const createRipple = (e) => {
         const button = e.currentTarget;
