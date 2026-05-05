@@ -1073,23 +1073,38 @@ function App() {
 
                     {activeTab === 'active' && (activeTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>✨</div><h3 style={st.emptyStateTitle}>Всё выполнено</h3><p style={st.emptyStateText}>Новые задания появятся в ближайшее время</p></div> : activeTasks.map((task, i) => (
     <motion.div 
+	{nftBackgrounds[task.id]?.background && (
+    <>
+        {/* Размытый фон на всю карточку */}
+        <div style={{
+            position: 'absolute',
+            inset: '-10px',
+            backgroundImage: `url(${nftBackgrounds[task.id].background})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center top',
+            filter: 'blur(12px) brightness(0.5) saturate(1.4)',
+            zIndex: 0,
+            transform: 'scale(1.15)'
+        }} />
+        {/* Тёмный оверлей для читаемости текста */}
+        <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(135deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.2) 100%)',
+            zIndex: 0
+        }} />
+    </>
+)}
         key={task.id} 
         style={{
-            ...st.questCardUltra, 
-            cursor: 'pointer', 
-            background: nftBackgrounds[task.id]?.background 
-                ? `url(${nftBackgrounds[task.id].background}) center/cover no-repeat` 
-                : 'radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.08), transparent 60%), rgba(255,255,255,0.04)',
-            backgroundColor: nftBackgrounds[task.id]?.color || 'transparent',
-            position: 'relative',
-            imageRendering: 'auto',
-            backgroundSize: nftBackgrounds[task.id]?.background ? 'cover' : undefined,
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            WebkitBackfaceVisibility: 'hidden',
-            backfaceVisibility: 'hidden',
-            transform: 'translateZ(0)'
-        }}
+    ...st.questCardUltra,
+    cursor: 'pointer',
+    position: 'relative',
+    overflow: 'hidden',
+    background: nftBackgrounds[task.id]
+        ? 'transparent'
+        : 'radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.08), transparent 60%), rgba(255,255,255,0.04)',
+}}
         onMouseMove={(e) => handleCardMove(e)} 
         initial={{ opacity: 0, y: 25 }} 
         animate={{ opacity: 1, y: 0 }} 
@@ -1111,26 +1126,26 @@ function App() {
         
         <div style={st.cardGlow}></div>
         
-        <div style={{...st.questAvatar, background: channelAvatars[task.id] ? 'transparent' : getChannelColor(task.title)}}>
+        <div style={{...st.questAvatar, position: 'relative', zIndex: 1, background: channelAvatars[task.id] ? 'transparent' : getChannelColor(task.title)}}>
             {channelAvatars[task.id] ? <img src={channelAvatars[task.id]} alt="" style={st.questAvatarImg} /> : <span style={st.questAvatarLetter}>{getChannelInitial(task.title, task.target_url)}</span>}
         </div>
         
-        <div style={st.questBody}>
-            {nftBackgrounds[task.id] && (
-                <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    background: 'rgba(255,215,0,0.1)',
-                    border: '1px solid rgba(255,215,0,0.2)',
-                    borderRadius: '10px',
-                    padding: '3px 8px',
-                    fontSize: '10px',
-                    color: '#FFD700',
-                    fontWeight: '600',
-                    marginBottom: '6px',
-                    width: 'fit-content'
-                }}>
+        <div style={{...st.questBody, position: 'relative', zIndex: 1}}>
+        {nftBackgrounds[task.id] && (
+            <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: 'rgba(255,215,0,0.15)',
+                border: '1px solid rgba(255,215,0,0.3)',
+                borderRadius: '10px',
+                padding: '3px 8px',
+                fontSize: '10px',
+                color: '#FFD700',
+                fontWeight: '600',
+                marginBottom: '6px',
+                width: 'fit-content'
+            }}>
                     🎁 NFT Gift
                 </div>
             )}

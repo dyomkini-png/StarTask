@@ -1082,6 +1082,45 @@ app.get('/api/admin/wallet-info', async (req, res) => {
     }
 });
 
+app.post('/api/parse-nft-background', async (req, res) => {
+    const { nftUrl } = req.body;
+    
+    if (!nftUrl || !nftUrl.includes('t.me/nft/')) {
+        return res.json({ success: false });
+    }
+
+    try {
+        const giftPath = nftUrl.split('t.me/nft/')[1].split('?')[0];
+        
+        const response = await axios.get(`https://t.me/nft/${giftPath}`, {
+            headers: { 
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36'
+            },
+            timeout: 10000
+        });
+
+        const html = response.data;
+        
+        // Берём og:image — это главное изображение подарка
+        const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/);
+        const backgroundImage = ogImageMatch?.[1] || null;
+
+        if (backgroundImage) {
+            console.log(`✅ NFT background parsed: ${giftPath}`);
+            res.json({ 
+                success: true, 
+                backgroundImage,
+                giftPath
+            });
+        } else {
+            res.json({ success: false });
+        }
+    } catch (error) {
+        console.error(`❌ NFT parse error:`, error.message);
+        res.json({ success: false });
+    }
+});
+
 app.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     const WEBHOOK_URL = process.env.WEBHOOK_URL;
