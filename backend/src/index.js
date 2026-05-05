@@ -454,7 +454,8 @@ app.post('/api/create-quest', async (req, res) => {
         userId, title, description, reward, targetUrl,
         inviteLink, verificationType,
         questType, extendedDescription, screenshots,
-        socialLinks, subscribersCount, totalBudget
+        socialLinks, subscribersCount, totalBudget,
+		nftGiftUrl 
     } = req.body;
 
     if (!userId || !title || !description || !reward || !targetUrl || !totalBudget) {
@@ -508,23 +509,23 @@ app.post('/api/create-quest', async (req, res) => {
         }
 
         const newQuest = await db.query(
-            `INSERT INTO quests (
-                advertiser_id, title, description, reward, reward_type, type,
-                target_url, invite_link, verification_type,
-                quest_type, extended_description, screenshots, social_links,
-                subscribers_count, commission_amount, commission_paid,
-                total_budget, locked_budget, budget, remaining, status
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING *`,
-            [
-                userId, title, description, reward, 'stars', 'subscription',
-                targetUrl, inviteLink || null, verificationType || 'admin',
-                questType || 'basic', extendedDescription || null,
-                screenshots || null,
-                socialLinks ? JSON.stringify(socialLinks) : null,
-                subscribersCount || null, commissionAmount, false,
-                totalBudget, totalBudget, 'pending', nftGiftUrl || null
-            ]
-        );
+    `INSERT INTO quests (
+        advertiser_id, title, description, reward, reward_type, type, 
+        target_url, invite_link, verification_type,
+        quest_type, extended_description, screenshots, social_links, 
+        subscribers_count, commission_amount, commission_paid,
+        budget, remaining, status, nft_gift_url
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
+    [
+        userId, title, description, reward, 'stars', 'subscription',
+        targetUrl, inviteLink || null, verificationType || 'admin',
+        questType || 'basic', extendedDescription || null, 
+        screenshots || null, socialLinks ? JSON.stringify(socialLinks) : null,
+        subscribersCount || null, commissionAmount, false,
+        parseInt(totalBudget) || 10000, parseInt(totalBudget) || 10000, 'pending',
+        nftGiftUrl || null  // ← новая переменная
+    ]
+);
 
         // Записываем блокировку
         await db.query(
