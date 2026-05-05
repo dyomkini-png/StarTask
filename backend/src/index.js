@@ -1082,127 +1082,110 @@ app.get('/api/admin/wallet-info', async (req, res) => {
     }
 });
 
-// Получить фон и узор NFT-подарка канала
+// Получить фон и узор NFT-подарка канала (через t.me/s/username)
 app.get('/api/channel/nft-gift/:username', async (req, res) => {
     const { username } = req.params;
     try {
-        // 1. Получаем информацию о канале
-        const chatResponse = await axios.get(
-            `https://api.telegram.org/bot${process.env.BOT_TOKEN}/getChat`,
-            { params: { chat_id: `@${username}` } }
-        );
+        // Загружаем публичную веб-версию канала
+        const channelPage = await axios.get(`https://t.me/s/${username}`, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+        });
         
-        const chat = chatResponse.data.result;
-        if (!chat.pinned_message) {
-            return res.json({ success: false, message: 'Нет закреплённого сообщения' });
-        }
-        
-        // 2. Ищем ссылку на NFT подарок
-        const pinned = chat.pinned_message;
+        const $ = cheerio.load(channelPage.data);
         let nftUrl = null;
         
-        // Проверяем entities
-        if (pinned.entities) {
-            for (const entity of pinned.entities) {
-                if (entity.type === 'text_link' && entity.url.includes('t.me/nft/')) {
-                    nftUrl = entity.url;
-                    break;
-                }
+        // Ищем ссылки на NFT подарки в атрибутах href
+        $('a[href*="t.me/nft/"]').each((i, el) => {
+            const href = $(el).attr('href');
+            if (href && href.includes('t.me/nft/') && !nftUrl) {
+                nftUrl = href.startsWith('http') ? href : `https://${href}`;
             }
+        });
+        
+        // Ищем в тексте сообщений
+        if (!nftUrl) {
+            $('.tgme_widget_message_text').each((i, el) => {
+                const text = $(el).text();
+                const match = text.match(/t\.me\/nft\/([A-Za-z0-9_-]+-\d+)/);
+                if (match && !nftUrl) {
+                    nftUrl = `https://${match[0]}`;
+                }
+            });
         }
         
-        // Проверяем текст
-        if (!nftUrl && (pinned.text || pinned.caption)) {
-            const text = pinned.text || pinned.caption;
-            const match = text.match(/https?:\/\/t\.me\/nft\/([A-Za-z0-9_-]+-\d+)/);
-            if (match) nftUrl = match[0];
+        // Ищем во всех ссылках на странице (включая превью сообщений)
+        if (!nftUrl) {
+            $('a').each((i, el) => {
+                const href = $(el).attr('href');
+                if (href && href.includes('/nft/') && !nftUrl) {
+                    nftUrl = href.startsWith('http') ? href : `https://t.me${href}`;
+                }
+            });
         }
         
         if (!nftUrl) {
-            return res.json({ success: false, message: 'NFT подарок не найден' });
+            return res.json({ success: false, message: 'NFT подарок не найден на странице канала' });
         }
         
-        // 3. Парсим страницу подарка
-        console.log(`🎨 Parsing NFT gift: ${nftUrl}`);
+        console.log(`🎨 Found NFT gift on channel page: ${nftUrl}`);
+        
+        // Парсим страницу подарка
         const nftPage = await axios.get(nftUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
         });
         
-        const $ = cheerio.load(nftPage.data);
-        
-        // Ищем все <style> блоки, чтобы найти background-image
+        const $nft = cheerio.load(nftPage.data);
         let backgroundImage = null;
         let patternImage = null;
-        let backgroundColor = null;
         
-        $('style').each((i, el) => {
-            const css = $(el).text();
+        // Ищем в <style> тегах
+        $nft('style').each((i, el) => {
+            const css = $nft(el).text();
+            const bgMatches = [...css.matchAll(/background-image\s*:\s*url\((['"]?)([^'"]+)\1\)/g)];
             
-            // Ищем фон подарка (обычно .tgme_widget_message_gift или [class*="gift"])
-            const bgMatches = [
-                ...css.matchAll(/\.tgme_widget_message_gift[^}]*background-image\s*:\s*url\((['"]?)([^'"]+)\1\)/g),
-                ...css.matchAll(/\[class\*="gift"\][^}]*background-image\s*:\s*url\((['"]?)([^'"]+)\1\)/g),
-                ...css.matchAll(/background\s*:\s*url\((['"]?)([^'")\s]+\.(?:png|jpg|jpeg|svg|webp))\1\)/gi)
-            ];
-            
-            for (const match of bgMatches) {
-                const url = match[2] || match[1];
-                if (url && !backgroundImage && (url.includes('gift') || url.includes('nft') || url.includes('tgme'))) {
-                    backgroundImage = url;
-                }
+            if (bgMatches.length >= 1 && !backgroundImage) {
+                backgroundImage = bgMatches[0][2];
             }
-            
-            // Ищем pattern
-            const patternMatches = [
-                ...css.matchAll(/\.tgme_widget_message_gift[^}]*background-image\s*:\s*url\((['"]?)([^'"]+)\1\)/g)
-            ];
-            
-            if (patternMatches.length >= 2) {
-                patternImage = patternMatches[1][2]; // Второй background-image обычно pattern
+            if (bgMatches.length >= 2 && !patternImage) {
+                patternImage = bgMatches[1][2];
             }
         });
         
-        // Ищем background-color
-        $('[class*="gift"]').each((i, el) => {
-            const style = $(el).attr('style');
-            if (style) {
-                const bgMatch = style.match(/background(?:-color)?\s*:\s*([^;]+)/);
-                if (bgMatch) backgroundColor = bgMatch[1].trim();
-            }
-        });
-        
-        // Ищем изображения в data-атрибутах или img тегах
+        // Если не нашли — ищем в data-атрибутах или img тегах
         if (!backgroundImage) {
-            $('[class*="gift"] img').each((i, el) => {
-                const src = $(el).attr('src');
-                if (src && !backgroundImage) backgroundImage = src;
+            $nft('meta[property="og:image"]').each((i, el) => {
+                const content = $nft(el).attr('content');
+                if (content && !backgroundImage) backgroundImage = content;
             });
         }
         
-        // Ищем pattern в отдельных элементах
-        if (!patternImage) {
-            $('[class*="pattern"], [class*="texture"]').each((i, el) => {
-                const style = $(el).attr('style') || '';
-                const bgMatch = style.match(/background(?:-image)?\s*:\s*url\((['"]?)([^'"]+)\1\)/);
-                if (bgMatch) patternImage = bgMatch[2];
+        // Ищем все background-image в inline стилях
+        if (!backgroundImage || !patternImage) {
+            $nft('[style*="background"]').each((i, el) => {
+                const style = $nft(el).attr('style') || '';
+                const matches = [...style.matchAll(/url\((['"]?)([^'"]+)\1\)/g)];
+                
+                if (matches.length >= 1 && !backgroundImage) {
+                    backgroundImage = matches[0][2];
+                }
+                if (matches.length >= 2 && !patternImage) {
+                    patternImage = matches[1][2];
+                }
             });
         }
         
-        console.log(`✅ NFT gift parsed: bg=${backgroundImage}, pattern=${patternImage}, color=${backgroundColor}`);
+        console.log(`✅ Parsed NFT: bg=${backgroundImage}, pattern=${patternImage}`);
         
         res.json({
             success: true,
             nftUrl,
             backgroundImage: backgroundImage || null,
-            patternImage: patternImage || null,
-            backgroundColor: backgroundColor || null
+            patternImage: patternImage || null
         });
         
     } catch (error) {
-        console.error('NFT gift fetch error:', error.message);
-        res.json({ success: false, message: 'Не удалось получить данные подарка' });
+        console.error('NFT gift error:', error.message);
+        res.json({ success: false, message: error.message });
     }
 });
 
