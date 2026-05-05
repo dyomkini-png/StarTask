@@ -1072,9 +1072,26 @@ function App() {
                     </div>
 
                     {activeTab === 'active' && (activeTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>✨</div><h3 style={st.emptyStateTitle}>Всё выполнено</h3><p style={st.emptyStateText}>Новые задания появятся в ближайшее время</p></div> : activeTasks.map((task, i) => (
-    <motion.div 
-	{nftBackgrounds[task.id]?.background && (
-    <>
+        <motion.div 
+        key={task.id} 
+        style={{
+            ...st.questCardUltra,
+            cursor: 'pointer',
+            position: 'relative',
+            overflow: 'hidden',
+            background: nftBackgrounds[task.id]
+                ? 'transparent'
+                : 'radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.08), transparent 60%), rgba(255,255,255,0.04)',
+        }}
+        onMouseMove={(e) => handleCardMove(e)} 
+        initial={{ opacity: 0, y: 25 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ delay: i * 0.05 }} 
+        whileTap={{ scale: 0.97 }} 
+        onClick={() => setSelectedTask(task)}
+    >
+        {nftBackgrounds[task.id]?.background && (
+            <>
         {/* Размытый фон на всю карточку */}
         <div style={{
             position: 'absolute',
