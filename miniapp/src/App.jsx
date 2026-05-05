@@ -1,6 +1,3 @@
-Вот полностью исправленный код. Я удалил дублирующийся блок `<motion.div>` и исправил структуру JSX:
-
-```jsx
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
