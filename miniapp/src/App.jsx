@@ -401,6 +401,8 @@ function App() {
     const [screenshots, setScreenshots] = useState(['', '', '']);
     const [socialLinks, setSocialLinks] = useState({ telegram: '', instagram: '', youtube: '', tiktok: '' });
     const [subscribersCount, setSubscribersCount] = useState('');
+	const [nftGiftUrl, setNftGiftUrl] = useState('');
+    const [nftPreview, setNftPreview] = useState(null); // Превью фона при вводе ссылки
     const [totalBudget, setTotalBudget] = useState('');
     const [questStatusFilter, setQuestStatusFilter] = useState('pending');
     const [showTopUpModal, setShowTopUpModal] = useState(false);
@@ -482,6 +484,20 @@ function App() {
                 if (task.type === 'subscription' && task.target_url.includes('t.me/')) {
                     let username = task.target_url.split('t.me/')[1].replace('/', '');
                     await fetchChannelAvatar(username, task.id);
+					if (task.nft_gift_url) {
+    try {
+        const nftRes = await axios.post(`${API_URL}/api/parse-nft-background`, { nftUrl: task.nft_gift_url });
+        if (nftRes.data.success && nftRes.data.backgroundImage) {
+            setNftBackgrounds(prev => ({
+                ...prev,
+                [task.id]: {
+                    background: nftRes.data.backgroundImage,
+                    pattern: nftRes.data.patternImage
+                }
+            }));
+        }
+    } catch (e) { /* фон не загрузился */ }
+}
 					await fetchNftBackground(username, task.id);
                 }
             }
@@ -496,6 +512,19 @@ function App() {
             setConversionRate(r.data.rate);
         } catch (e) { console.error(e); }
     };
+	const fetchNftPreview = async (url) => {
+    if (!url || !url.includes('t.me/nft/')) return;
+    try {
+        const r = await axios.post(`${API_URL}/api/parse-nft-background`, { nftUrl: url });
+        if (r.data.success) {
+            setNftPreview(r.data);
+        } else {
+            setNftPreview(null);
+        }
+    } catch (e) {
+        setNftPreview(null);
+    }
+};
 
     const convertStarsToTon = async () => {
         try {
@@ -621,6 +650,7 @@ function App() {
                 questType,
                 extendedDescription: extendedDescription || null,
                 screenshots: screenshots.filter(s => s) || null,
+				nftGiftUrl: nftGiftUrl || null,
                 socialLinks: Object.values(socialLinks).some(v => v) ? socialLinks : null,
                 subscribersCount: subscribersCount ? parseInt(subscribersCount) : null
             });
@@ -646,6 +676,8 @@ function App() {
                 setScreenshots(['', '', '']);
                 setSocialLinks({ telegram: '', instagram: '', youtube: '', tiktok: '' });
                 setSubscribersCount('');
+				setNftGiftUrl('');
+                setNftPreview(null);
                 setTotalBudget('');
             }
         } catch (error) {
@@ -870,6 +902,53 @@ function App() {
                     </p>
                 </div>
             )}
+                        {/* NFT Подарок */}
+            <p style={{...st.textSecondary, marginBottom: '6px', marginTop: '4px'}}>🎁 NFT Подарок (опционально):</p>
+            <input
+                type="text"
+                placeholder="Ссылка на NFT подарок (t.me/nft/...)"
+                style={st.inputPremium}
+                value={nftGiftUrl}
+                onChange={(e) => {
+                    setNftGiftUrl(e.target.value);
+                    if (e.target.value.length > 20) {
+                        fetchNftPreview(e.target.value);
+                    } else {
+                        setNftPreview(null);
+                    }
+                }}
+            />
+
+            {/* Превью фона подарка */}
+            {nftPreview && nftPreview.backgroundImage && (
+                <div style={{
+                    background: `url(${nftPreview.backgroundImage}) center/contain no-repeat`,
+                    backgroundColor: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(0,194,255,0.2)',
+                    borderRadius: '12px',
+                    padding: '12px',
+                    marginBottom: '12px',
+                    minHeight: '120px'
+                }}>
+                    <p style={{margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.5)', textAlign: 'center', textShadow: '0 1px 3px rgba(0,0,0,0.8)'}}>
+                        🎁 Фон подарка будет применён к карточке задания
+                    </p>
+                </div>
+            )}
+
+            {nftGiftUrl && !nftPreview && (
+                <div style={{
+                    background: 'rgba(255,193,7,0.05)',
+                    border: '1px solid rgba(255,193,7,0.15)',
+                    borderRadius: '12px',
+                    padding: '10px',
+                    marginBottom: '12px'
+                }}>
+                    <p style={{margin: 0, fontSize: '11px', color: 'rgba(255,193,7,0.7)', textAlign: 'center'}}>
+                        🔍 Введите полную ссылку на NFT подарок для предпросмотра
+                    </p>
+                </div>
+            )}
 
             {/* PRO поля */}
             {questType === 'extended' && (
@@ -1014,22 +1093,22 @@ function App() {
                     {activeTab === 'active' && (activeTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>✨</div><h3 style={st.emptyStateTitle}>Всё выполнено</h3><p style={st.emptyStateText}>Новые задания появятся в ближайшее время</p></div> : activeTasks.map((task, i) => (
     <motion.div 
         key={task.id} 
-        style={{
+                style={{
             ...st.questCardUltra, 
             cursor: 'pointer', 
             background: nftBackgrounds[task.id]?.background 
                 ? `url(${nftBackgrounds[task.id].background}) center/cover no-repeat` 
                 : 'radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.08), transparent 60%), rgba(255,255,255,0.04)',
             backgroundColor: nftBackgrounds[task.id]?.color || 'transparent',
-            position: 'relative'
+            position: 'relative',
+            imageRendering: 'auto',
+            backgroundSize: nftBackgrounds[task.id]?.background ? 'cover' : undefined,
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            WebkitBackfaceVisibility: 'hidden',
+            backfaceVisibility: 'hidden',
+            transform: 'translateZ(0)'
         }}
-        onMouseMove={(e) => handleCardMove(e)} 
-        initial={{ opacity: 0, y: 25 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        transition={{ delay: i * 0.05 }} 
-        whileTap={{ scale: 0.97 }} 
-        onClick={() => setSelectedTask(task)}
-    >
         {nftBackgrounds[task.id]?.pattern && (
             <div style={{
                 position: 'absolute',

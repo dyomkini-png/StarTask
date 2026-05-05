@@ -522,8 +522,7 @@ app.post('/api/create-quest', async (req, res) => {
                 screenshots || null,
                 socialLinks ? JSON.stringify(socialLinks) : null,
                 subscribersCount || null, commissionAmount, false,
-                totalBudget, totalBudget,
-                maxParticipants, maxParticipants, 'pending'
+                totalBudget, totalBudget, 'pending', nftGiftUrl || null
             ]
         );
 
@@ -1186,6 +1185,73 @@ app.get('/api/channel/nft-gift/:username', async (req, res) => {
     } catch (error) {
         console.error('NFT gift error:', error.message);
         res.json({ success: false, message: error.message });
+    }
+});
+
+// Получить фон и узор NFT-подарка по ссылке
+app.post('/api/parse-nft-background', async (req, res) => {
+    const { nftUrl } = req.body;
+    
+    if (!nftUrl || !nftUrl.includes('t.me/nft/')) {
+        return res.json({ success: false, message: 'Неверная ссылка на NFT подарок' });
+    }
+    
+    try {
+        console.log(`🎨 Parsing NFT gift: ${nftUrl}`);
+        
+        const nftPage = await axios.get(nftUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+        });
+        
+        const $ = cheerio.load(nftPage.data);
+        let backgroundImage = null;
+        let patternImage = null;
+        
+        // Ищем в <style> тегах
+        $('style').each((i, el) => {
+            const css = $(el).text();
+            const bgMatches = [...css.matchAll(/background-image\s*:\s*url\((['"]?)([^'"]+)\1\)/g)];
+            
+            if (bgMatches.length >= 1 && !backgroundImage) {
+                backgroundImage = bgMatches[0][2];
+            }
+            if (bgMatches.length >= 2 && !patternImage) {
+                patternImage = bgMatches[1][2];
+            }
+        });
+        
+        // Ищем в og:image
+        if (!backgroundImage) {
+            $('meta[property="og:image"]').each((i, el) => {
+                const content = $(el).attr('content');
+                if (content) backgroundImage = content;
+            });
+        }
+        
+        // Ищем в inline стилях
+        $('[style*="background"]').each((i, el) => {
+            const style = $(el).attr('style') || '';
+            const matches = [...style.matchAll(/url\((['"]?)([^'"]+)\1\)/g)];
+            
+            if (matches.length >= 1 && !backgroundImage) {
+                backgroundImage = matches[0][2];
+            }
+            if (matches.length >= 2 && !patternImage) {
+                patternImage = matches[1][2];
+            }
+        });
+        
+        console.log(`✅ Parsed: bg=${backgroundImage}, pattern=${patternImage}`);
+        
+        res.json({
+            success: true,
+            backgroundImage: backgroundImage || null,
+            patternImage: patternImage || null
+        });
+        
+    } catch (error) {
+        console.error('NFT parse error:', error.message);
+        res.json({ success: false, message: 'Не удалось загрузить страницу подарка' });
     }
 });
 
