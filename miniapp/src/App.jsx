@@ -1,3 +1,6 @@
+Вот полностью исправленный код. Я удалил дублирующийся блок `<motion.div>` и исправил структуру JSX:
+
+```jsx
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
@@ -402,7 +405,7 @@ function App() {
     const [socialLinks, setSocialLinks] = useState({ telegram: '', instagram: '', youtube: '', tiktok: '' });
     const [subscribersCount, setSubscribersCount] = useState('');
 	const [nftGiftUrl, setNftGiftUrl] = useState('');
-    const [nftPreview, setNftPreview] = useState(null); // Превью фона при вводе ссылки
+    const [nftPreview, setNftPreview] = useState(null);
     const [totalBudget, setTotalBudget] = useState('');
     const [questStatusFilter, setQuestStatusFilter] = useState('pending');
     const [showTopUpModal, setShowTopUpModal] = useState(false);
@@ -484,20 +487,20 @@ function App() {
                 if (task.type === 'subscription' && task.target_url.includes('t.me/')) {
                     let username = task.target_url.split('t.me/')[1].replace('/', '');
                     await fetchChannelAvatar(username, task.id);
-					if (task.nft_gift_url) {
-    try {
-        const nftRes = await axios.post(`${API_URL}/api/parse-nft-background`, { nftUrl: task.nft_gift_url });
-        if (nftRes.data.success && nftRes.data.backgroundImage) {
-            setNftBackgrounds(prev => ({
-                ...prev,
-                [task.id]: {
-                    background: nftRes.data.backgroundImage,
-                    pattern: nftRes.data.patternImage
-                }
-            }));
-        }
-    } catch (e) { /* фон не загрузился */ }
-}
+                    if (task.nft_gift_url) {
+                        try {
+                            const nftRes = await axios.post(`${API_URL}/api/parse-nft-background`, { nftUrl: task.nft_gift_url });
+                            if (nftRes.data.success && nftRes.data.backgroundImage) {
+                                setNftBackgrounds(prev => ({
+                                    ...prev,
+                                    [task.id]: {
+                                        background: nftRes.data.backgroundImage,
+                                        pattern: nftRes.data.patternImage
+                                    }
+                                }));
+                            }
+                        } catch (e) { /* фон не загрузился */ }
+                    }
                 }
             }
         } catch (e) { console.error(e); }
@@ -511,19 +514,19 @@ function App() {
             setConversionRate(r.data.rate);
         } catch (e) { console.error(e); }
     };
-	const fetchNftPreview = async (url) => {
-    if (!url || !url.includes('t.me/nft/')) return;
-    try {
-        const r = await axios.post(`${API_URL}/api/parse-nft-background`, { nftUrl: url });
-        if (r.data.success) {
-            setNftPreview(r.data);
-        } else {
+    const fetchNftPreview = async (url) => {
+        if (!url || !url.includes('t.me/nft/')) return;
+        try {
+            const r = await axios.post(`${API_URL}/api/parse-nft-background`, { nftUrl: url });
+            if (r.data.success) {
+                setNftPreview(r.data);
+            } else {
+                setNftPreview(null);
+            }
+        } catch (e) {
             setNftPreview(null);
         }
-    } catch (e) {
-        setNftPreview(null);
-    }
-};
+    };
 
     const convertStarsToTon = async () => {
         try {
@@ -631,7 +634,7 @@ function App() {
                 questType,
                 extendedDescription: extendedDescription || null,
                 screenshots: screenshots.filter(s => s) || null,
-				nftGiftUrl: nftGiftUrl || null,
+                nftGiftUrl: nftGiftUrl || null,
                 socialLinks: Object.values(socialLinks).some(v => v) ? socialLinks : null,
                 subscribersCount: subscribersCount ? parseInt(subscribersCount) : null
             });
@@ -657,7 +660,7 @@ function App() {
                 setScreenshots(['', '', '']);
                 setSocialLinks({ telegram: '', instagram: '', youtube: '', tiktok: '' });
                 setSubscribersCount('');
-				setNftGiftUrl('');
+                setNftGiftUrl('');
                 setNftPreview(null);
                 setTotalBudget('');
             }
@@ -883,7 +886,7 @@ function App() {
                     </p>
                 </div>
             )}
-                        {/* NFT Подарок */}
+            {/* NFT Подарок */}
             <p style={{...st.textSecondary, marginBottom: '6px', marginTop: '4px'}}>🎁 NFT Подарок (опционально):</p>
             <input
                 type="text"
@@ -1072,7 +1075,7 @@ function App() {
                     </div>
 
                     {activeTab === 'active' && (activeTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>✨</div><h3 style={st.emptyStateTitle}>Всё выполнено</h3><p style={st.emptyStateText}>Новые задания появятся в ближайшее время</p></div> : activeTasks.map((task, i) => (
-        <motion.div 
+    <motion.div 
         key={task.id} 
         style={{
             ...st.questCardUltra,
@@ -1092,53 +1095,23 @@ function App() {
     >
         {nftBackgrounds[task.id]?.background && (
             <>
-        {/* Размытый фон на всю карточку */}
-        <div style={{
-            position: 'absolute',
-            inset: '-10px',
-            backgroundImage: `url(${nftBackgrounds[task.id].background})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center top',
-            filter: 'blur(12px) brightness(0.5) saturate(1.4)',
-            zIndex: 0,
-            transform: 'scale(1.15)'
-        }} />
-        {/* Тёмный оверлей для читаемости текста */}
-        <div style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(135deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.2) 100%)',
-            zIndex: 0
-        }} />
-    </>
-)}
-        key={task.id} 
-        style={{
-    ...st.questCardUltra,
-    cursor: 'pointer',
-    position: 'relative',
-    overflow: 'hidden',
-    background: nftBackgrounds[task.id]
-        ? 'transparent'
-        : 'radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.08), transparent 60%), rgba(255,255,255,0.04)',
-}}
-        onMouseMove={(e) => handleCardMove(e)} 
-        initial={{ opacity: 0, y: 25 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        transition={{ delay: i * 0.05 }} 
-        whileTap={{ scale: 0.97 }} 
-        onClick={() => setSelectedTask(task)}
-    >
-        {nftBackgrounds[task.id]?.pattern && (
-            <div style={{
-                position: 'absolute',
-                inset: 0,
-                background: `url(${nftBackgrounds[task.id].pattern}) repeat`,
-                opacity: 0.15,
-                mixBlendMode: 'overlay',
-                pointerEvents: 'none',
-                zIndex: 1
-            }} />
+                <div style={{
+                    position: 'absolute',
+                    inset: '-10px',
+                    backgroundImage: `url(${nftBackgrounds[task.id].background})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center top',
+                    filter: 'blur(12px) brightness(0.5) saturate(1.4)',
+                    zIndex: 0,
+                    transform: 'scale(1.15)'
+                }} />
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'linear-gradient(135deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.2) 100%)',
+                    zIndex: 0
+                }} />
+            </>
         )}
         
         <div style={st.cardGlow}></div>
@@ -1148,21 +1121,21 @@ function App() {
         </div>
         
         <div style={{...st.questBody, position: 'relative', zIndex: 1}}>
-        {nftBackgrounds[task.id] && (
-            <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                background: 'rgba(255,215,0,0.15)',
-                border: '1px solid rgba(255,215,0,0.3)',
-                borderRadius: '10px',
-                padding: '3px 8px',
-                fontSize: '10px',
-                color: '#FFD700',
-                fontWeight: '600',
-                marginBottom: '6px',
-                width: 'fit-content'
-            }}>
+            {nftBackgrounds[task.id] && (
+                <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'rgba(255,215,0,0.15)',
+                    border: '1px solid rgba(255,215,0,0.3)',
+                    borderRadius: '10px',
+                    padding: '3px 8px',
+                    fontSize: '10px',
+                    color: '#FFD700',
+                    fontWeight: '600',
+                    marginBottom: '6px',
+                    width: 'fit-content'
+                }}>
                     🎁 NFT Gift
                 </div>
             )}
@@ -1475,3 +1448,4 @@ styleSheet.textContent = `
 document.head.appendChild(styleSheet);
 
 export default App;
+```
