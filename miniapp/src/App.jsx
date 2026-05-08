@@ -1094,13 +1094,12 @@ function App() {
             <>
                 <div style={{
                     position: 'absolute',
-                    inset: '-10px',
+                    inset: 0,
                     backgroundImage: `url(${nftBackgrounds[task.id].background})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center top',
+                    backgroundSize: '200% auto',
+                    backgroundPosition: 'center center',
                     filter: 'blur(12px) brightness(0.5) saturate(1.4)',
                     zIndex: 0,
-                    transform: 'scale(1.15)'
                 }} />
                 <div style={{
                     position: 'absolute',
