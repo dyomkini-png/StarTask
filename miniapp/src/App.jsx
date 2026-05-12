@@ -1076,7 +1076,7 @@ function App() {
         key={task.id} 
         style={{
             ...st.questCardUltra,
-            cursor: 'pointer',
+            cursor: task.quest_type === 'extended' ? 'pointer' : 'default',
             position: 'relative',
             overflow: 'hidden',
             background: nftBackgrounds[task.id]
@@ -1088,7 +1088,11 @@ function App() {
         animate={{ opacity: 1, y: 0 }} 
         transition={{ delay: i * 0.05 }} 
         whileTap={{ scale: 0.97 }} 
-        onClick={() => setSelectedTask(task)}
+        onClick={() => {
+            if (task.quest_type === 'extended') {
+               setSelectedTask(task);
+            }
+        }}
     >
         {nftBackgrounds[task.id]?.background && (
             <>
@@ -1133,6 +1137,24 @@ function App() {
                     width: 'fit-content'
                 }}>
                     🎁 NFT Gift
+                </div>
+            )}
+			{task.quest_type === 'extended' && (
+                <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'rgba(255,51,102,0.1)',
+                    border: '1px solid rgba(255,51,102,0.2)',
+                    borderRadius: '10px',
+                    padding: '3px 8px',
+                    fontSize: '10px',
+                    color: '#FF3366',
+                    fontWeight: '600',
+                    marginBottom: '6px',
+                    width: 'fit-content'
+                }}>
+                    ⭐ PRO
                 </div>
             )}
             
