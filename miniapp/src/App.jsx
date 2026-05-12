@@ -1424,6 +1424,32 @@ styleSheet.textContent = `
     button:disabled { opacity: 0.4; cursor: not-allowed; }
     button:not(:disabled):hover { filter: brightness(1.1); }
     button:not(:disabled):active { transform: scale(0.97); }
+    
+    /* Убираем синюю подсветку на мобильных устройствах */
+    * {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    
+    /* Разрешаем выделение только в полях ввода */
+    input, textarea {
+        -webkit-user-select: text;
+        user-select: text;
+    }
+    
+    /* Убираем стандартный outline при фокусе, заменяем на свой */
+    *:focus {
+        outline: none;
+    }
+    
+    /* Стиль для активного состояния карточек */
+    .questCardUltra:active {
+        transform: scale(0.98);
+        transition: transform 0.15s ease;
+    }
+    
     .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.3); transform: scale(0); animation: ripple 0.6s linear; pointer-events: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } }
