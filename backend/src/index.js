@@ -455,7 +455,7 @@ app.post('/api/create-quest', async (req, res) => {
         inviteLink, verificationType,
         questType, extendedDescription, screenshots,
         socialLinks, subscribersCount, totalBudget,
-		nftGiftUrl 
+		nftGiftUrl, postUrl, referralUrl 
     } = req.body;
 
     if (!userId || !title || !description || !reward || !targetUrl || !totalBudget) {
@@ -514,7 +514,7 @@ app.post('/api/create-quest', async (req, res) => {
         target_url, invite_link, verification_type,
         quest_type, extended_description, screenshots, social_links, 
         subscribers_count, commission_amount, commission_paid,
-        budget, remaining, status, nft_gift_url
+        budget, remaining, status, nft_gift_url, post_url, referral_url
     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
     [
         userId, title, description, reward, 'stars', 'subscription',
@@ -523,7 +523,9 @@ app.post('/api/create-quest', async (req, res) => {
         screenshots || null, socialLinks ? JSON.stringify(socialLinks) : null,
         subscribersCount || null, commissionAmount, false,
         parseInt(totalBudget) || 10000, parseInt(totalBudget) || 10000, 'pending',
-        nftGiftUrl || null  // ← новая переменная
+        nftGiftUrl || null,  
+		postUrl || null,
+		referralUrl || null
     ]
 );
 
@@ -575,7 +577,7 @@ app.post('/api/check-subscription', async (req, res) => {
 
         let isVerified = false;
 
-        if (verificationType === 'invite') {
+        if (verificationType === 'invite' || verificationType === 'repost' || verificationType === 'referral') {
             // Доверенная верификация — засчитываем факт возврата
             isVerified = true;
             console.log(`✅ Invite verification for user ${userId}, quest ${questId}`);
