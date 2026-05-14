@@ -1335,6 +1335,7 @@ function App() {
     };
     const tMeta = typeMeta[task.verification_type] || typeMeta.admin;
     const hasNftBg = !!nftBackgrounds[task.id];
+    const isTouch = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
     return (
     <motion.div
@@ -1349,9 +1350,11 @@ function App() {
             boxShadow: `0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(${tMeta.rgb}, 0.06), 0 8px 28px rgba(${tMeta.rgb}, 0.18)`,
             background: hasNftBg
                 ? 'transparent'
-                : `radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(${tMeta.rgb},0.18), transparent 55%), linear-gradient(135deg, rgba(${tMeta.rgb},0.06), rgba(255,255,255,0.025))`,
+                : isTouch
+                    ? `linear-gradient(135deg, rgba(${tMeta.rgb},0.1), rgba(255,255,255,0.025))`
+                    : `radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(${tMeta.rgb},0.18), transparent 55%), linear-gradient(135deg, rgba(${tMeta.rgb},0.06), rgba(255,255,255,0.025))`,
         }}
-        onMouseMove={(e) => handleCardMove(e)}
+        onMouseMove={isTouch ? undefined : (e) => handleCardMove(e)}
         initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: i * 0.05 }}
