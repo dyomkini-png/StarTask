@@ -438,12 +438,18 @@ function App() {
     }, [wallet, user]);
 
     useEffect(() => {
+        let raf = 0;
+        let lastY = 0;
         const handleScroll = () => {
-            const y = window.scrollY;
-            document.documentElement.style.setProperty('--parallax', `${y * 0.05}px`);
+            lastY = window.scrollY;
+            if (raf) return;
+            raf = requestAnimationFrame(() => {
+                document.documentElement.style.setProperty('--parallax', `${lastY * 0.05}px`);
+                raf = 0;
+            });
         };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => { window.removeEventListener('scroll', handleScroll); if (raf) cancelAnimationFrame(raf); };
     }, []);
 
     useEffect(() => {
@@ -1776,6 +1782,25 @@ styleSheet.textContent = `
     .fadeInUp { animation: fadeInUp 0.5s ease both; }
     .cardEntrance { animation: cardEntrance 0.4s ease both; }
     ::-webkit-scrollbar { width: 0; }
+
+    /* === Оптимизация для мобильных / тач-устройств: отключаем всё, что тормозит GPU === */
+    @media (hover: none) and (pointer: coarse), (max-width: 768px) {
+        /* Тяжёлый backdrop-filter — главный источник лагов на мобильных */
+        *[style*="backdrop-filter"], *[style*="backdropFilter"] { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+        /* Огромные blur-орбы фона */
+        .bgOrbMobile, [style*="filter: blur(120px)"], [style*="filter: blur(80px)"], [style*="filter: blur(70px)"], [style*="filter: blur(60px)"] { filter: blur(40px) !important; animation: none !important; }
+        /* Постоянные keyframe-анимации фона/блеска */
+        .ctOrb, .ctCreateBtn::after { animation: none !important; }
+        /* Анимация фона главного экрана */
+        body, html, #root { animation: none !important; }
+        /* Парящий блик у карточек */
+        .questCardUltra > div:first-child + div { animation: none !important; }
+        /* Уменьшаем тени и плавности — composite дешевле */
+        .questCardUltra { transition: transform 0.15s ease !important; box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+    }
 `;
 document.head.appendChild(styleSheet);
 
