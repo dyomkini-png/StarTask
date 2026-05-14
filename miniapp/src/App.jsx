@@ -1,6 +1,3 @@
-Принял! Вот полностью готовый код с детальными оптимизациями для мобильных устройств, исправленным скроллингом и анимацией на всех активных заданиях. Код готов для вставки.
-
-```jsx
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
