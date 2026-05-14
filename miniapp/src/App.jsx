@@ -842,173 +842,336 @@ function App() {
                 )}
             </div>
 
-            {showCreateForm && (
+{showCreateForm && (
     <div style={st.modalOverlay}>
-        <div style={{...st.sheetPremium, maxHeight: '90vh', overflowY: 'auto'}}>
-            <div style={st.sheetHeaderPremium}>
-                <span>✨</span>
-                <h3>Создать задание</h3>
-                <button onClick={() => setShowCreateForm(false)} style={st.closePremium}>✕</button>
-            </div>
+        <div style={{
+            background: 'rgba(8,4,20,0.97)',
+            backdropFilter: 'blur(60px)',
+            borderRadius: '28px 28px 0 0',
+            width: '100%',
+            maxWidth: '480px',
+            maxHeight: '92vh',
+            overflowY: 'auto',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderBottom: 'none',
+            boxSizing: 'border-box',
+            position: 'relative',
+            overflow: 'hidden'
+        }}>
+            {/* Декоративный градиент сверху */}
+            <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: '200px',
+                background: verificationType === 'admin' ? 'radial-gradient(ellipse at 50% -20%, rgba(0,194,255,0.18) 0%, transparent 70%)' :
+                            verificationType === 'invite' ? 'radial-gradient(ellipse at 50% -20%, rgba(168,85,247,0.18) 0%, transparent 70%)' :
+                            verificationType === 'repost' ? 'radial-gradient(ellipse at 50% -20%, rgba(255,193,7,0.18) 0%, transparent 70%)' :
+                            'radial-gradient(ellipse at 50% -20%, rgba(76,175,80,0.18) 0%, transparent 70%)',
+                pointerEvents: 'none', zIndex: 0, transition: 'background 0.4s ease'
+            }} />
 
-            {/* Тип задания (Базовое / PRO) */}
-            <div style={{display: 'flex', gap: '8px', marginBottom: '16px'}}>
-                <button onClick={() => setQuestType('basic')} style={{
-                    flex: 1, padding: '12px 8px', borderRadius: '14px', fontSize: '12px', fontWeight: '700', cursor: 'pointer',
-                    background: questType === 'basic' ? 'rgba(0,194,255,0.12)' : 'rgba(255,255,255,0.03)',
-                    border: questType === 'basic' ? '1px solid rgba(0,194,255,0.4)' : '1px solid rgba(255,255,255,0.07)',
-                    color: questType === 'basic' ? '#00C2FF' : 'rgba(255,255,255,0.4)'
-                }}>
-                    📋 Базовое<br/><span style={{fontWeight: '500', fontSize: '10px', opacity: 0.7}}>Без комиссии</span>
-                </button>
-                <button onClick={() => setQuestType('extended')} style={{
-                    flex: 1, padding: '12px 8px', borderRadius: '14px', fontSize: '12px', fontWeight: '700', cursor: 'pointer',
-                    background: questType === 'extended' ? 'rgba(255,51,102,0.12)' : 'rgba(255,255,255,0.03)',
-                    border: questType === 'extended' ? '1px solid rgba(255,51,102,0.4)' : '1px solid rgba(255,255,255,0.07)',
-                    color: questType === 'extended' ? '#FF3366' : 'rgba(255,255,255,0.4)'
-                }}>
-                    ⭐ PRO<br/><span style={{fontWeight: '500', fontSize: '10px', opacity: 0.7}}>5% комиссия</span>
-                </button>
-            </div>
+            <div style={{position: 'relative', zIndex: 1, padding: '24px', overflowY: 'auto', maxHeight: '92vh', boxSizing: 'border-box'}}>
 
-            {/* ВЫБОР ТИПА ЗАДАНИЯ (сегмент-контрол) */}
-            <div style={st.createTypeWrap}>
-                {[
-                    { id: 'admin', label: '📢 Подписка' },
-                    { id: 'invite', label: '🔗 Инвайт' },
-                    { id: 'repost', label: '🔁 Репост' },
-                    { id: 'referral', label: '👥 Реферал' }
-                ].map(type => (
-                    <button
-                        key={type.id}
-                        onClick={() => setVerificationType(type.id)}
-                        style={verificationType === type.id ? st.createTypeActive : st.createTypeBtn}
-                    >
-                        {type.label}
-                    </button>
-                ))}
-            </div>
-
-            {/* ПОЛЯ В ЗАВИСИМОСТИ ОТ ТИПА */}
-            {verificationType === 'admin' && (
-                <>
-                    <div style={st.infoBoxBlue}>📢 Добавьте @StarTaskBot администратором канала</div>
-                    <input type="text" placeholder="Ссылка на канал (t.me/...)" style={st.inputPremium} ref={channelInput} />
-                </>
-            )}
-            {verificationType === 'invite' && (
-                <>
-                    <div style={st.infoBoxPurple}>🔗 Пользователь должен вступить по invite-ссылке</div>
-                    <input type="text" placeholder="Инвайт ссылка (t.me/+...)" style={st.inputPremium} value={inviteLinkInput} onChange={(e) => setInviteLinkInput(e.target.value)} />
-                </>
-            )}
-            {verificationType === 'repost' && (
-                <>
-                    <div style={st.infoBoxYellow}>🔁 Пользователь делает репост записи</div>
-                    <input type="text" placeholder="Ссылка на пост" style={st.inputPremium} value={postUrl} onChange={(e) => setPostUrl(e.target.value)} />
-                </>
-            )}
-            {verificationType === 'referral' && (
-                <>
-                    <div style={st.infoBoxGreen}>👥 Пользователь переходит по referral-ссылке</div>
-                    <input type="text" placeholder="Referral URL" style={st.inputPremium} value={referralUrl} onChange={(e) => setReferralUrl(e.target.value)} />
-                </>
-            )}
-
-            {/* ОБЩИЕ ПОЛЯ */}
-            <input type="text" placeholder="Название задания" style={st.inputPremium} ref={titleInput} />
-            <textarea placeholder="Краткое описание" style={st.textareaPremium} ref={descInput} />
-            <input type="number" placeholder="Награда в Stars" style={st.inputPremium} ref={rewardInput} />
-            <input 
-                type="number" 
-                placeholder="Бюджет задания в Stars (например 500)" 
-                style={st.inputPremium} 
-                value={totalBudget}
-                onChange={(e) => setTotalBudget(e.target.value)}
-            />
-            {totalBudget && rewardInput.current?.value && parseInt(totalBudget) >= parseInt(rewardInput.current?.value) && (
-                <div style={{background: 'rgba(0,194,255,0.05)', border: '1px solid rgba(0,194,255,0.15)', borderRadius: '12px', padding: '10px', marginBottom: '10px'}}>
-                    <p style={{margin: 0, fontSize: '12px', color: 'rgba(0,194,255,0.8)'}}>
-                        👥 Максимум участников: <strong>{Math.floor(parseInt(totalBudget) / parseInt(rewardInput.current?.value))}</strong>
-                        <br/>💰 Будет заблокировано: <strong>{totalBudget} ⭐</strong>
-                    </p>
+                {/* Шапка */}
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px'}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                        <div style={{
+                            width: '36px', height: '36px', borderRadius: '12px',
+                            background: verificationType === 'admin' ? 'rgba(0,194,255,0.12)' :
+                                        verificationType === 'invite' ? 'rgba(168,85,247,0.12)' :
+                                        verificationType === 'repost' ? 'rgba(255,193,7,0.12)' : 'rgba(76,175,80,0.12)',
+                            border: verificationType === 'admin' ? '1px solid rgba(0,194,255,0.25)' :
+                                    verificationType === 'invite' ? '1px solid rgba(168,85,247,0.25)' :
+                                    verificationType === 'repost' ? '1px solid rgba(255,193,7,0.25)' : '1px solid rgba(76,175,80,0.25)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px',
+                            transition: 'all 0.3s ease'
+                        }}>
+                            {verificationType === 'admin' ? '📢' : verificationType === 'invite' ? '🔗' : verificationType === 'repost' ? '🔁' : '👥'}
+                        </div>
+                        <div>
+                            <p style={{margin: 0, color: 'white', fontSize: '17px', fontWeight: '800', letterSpacing: '-0.3px'}}>Новое задание</p>
+                            <p style={{margin: 0, color: 'rgba(255,255,255,0.3)', fontSize: '11px'}}>
+                                {verificationType === 'admin' ? 'Подписка на канал' :
+                                 verificationType === 'invite' ? 'Переход по инвайту' :
+                                 verificationType === 'repost' ? 'Репост записи' : 'Реферальный переход'}
+                            </p>
+                        </div>
+                    </div>
+                    <button onClick={() => setShowCreateForm(false)} style={{
+                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '50%', width: '32px', height: '32px', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)',
+                        fontSize: '14px', cursor: 'pointer'
+                    }}>✕</button>
                 </div>
-            )}
-            {/* NFT Подарок */}
-            <p style={{...st.textSecondary, marginBottom: '6px', marginTop: '4px'}}>🎁 NFT Подарок (опционально):</p>
-            <input
-                type="text"
-                placeholder="Ссылка на NFT подарок (t.me/nft/...)"
-                style={st.inputPremium}
-                value={nftGiftUrl}
-                onChange={(e) => {
-                    setNftGiftUrl(e.target.value);
-                    if (e.target.value.length > 20) {
-                        fetchNftPreview(e.target.value);
-                    } else {
-                        setNftPreview(null);
-                    }
-                }}
-            />
 
-            {/* Превью фона подарка */}
-            {nftPreview && nftPreview.backgroundImage && (
-                <div style={{
-                    background: `url(${nftPreview.backgroundImage}) center/contain no-repeat`,
-                    backgroundColor: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(0,194,255,0.2)',
-                    borderRadius: '12px',
-                    padding: '12px',
-                    marginBottom: '12px',
-                    minHeight: '120px'
-                }}>
-                    <p style={{margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.5)', textAlign: 'center', textShadow: '0 1px 3px rgba(0,0,0,0.8)'}}>
-                        🎁 Фон подарка будет применён к карточке задания
-                    </p>
+                {/* Тип задания — крупные иконки */}
+                <div style={{marginBottom: '20px'}}>
+                    <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontWeight: '600', letterSpacing: '1.5px', textTransform: 'uppercase'}}>Тип задания</p>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+                        {[
+                            { id: 'admin', icon: '📢', title: 'Подписка', desc: 'Подписаться на канал', color: '#00C2FF', bg: 'rgba(0,194,255,' },
+                            { id: 'invite', icon: '🔗', title: 'Инвайт', desc: 'Вступить по ссылке', color: '#A855F7', bg: 'rgba(168,85,247,' },
+                            { id: 'repost', icon: '🔁', title: 'Репост', desc: 'Переслать запись', color: '#FFC107', bg: 'rgba(255,193,7,' },
+                            { id: 'referral', icon: '👥', title: 'Реферал', desc: 'Переход по ссылке', color: '#4CAF50', bg: 'rgba(76,175,80,' },
+                        ].map(({ id, icon, title, desc, color, bg }) => {
+                            const isActive = verificationType === id;
+                            return (
+                                <button key={id} onClick={() => setVerificationType(id)} style={{
+                                    padding: '14px 12px',
+                                    background: isActive ? `${bg}0.1)` : 'rgba(255,255,255,0.025)',
+                                    border: isActive ? `1.5px solid ${bg}0.4)` : '1.5px solid rgba(255,255,255,0.06)',
+                                    borderRadius: '16px', cursor: 'pointer', textAlign: 'left',
+                                    transition: 'all 0.25s ease',
+                                    boxShadow: isActive ? `0 4px 20px ${bg}0.15)` : 'none'
+                                }}>
+                                    <div style={{fontSize: '22px', marginBottom: '6px'}}>{icon}</div>
+                                    <p style={{margin: '0 0 2px', color: isActive ? color : 'rgba(255,255,255,0.7)', fontSize: '13px', fontWeight: '700'}}>{title}</p>
+                                    <p style={{margin: 0, color: 'rgba(255,255,255,0.3)', fontSize: '10px'}}>{desc}</p>
+                                    {isActive && <div style={{
+                                        width: '20px', height: '2px', borderRadius: '10px',
+                                        background: color, marginTop: '8px'
+                                    }} />}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
-            )}
 
-            {nftGiftUrl && !nftPreview && (
-                <div style={{
-                    background: 'rgba(255,193,7,0.05)',
-                    border: '1px solid rgba(255,193,7,0.15)',
-                    borderRadius: '12px',
-                    padding: '10px',
-                    marginBottom: '12px'
-                }}>
-                    <p style={{margin: 0, fontSize: '11px', color: 'rgba(255,193,7,0.7)', textAlign: 'center'}}>
-                        🔍 Введите полную ссылку на NFT подарок для предпросмотра
-                    </p>
+                {/* Разделитель */}
+                <div style={{height: '1px', background: 'rgba(255,255,255,0.05)', margin: '0 0 20px'}} />
+
+                {/* Поля под тип задания */}
+                <div style={{marginBottom: '4px'}}>
+                    {verificationType === 'admin' && (
+                        <div style={{marginBottom: '12px'}}>
+                            <div style={{
+                                background: 'rgba(0,194,255,0.05)', border: '1px solid rgba(0,194,255,0.12)',
+                                borderRadius: '12px', padding: '10px 14px', marginBottom: '10px',
+                                display: 'flex', alignItems: 'center', gap: '8px'
+                            }}>
+                                <span style={{fontSize: '14px'}}>ℹ️</span>
+                                <p style={{margin: 0, fontSize: '11px', color: 'rgba(0,194,255,0.7)', lineHeight: 1.4}}>
+                                    Добавьте <strong style={{color: '#00C2FF'}}>@StarTaskBot</strong> как администратора канала для точной проверки подписки
+                                </p>
+                            </div>
+                            <input type="text" placeholder="t.me/yourchannel" style={{
+                                ...st.inputPremium,
+                                borderColor: 'rgba(0,194,255,0.2)',
+                                background: 'rgba(0,194,255,0.03)'
+                            }} ref={channelInput} />
+                        </div>
+                    )}
+                    {verificationType === 'invite' && (
+                        <div style={{marginBottom: '12px'}}>
+                            <div style={{
+                                background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.12)',
+                                borderRadius: '12px', padding: '10px 14px', marginBottom: '10px',
+                                display: 'flex', alignItems: 'center', gap: '8px'
+                            }}>
+                                <span style={{fontSize: '14px'}}>🔗</span>
+                                <p style={{margin: 0, fontSize: '11px', color: 'rgba(168,85,247,0.8)', lineHeight: 1.4}}>
+                                    Пользователь вступает по уникальной ссылке. Верификация — доверенная.
+                                </p>
+                            </div>
+                            <input type="text" placeholder="t.me/+invite_code" style={{
+                                ...st.inputPremium,
+                                borderColor: 'rgba(168,85,247,0.2)',
+                                background: 'rgba(168,85,247,0.03)'
+                            }} value={inviteLinkInput} onChange={(e) => setInviteLinkInput(e.target.value)} />
+                            <input type="text" placeholder="Ссылка на канал (t.me/...)" style={st.inputPremium} ref={channelInput} />
+                        </div>
+                    )}
+                    {verificationType === 'repost' && (
+                        <div style={{marginBottom: '12px'}}>
+                            <div style={{
+                                background: 'rgba(255,193,7,0.05)', border: '1px solid rgba(255,193,7,0.12)',
+                                borderRadius: '12px', padding: '10px 14px', marginBottom: '10px',
+                                display: 'flex', alignItems: 'center', gap: '8px'
+                            }}>
+                                <span style={{fontSize: '14px'}}>🔁</span>
+                                <p style={{margin: 0, fontSize: '11px', color: 'rgba(255,193,7,0.8)', lineHeight: 1.4}}>
+                                    Пользователь пересылает пост. Верификация — доверенная после перехода.
+                                </p>
+                            </div>
+                            <input type="text" placeholder="Ссылка на пост (t.me/channel/123)" style={{
+                                ...st.inputPremium,
+                                borderColor: 'rgba(255,193,7,0.2)',
+                                background: 'rgba(255,193,7,0.03)'
+                            }} value={postUrl} onChange={(e) => setPostUrl(e.target.value)} />
+                            <input type="text" placeholder="Ссылка на канал (t.me/...)" style={st.inputPremium} ref={channelInput} />
+                        </div>
+                    )}
+                    {verificationType === 'referral' && (
+                        <div style={{marginBottom: '12px'}}>
+                            <div style={{
+                                background: 'rgba(76,175,80,0.05)', border: '1px solid rgba(76,175,80,0.12)',
+                                borderRadius: '12px', padding: '10px 14px', marginBottom: '10px',
+                                display: 'flex', alignItems: 'center', gap: '8px'
+                            }}>
+                                <span style={{fontSize: '14px'}}>👥</span>
+                                <p style={{margin: 0, fontSize: '11px', color: 'rgba(76,175,80,0.8)', lineHeight: 1.4}}>
+                                    Пользователь переходит по реферальной ссылке. Верификация — доверенная.
+                                </p>
+                            </div>
+                            <input type="text" placeholder="Реферальная ссылка (t.me/bot?start=ref...)" style={{
+                                ...st.inputPremium,
+                                borderColor: 'rgba(76,175,80,0.2)',
+                                background: 'rgba(76,175,80,0.03)'
+                            }} value={referralUrl} onChange={(e) => setReferralUrl(e.target.value)} />
+                            <input type="text" placeholder="Ссылка на канал/бота (t.me/...)" style={st.inputPremium} ref={channelInput} />
+                        </div>
+                    )}
                 </div>
-            )}
 
-            {/* PRO поля */}
-            {questType === 'extended' && (
-                <>
-                    <div style={{background: 'rgba(255,51,102,0.05)', border: '1px solid rgba(255,51,102,0.15)', borderRadius: '12px', padding: '12px', marginBottom: '14px'}}>
-                        <p style={{margin: 0, fontSize: '12px', color: 'rgba(255,51,102,0.8)', lineHeight: 1.5}}>
-                            ⭐ PRO — комиссия 5% от награды (мин. 50 ⭐) + 100 ⭐ за каждую соцсеть. Списывается при одобрении.
-                        </p>
+                {/* Разделитель */}
+                <div style={{height: '1px', background: 'rgba(255,255,255,0.05)', margin: '4px 0 20px'}} />
+
+                {/* Базовое / PRO */}
+                <div style={{marginBottom: '20px'}}>
+                    <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontWeight: '600', letterSpacing: '1.5px', textTransform: 'uppercase'}}>Формат</p>
+                    <div style={{display: 'flex', gap: '8px'}}>
+                        <button onClick={() => setQuestType('basic')} style={{
+                            flex: 1, padding: '12px', borderRadius: '14px', cursor: 'pointer',
+                            background: questType === 'basic' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
+                            border: questType === 'basic' ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid rgba(255,255,255,0.05)',
+                            color: questType === 'basic' ? 'white' : 'rgba(255,255,255,0.35)',
+                            textAlign: 'center', transition: 'all 0.2s ease'
+                        }}>
+                            <p style={{margin: '0 0 2px', fontSize: '13px', fontWeight: '700'}}>📋 Базовое</p>
+                            <p style={{margin: 0, fontSize: '10px', opacity: 0.6}}>Без комиссии</p>
+                        </button>
+                        <button onClick={() => setQuestType('extended')} style={{
+                            flex: 1, padding: '12px', borderRadius: '14px', cursor: 'pointer',
+                            background: questType === 'extended' ? 'rgba(255,51,102,0.08)' : 'rgba(255,255,255,0.02)',
+                            border: questType === 'extended' ? '1.5px solid rgba(255,51,102,0.3)' : '1.5px solid rgba(255,255,255,0.05)',
+                            color: questType === 'extended' ? '#FF3366' : 'rgba(255,255,255,0.35)',
+                            textAlign: 'center', transition: 'all 0.2s ease'
+                        }}>
+                            <p style={{margin: '0 0 2px', fontSize: '13px', fontWeight: '700'}}>⭐ PRO</p>
+                            <p style={{margin: 0, fontSize: '10px', opacity: 0.6}}>5% комиссия</p>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Основные поля */}
+                <div style={{marginBottom: '4px'}}>
+                    <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontWeight: '600', letterSpacing: '1.5px', textTransform: 'uppercase'}}>Детали задания</p>
+                    <input type="text" placeholder="Название задания" style={st.inputPremium} ref={titleInput} />
+                    <textarea placeholder="Краткое описание для пользователей" style={st.textareaPremium} ref={descInput} />
+
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px'}}>
+                        <div>
+                            <p style={{margin: '0 0 6px', color: 'rgba(255,255,255,0.3)', fontSize: '11px'}}>Награда ⭐</p>
+                            <input type="number" placeholder="5" style={{...st.inputPremium, marginBottom: 0, textAlign: 'center'}} ref={rewardInput} />
+                        </div>
+                        <div>
+                            <p style={{margin: '0 0 6px', color: 'rgba(255,255,255,0.3)', fontSize: '11px'}}>Бюджет ⭐</p>
+                            <input type="number" placeholder="500" style={{...st.inputPremium, marginBottom: 0, textAlign: 'center'}}
+                                value={totalBudget} onChange={(e) => setTotalBudget(e.target.value)} />
+                        </div>
                     </div>
 
-                    <p style={{...st.textSecondary, marginBottom: '6px'}}>Подробное описание канала:</p>
-                    <textarea placeholder="Расскажите подробнее о вашем канале — тематика, аудитория, почему стоит подписаться..." style={{...st.textareaPremium, minHeight: '100px'}} value={extendedDescription} onChange={(e) => setExtendedDescription(e.target.value)} />
+                    {/* Подсказка по участникам */}
+                    {totalBudget && rewardInput.current?.value && parseInt(totalBudget) >= parseInt(rewardInput.current?.value) && (
+                        <div style={{
+                            background: 'rgba(0,194,255,0.04)', border: '1px solid rgba(0,194,255,0.12)',
+                            borderRadius: '12px', padding: '10px 14px', marginBottom: '10px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                        }}>
+                            <span style={{fontSize: '11px', color: 'rgba(255,255,255,0.4)'}}>👥 Макс. участников</span>
+                            <span style={{fontSize: '13px', fontWeight: '700', color: '#00C2FF'}}>
+                                {Math.floor(parseInt(totalBudget) / parseInt(rewardInput.current?.value))}
+                            </span>
+                        </div>
+                    )}
+                </div>
 
-                    <input type="number" placeholder="Количество подписчиков" style={st.inputPremium} value={subscribersCount} onChange={(e) => setSubscribersCount(e.target.value)} />
+                {/* NFT подарок */}
+                <div style={{marginBottom: '4px'}}>
+                    <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontWeight: '600', letterSpacing: '1.5px', textTransform: 'uppercase'}}>
+                        🎁 NFT Подарок <span style={{color: 'rgba(255,255,255,0.2)', fontWeight: '400', textTransform: 'none', letterSpacing: '0'}}>— опционально</span>
+                    </p>
+                    <input type="text" placeholder="t.me/nft/GiftName-12345" style={{...st.inputPremium,
+                        borderColor: nftPreview ? 'rgba(255,215,0,0.3)' : undefined,
+                        background: nftPreview ? 'rgba(255,215,0,0.03)' : undefined
+                    }}
+                        value={nftGiftUrl}
+                        onChange={(e) => {
+                            setNftGiftUrl(e.target.value);
+                            if (e.target.value.length > 20) fetchNftPreview(e.target.value);
+                            else setNftPreview(null);
+                        }}
+                    />
+                    {nftPreview?.backgroundImage && (
+                        <div style={{
+                            height: '80px', borderRadius: '12px', overflow: 'hidden',
+                            backgroundImage: `url(${nftPreview.backgroundImage})`,
+                            backgroundSize: '200% auto', backgroundPosition: 'center',
+                            filter: 'brightness(0.7)',
+                            border: '1px solid rgba(255,215,0,0.2)',
+                            marginBottom: '10px',
+                            position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                            <span style={{
+                                background: 'rgba(0,0,0,0.5)', borderRadius: '20px', padding: '4px 12px',
+                                fontSize: '11px', color: '#FFD700', fontWeight: '600'
+                            }}>🎁 Фон применён к карточке</span>
+                        </div>
+                    )}
+                </div>
 
-                    <p style={{...st.textSecondary, marginBottom: '6px'}}>Скриншоты канала (ссылки на изображения):</p>
-                    {screenshots.map((url, i) => (
-                        <input key={i} type="text" placeholder={`Скриншот ${i + 1} (URL картинки)`} style={{...st.inputPremium, marginBottom: '8px'}} value={url} onChange={(e) => { const updated = [...screenshots]; updated[i] = e.target.value; setScreenshots(updated); }} />
-                    ))}
+                {/* PRO поля */}
+                {questType === 'extended' && (
+                    <div style={{marginBottom: '4px'}}>
+                        <div style={{height: '1px', background: 'rgba(255,51,102,0.15)', margin: '16px 0'}} />
+                        <div style={{
+                            background: 'rgba(255,51,102,0.04)', border: '1px solid rgba(255,51,102,0.12)',
+                            borderRadius: '12px', padding: '10px 14px', marginBottom: '14px',
+                            display: 'flex', alignItems: 'center', gap: '8px'
+                        }}>
+                            <span style={{fontSize: '14px'}}>⭐</span>
+                            <p style={{margin: 0, fontSize: '11px', color: 'rgba(255,51,102,0.8)', lineHeight: 1.4}}>
+                                PRO: 5% от бюджета (мин. 50 ⭐) + 100 ⭐ за каждую соцсеть. Списывается при одобрении.
+                            </p>
+                        </div>
+                        <p style={{margin: '0 0 8px', color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase'}}>PRO поля</p>
+                        <textarea placeholder="Подробное описание канала — тематика, аудитория..." style={{...st.textareaPremium, minHeight: '90px', borderColor: 'rgba(255,51,102,0.15)'}} value={extendedDescription} onChange={(e) => setExtendedDescription(e.target.value)} />
+                        <input type="number" placeholder="Количество подписчиков" style={{...st.inputPremium, borderColor: 'rgba(255,51,102,0.12)'}} value={subscribersCount} onChange={(e) => setSubscribersCount(e.target.value)} />
+                        <p style={{margin: '0 0 8px', color: 'rgba(255,255,255,0.25)', fontSize: '11px'}}>Скриншоты (URL):</p>
+                        {screenshots.map((url, i) => (
+                            <input key={i} type="text" placeholder={`Скриншот ${i + 1}`} style={{...st.inputPremium, marginBottom: '8px', borderColor: 'rgba(255,51,102,0.1)'}} value={url} onChange={(e) => { const u = [...screenshots]; u[i] = e.target.value; setScreenshots(u); }} />
+                        ))}
+                        <p style={{margin: '0 0 8px', color: 'rgba(255,255,255,0.25)', fontSize: '11px'}}>Соцсети (+100 ⭐ каждая):</p>
+                        {[['telegram','✈️ Telegram'],['instagram','📸 Instagram'],['youtube','▶️ YouTube'],['tiktok','🎵 TikTok']].map(([key, label]) => (
+                            <input key={key} type="text" placeholder={label} style={{...st.inputPremium, marginBottom: '8px', borderColor: 'rgba(255,51,102,0.1)'}} value={socialLinks[key]} onChange={(e) => setSocialLinks(p => ({...p, [key]: e.target.value}))} />
+                        ))}
+                    </div>
+                )}
 
-                    <p style={{...st.textSecondary, marginBottom: '6px'}}>Соцсети (+100 ⭐ каждая):</p>
-                    {[['telegram', '✈️ Telegram'], ['instagram', '📸 Instagram'], ['youtube', '▶️ YouTube'], ['tiktok', '🎵 TikTok']].map(([key, label]) => (
-                        <input key={key} type="text" placeholder={label} style={{...st.inputPremium, marginBottom: '8px'}} value={socialLinks[key]} onChange={(e) => setSocialLinks(prev => ({...prev, [key]: e.target.value}))} />
-                    ))}
-                </>
-            )}
+                {/* Кнопка создать */}
+                <button onClick={createQuest} style={{
+                    width: '100%', padding: '15px', borderRadius: '16px', cursor: 'pointer',
+                    background: verificationType === 'admin' ? 'linear-gradient(135deg, rgba(0,194,255,0.2), rgba(0,194,255,0.08))' :
+                                verificationType === 'invite' ? 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(168,85,247,0.08))' :
+                                verificationType === 'repost' ? 'linear-gradient(135deg, rgba(255,193,7,0.2), rgba(255,193,7,0.08))' :
+                                'linear-gradient(135deg, rgba(76,175,80,0.2), rgba(76,175,80,0.08))',
+                    border: verificationType === 'admin' ? '1px solid rgba(0,194,255,0.35)' :
+                            verificationType === 'invite' ? '1px solid rgba(168,85,247,0.35)' :
+                            verificationType === 'repost' ? '1px solid rgba(255,193,7,0.35)' :
+                            '1px solid rgba(76,175,80,0.35)',
+                    color: verificationType === 'admin' ? '#00C2FF' :
+                           verificationType === 'invite' ? '#A855F7' :
+                           verificationType === 'repost' ? '#FFC107' : '#4CAF50',
+                    fontSize: '15px', fontWeight: '700', letterSpacing: '-0.2px',
+                    marginTop: '8px', transition: 'all 0.2s ease',
+                    boxShadow: verificationType === 'admin' ? '0 4px 20px rgba(0,194,255,0.12)' :
+                               verificationType === 'invite' ? '0 4px 20px rgba(168,85,247,0.12)' :
+                               verificationType === 'repost' ? '0 4px 20px rgba(255,193,7,0.12)' :
+                               '0 4px 20px rgba(76,175,80,0.12)'
+                }}>
+                    {verificationType === 'admin' ? '📢' : verificationType === 'invite' ? '🔗' : verificationType === 'repost' ? '🔁' : '👥'} Создать задание
+                </button>
 
-            <button onClick={createQuest} style={st.btnPrimaryPremium}>Создать задание</button>
+            </div>
         </div>
     </div>
 )}
