@@ -1019,6 +1019,11 @@ function App() {
                     <input type="text" placeholder="Реферальная ссылка (t.me/botname?start=ref...)" style={st.inputPremium} value={referralUrl} onChange={(e) => setReferralUrl(e.target.value)} />
                 </>
             )}
+			
+			<button onClick={createQuest} style={st.btnPrimaryPremium}>Создать задание</button>
+        </div>
+    </div>
+)}
 
             {showTonTopUpModal && (
                 <div style={st.modalOverlay}>
