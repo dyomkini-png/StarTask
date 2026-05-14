@@ -216,7 +216,6 @@ const AdminPanel = ({ onClose, userId }) => {
                                         <p style={st.adminCardAuthor}>от @{quest.creator_name || 'автора'}</p>
                                         <p style={st.adminCardLink}>{quest.target_url}</p>
 
-                                        {/* PRO информация */}
                                         {quest.quest_type === 'extended' && (
                                             <div style={{background: 'rgba(255,51,102,0.05)', border: '1px solid rgba(255,51,102,0.15)', borderRadius: '10px', padding: '10px', marginBottom: '8px'}}>
                                                 <p style={{margin: '0 0 4px', color: '#FF3366', fontSize: '10px', fontWeight: '700'}}>⭐ PRO задание · Комиссия: {quest.commission_amount} ⭐</p>
@@ -389,7 +388,7 @@ function App() {
     const [activeTab, setActiveTab] = useState('active');
     const [mainTab, setMainTab] = useState('tasks');
     const [channelAvatars, setChannelAvatars] = useState({});
-	const [nftBackgrounds, setNftBackgrounds] = useState({});
+    const [nftBackgrounds, setNftBackgrounds] = useState({});
     const [showProfile, setShowProfile] = useState(false);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -401,9 +400,9 @@ function App() {
     const [screenshots, setScreenshots] = useState(['', '', '']);
     const [socialLinks, setSocialLinks] = useState({ telegram: '', instagram: '', youtube: '', tiktok: '' });
     const [subscribersCount, setSubscribersCount] = useState('');
-	const [postUrl, setPostUrl] = useState('');
+    const [postUrl, setPostUrl] = useState('');
     const [referralUrl, setReferralUrl] = useState('');
-	const [nftGiftUrl, setNftGiftUrl] = useState('');
+    const [nftGiftUrl, setNftGiftUrl] = useState('');
     const [nftPreview, setNftPreview] = useState(null);
     const [totalBudget, setTotalBudget] = useState('');
     const [questStatusFilter, setQuestStatusFilter] = useState('pending');
@@ -583,7 +582,7 @@ function App() {
         card.style.setProperty('--y', `${y}px`);
     };
 
-        const completeTask = async (taskId, taskUrl, channelUsername, inviteLink, verificationType, postUrl, referralUrl) => {
+    const completeTask = async (taskId, taskUrl, channelUsername, inviteLink, verificationType, postUrl, referralUrl) => {
         const tg = window.Telegram.WebApp;
         let linkToOpen = taskUrl;
         if (verificationType === 'invite' && inviteLink) linkToOpen = inviteLink;
@@ -637,7 +636,7 @@ function App() {
                 extendedDescription: extendedDescription || null,
                 screenshots: screenshots.filter(s => s) || null,
                 nftGiftUrl: nftGiftUrl || null,
-				postUrl: postUrl || null,
+                postUrl: postUrl || null,
                 referralUrl: referralUrl || null,
                 socialLinks: Object.values(socialLinks).some(v => v) ? socialLinks : null,
                 subscribersCount: subscribersCount ? parseInt(subscribersCount) : null
@@ -665,7 +664,7 @@ function App() {
                 setSocialLinks({ telegram: '', instagram: '', youtube: '', tiktok: '' });
                 setSubscribersCount('');
                 setNftGiftUrl('');
-				setPostUrl('');
+                setPostUrl('');
                 setReferralUrl('');
                 setNftPreview(null);
                 setTotalBudget('');
@@ -852,7 +851,7 @@ function App() {
                 <button onClick={() => setShowCreateForm(false)} style={st.closePremium}>✕</button>
             </div>
 
-            {/* Тип задания */}
+            {/* Тип задания (Базовое / PRO) */}
             <div style={{display: 'flex', gap: '8px', marginBottom: '16px'}}>
                 <button onClick={() => setQuestType('basic')} style={{
                     flex: 1, padding: '12px 8px', borderRadius: '14px', fontSize: '12px', fontWeight: '700', cursor: 'pointer',
@@ -872,8 +871,51 @@ function App() {
                 </button>
             </div>
 
-            {/* Основные поля */}
-            <input type="text" placeholder="Ссылка на канал (t.me/...)" style={st.inputPremium} ref={channelInput} />
+            {/* ВЫБОР ТИПА ЗАДАНИЯ (сегмент-контрол) */}
+            <div style={st.createTypeWrap}>
+                {[
+                    { id: 'admin', label: '📢 Подписка' },
+                    { id: 'invite', label: '🔗 Инвайт' },
+                    { id: 'repost', label: '🔁 Репост' },
+                    { id: 'referral', label: '👥 Реферал' }
+                ].map(type => (
+                    <button
+                        key={type.id}
+                        onClick={() => setVerificationType(type.id)}
+                        style={verificationType === type.id ? st.createTypeActive : st.createTypeBtn}
+                    >
+                        {type.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* ПОЛЯ В ЗАВИСИМОСТИ ОТ ТИПА */}
+            {verificationType === 'admin' && (
+                <>
+                    <div style={st.infoBoxBlue}>📢 Добавьте @StarTaskBot администратором канала</div>
+                    <input type="text" placeholder="Ссылка на канал (t.me/...)" style={st.inputPremium} ref={channelInput} />
+                </>
+            )}
+            {verificationType === 'invite' && (
+                <>
+                    <div style={st.infoBoxPurple}>🔗 Пользователь должен вступить по invite-ссылке</div>
+                    <input type="text" placeholder="Инвайт ссылка (t.me/+...)" style={st.inputPremium} value={inviteLinkInput} onChange={(e) => setInviteLinkInput(e.target.value)} />
+                </>
+            )}
+            {verificationType === 'repost' && (
+                <>
+                    <div style={st.infoBoxYellow}>🔁 Пользователь делает репост записи</div>
+                    <input type="text" placeholder="Ссылка на пост" style={st.inputPremium} value={postUrl} onChange={(e) => setPostUrl(e.target.value)} />
+                </>
+            )}
+            {verificationType === 'referral' && (
+                <>
+                    <div style={st.infoBoxGreen}>👥 Пользователь переходит по referral-ссылке</div>
+                    <input type="text" placeholder="Referral URL" style={st.inputPremium} value={referralUrl} onChange={(e) => setReferralUrl(e.target.value)} />
+                </>
+            )}
+
+            {/* ОБЩИЕ ПОЛЯ */}
             <input type="text" placeholder="Название задания" style={st.inputPremium} ref={titleInput} />
             <textarea placeholder="Краткое описание" style={st.textareaPremium} ref={descInput} />
             <input type="number" placeholder="Награда в Stars" style={st.inputPremium} ref={rewardInput} />
@@ -966,61 +1008,7 @@ function App() {
                 </>
             )}
 
-                        {/* Тип задания */}
-            <p style={{...st.textSecondary, marginBottom: '8px'}}>Тип задания:</p>
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px'}}>
-                {[
-                    { id: 'admin', label: '📢 Подписка', desc: 'Бот-админ' },
-                    { id: 'invite', label: '🔗 Инвайт', desc: 'По ссылке' },
-                    { id: 'repost', label: '🔁 Репост', desc: 'Переслать пост' },
-                    { id: 'referral', label: '👥 Реферал', desc: 'Перейти по ссылке' },
-                ].map(({ id, label, desc }) => (
-                    <button key={id} onClick={() => setVerificationType(id)} style={{
-                        padding: '12px 8px', borderRadius: '14px', fontSize: '12px', fontWeight: '700', cursor: 'pointer',
-                        background: verificationType === id ? 'rgba(0,194,255,0.12)' : 'rgba(255,255,255,0.03)',
-                        border: verificationType === id ? '1px solid rgba(0,194,255,0.4)' : '1px solid rgba(255,255,255,0.07)',
-                        color: verificationType === id ? '#00C2FF' : 'rgba(255,255,255,0.4)',
-                        textAlign: 'center'
-                    }}>
-                        {label}<br/>
-                        <span style={{fontWeight: '500', fontSize: '10px', opacity: 0.7}}>{desc}</span>
-                    </button>
-                ))}
-            </div>
-
-            {verificationType === 'admin' && (
-                <div style={{background: 'rgba(0,194,255,0.05)', border: '1px solid rgba(0,194,255,0.15)', borderRadius: '12px', padding: '10px', marginBottom: '14px'}}>
-                    <p style={{margin: 0, fontSize: '11px', color: 'rgba(0,194,255,0.8)', lineHeight: 1.5}}>ℹ️ Добавьте <strong>@StarTaskBot</strong> как администратора канала</p>
-                </div>
-            )}
-
-            {verificationType === 'invite' && (
-                <input type="text" placeholder="Инвайт-ссылка (t.me/+...)" style={{...st.inputPremium, marginBottom: '14px'}} value={inviteLinkInput} onChange={(e) => setInviteLinkInput(e.target.value)} />
-            )}
-
-            {verificationType === 'repost' && (
-                <>
-                    <div style={{background: 'rgba(255,193,7,0.05)', border: '1px solid rgba(255,193,7,0.15)', borderRadius: '12px', padding: '10px', marginBottom: '10px'}}>
-                        <p style={{margin: 0, fontSize: '11px', color: 'rgba(255,193,7,0.8)', lineHeight: 1.5}}>
-                            🔁 Пользователь пересылает пост. Засчитывается автоматически после перехода.
-                        </p>
-                    </div>
-                    <input type="text" placeholder="Ссылка на пост для репоста (t.me/channel/123)" style={st.inputPremium} value={postUrl} onChange={(e) => setPostUrl(e.target.value)} />
-                </>
-            )}
-
-            {verificationType === 'referral' && (
-                <>
-                    <div style={{background: 'rgba(76,175,80,0.05)', border: '1px solid rgba(76,175,80,0.15)', borderRadius: '12px', padding: '10px', marginBottom: '10px'}}>
-                        <p style={{margin: 0, fontSize: '11px', color: 'rgba(76,175,80,0.8)', lineHeight: 1.5}}>
-                            🔗 Пользователь переходит по ссылке. Засчитывается автоматически после перехода.
-                        </p>
-                    </div>
-                    <input type="text" placeholder="Реферальная ссылка (t.me/botname?start=ref...)" style={st.inputPremium} value={referralUrl} onChange={(e) => setReferralUrl(e.target.value)} />
-                </>
-            )}
-			
-			<button onClick={createQuest} style={st.btnPrimaryPremium}>Создать задание</button>
+            <button onClick={createQuest} style={st.btnPrimaryPremium}>Создать задание</button>
         </div>
     </div>
 )}
@@ -1185,7 +1173,7 @@ function App() {
                     🎁 NFT Gift
                 </div>
             )}
-			{task.quest_type === 'extended' && (
+            {task.quest_type === 'extended' && (
                 <div style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -1312,7 +1300,7 @@ function App() {
                         )}
 
                         <button onClick={(e) => { createRipple(e); setSelectedTask(null); completeTask(selectedTask.id, selectedTask.target_url, selectedTask.target_url.split('t.me/')[1], selectedTask.invite_link, selectedTask.verification_type, selectedTask.post_url, selectedTask.referral_url); }}
-						style={{...st.actionBtnUltra, width: '100%', justifyContent: 'center', padding: '14px', fontSize: '15px'}}>
+                        style={{...st.actionBtnUltra, width: '100%', justifyContent: 'center', padding: '14px', fontSize: '15px'}}>
                             Выполнить и получить +{selectedTask.reward} ⭐
                         </button>
                     </div>
@@ -1480,6 +1468,13 @@ const st = {
     emptyPremium: { textAlign: 'center', padding: '40px 20px' },
     emptyPremiumIcon: { fontSize: '36px', display: 'block', marginBottom: '12px', opacity: 0.3 },
     emptyPremiumText: { color: 'rgba(255,255,255,0.25)', fontSize: '13px' },
+    createTypeWrap: { display: 'flex', background: 'rgba(255,255,255,0.04)', padding: '4px', borderRadius: '18px', marginBottom: '18px', gap: '4px' },
+    createTypeBtn: { flex: 1, border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.4)', padding: '10px', borderRadius: '14px', fontWeight: '600', transition: 'all 0.25s ease', cursor: 'pointer', fontSize: '13px' },
+    createTypeActive: { flex: 1, border: 'none', background: 'linear-gradient(135deg,#00C2FF,#FF3366)', color: 'white', padding: '10px', borderRadius: '14px', fontWeight: '700', boxShadow: '0 6px 20px rgba(0,194,255,0.3)', cursor: 'pointer', fontSize: '13px' },
+    infoBoxBlue: { background: 'rgba(0,194,255,0.06)', border: '1px solid rgba(0,194,255,0.15)', borderRadius: '14px', padding: '12px', marginBottom: '14px', color: '#00C2FF', fontSize: '12px' },
+    infoBoxPurple: { background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.15)', borderRadius: '14px', padding: '12px', marginBottom: '14px', color: '#A855F7', fontSize: '12px' },
+    infoBoxYellow: { background: 'rgba(255,193,7,0.06)', border: '1px solid rgba(255,193,7,0.15)', borderRadius: '14px', padding: '12px', marginBottom: '14px', color: '#FFC107', fontSize: '12px' },
+    infoBoxGreen: { background: 'rgba(76,175,80,0.06)', border: '1px solid rgba(76,175,80,0.15)', borderRadius: '14px', padding: '12px', marginBottom: '14px', color: '#4CAF50', fontSize: '12px' },
 };
 
 const styleSheet = document.createElement("style");
@@ -1493,32 +1488,10 @@ styleSheet.textContent = `
     button:disabled { opacity: 0.4; cursor: not-allowed; }
     button:not(:disabled):hover { filter: brightness(1.1); }
     button:not(:disabled):active { transform: scale(0.97); }
-    
-    /* Убираем синюю подсветку на мобильных устройствах */
-    * {
-        -webkit-tap-highlight-color: transparent;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        user-select: none;
-    }
-    
-    /* Разрешаем выделение только в полях ввода */
-    input, textarea {
-        -webkit-user-select: text;
-        user-select: text;
-    }
-    
-    /* Убираем стандартный outline при фокусе, заменяем на свой */
-    *:focus {
-        outline: none;
-    }
-    
-    /* Стиль для активного состояния карточек */
-    .questCardUltra:active {
-        transform: scale(0.98);
-        transition: transform 0.15s ease;
-    }
-    
+    * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+    input, textarea { -webkit-user-select: text; user-select: text; }
+    *:focus { outline: none; }
+    .questCardUltra:active { transform: scale(0.98); transition: transform 0.15s ease; }
     .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.3); transform: scale(0); animation: ripple 0.6s linear; pointer-events: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } }
