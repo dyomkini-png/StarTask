@@ -1320,29 +1320,51 @@ function App() {
                         <button onClick={() => setActiveTab('completed')} style={activeTab === 'completed' ? st.segmentActive : st.segment}>Выполненные<span style={st.segmentBadge}>{completedTasks.length}</span></button>
                     </div>
 
-                    {activeTab === 'active' && (activeTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>✨</div><h3 style={st.emptyStateTitle}>Всё выполнено</h3><p style={st.emptyStateText}>Новые задания появятся в ближайшее время</p></div> : activeTasks.map((task, i) => (
-    <motion.div 
-        key={task.id} 
+                    {activeTab === 'active' && (activeTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>✨</div><h3 style={st.emptyStateTitle}>Всё выполнено</h3><p style={st.emptyStateText}>Новые задания появятся в ближайшее время</p></div> : activeTasks.map((task, i) => {
+    const typeMeta = {
+        admin:    { icon: '📢', label: 'Подписка', color: '#00C2FF', rgb: '0,194,255' },
+        invite:   { icon: '🔗', label: 'Инвайт',   color: '#A855F7', rgb: '168,85,247' },
+        repost:   { icon: '🔁', label: 'Репост',   color: '#FFC107', rgb: '255,193,7' },
+        referral: { icon: '👥', label: 'Реферал',  color: '#4CAF50', rgb: '76,175,80' },
+    };
+    const tMeta = typeMeta[task.verification_type] || typeMeta.admin;
+    const hasNftBg = !!nftBackgrounds[task.id];
+
+    return (
+    <motion.div
+        key={task.id}
+        className="questCardUltra"
         style={{
             ...st.questCardUltra,
             cursor: task.quest_type === 'extended' ? 'pointer' : 'default',
             position: 'relative',
             overflow: 'hidden',
-            background: nftBackgrounds[task.id]
+            border: `1px solid rgba(${tMeta.rgb}, 0.32)`,
+            boxShadow: `0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(${tMeta.rgb}, 0.06), 0 8px 28px rgba(${tMeta.rgb}, 0.18)`,
+            background: hasNftBg
                 ? 'transparent'
-                : 'radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.08), transparent 60%), rgba(255,255,255,0.04)',
+                : `radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(${tMeta.rgb},0.18), transparent 55%), linear-gradient(135deg, rgba(${tMeta.rgb},0.06), rgba(255,255,255,0.025))`,
         }}
-        onMouseMove={(e) => handleCardMove(e)} 
-        initial={{ opacity: 0, y: 25 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        transition={{ delay: i * 0.05 }} 
-        whileTap={{ scale: 0.97 }} 
+        onMouseMove={(e) => handleCardMove(e)}
+        initial={{ opacity: 0, y: 25 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: i * 0.05 }}
+        whileTap={{ scale: 0.97 }}
         onClick={() => {
             if (task.quest_type === 'extended') {
                setSelectedTask(task);
             }
         }}
     >
+        {/* Цветной акцент-полоска слева */}
+        <div style={{
+            position: 'absolute', left: 0, top: '12%', bottom: '12%', width: '3px',
+            borderRadius: '0 4px 4px 0',
+            background: `linear-gradient(180deg, ${tMeta.color}, rgba(${tMeta.rgb}, 0.25))`,
+            boxShadow: `0 0 12px rgba(${tMeta.rgb}, 0.6)`,
+            zIndex: 2
+        }} />
+
         {nftBackgrounds[task.id]?.background && (
             <>
                 <div style={{
@@ -1357,69 +1379,87 @@ function App() {
                 <div style={{
                     position: 'absolute',
                     inset: 0,
-                    background: 'linear-gradient(135deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.2) 100%)',
+                    background: `linear-gradient(135deg, rgba(${tMeta.rgb},0.25) 0%, rgba(0,0,0,0.4) 100%)`,
                     zIndex: 0
                 }} />
             </>
         )}
-        
+
         <div style={st.cardGlow}></div>
-        
-        <div style={{...st.questAvatar, position: 'relative', zIndex: 1, background: channelAvatars[task.id] ? 'transparent' : getChannelColor(task.title)}}>
+
+        <div style={{
+            ...st.questAvatar,
+            position: 'relative', zIndex: 1,
+            background: channelAvatars[task.id] ? 'transparent' : getChannelColor(task.title),
+            boxShadow: `0 0 0 2px rgba(${tMeta.rgb}, 0.35), 0 4px 16px rgba(${tMeta.rgb}, 0.25)`
+        }}>
             {channelAvatars[task.id] ? <img src={channelAvatars[task.id]} alt="" style={st.questAvatarImg} /> : <span style={st.questAvatarLetter}>{getChannelInitial(task.title, task.target_url)}</span>}
+            {/* Иконка-бейдж типа задания на аватаре */}
+            <div style={{
+                position: 'absolute', bottom: '-2px', right: '-2px',
+                width: '20px', height: '20px', borderRadius: '50%',
+                background: `linear-gradient(135deg, rgba(${tMeta.rgb}, 0.95), rgba(${tMeta.rgb}, 0.65))`,
+                border: '2px solid rgba(8,4,20,0.95)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '10px',
+                boxShadow: `0 2px 8px rgba(${tMeta.rgb}, 0.5)`
+            }}>{tMeta.icon}</div>
         </div>
-        
+
         <div style={{...st.questBody, position: 'relative', zIndex: 1}}>
-            {nftBackgrounds[task.id] && (
+            <div style={{display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '6px'}}>
+                {/* Бейдж типа */}
                 <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    background: 'rgba(255,215,0,0.15)',
-                    border: '1px solid rgba(255,215,0,0.3)',
-                    borderRadius: '10px',
-                    padding: '3px 8px',
-                    fontSize: '10px',
-                    color: '#FFD700',
-                    fontWeight: '600',
-                    marginBottom: '6px',
-                    width: 'fit-content'
-                }}>
-                    🎁 NFT Gift
-                </div>
-            )}
-            {task.quest_type === 'extended' && (
-                <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    background: 'rgba(255,51,102,0.1)',
-                    border: '1px solid rgba(255,51,102,0.2)',
-                    borderRadius: '10px',
-                    padding: '3px 8px',
-                    fontSize: '10px',
-                    color: '#FF3366',
-                    fontWeight: '600',
-                    marginBottom: '6px',
-                    width: 'fit-content'
-                }}>
-                    ⭐ PRO
-                </div>
-            )}
-            
+                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                    background: `rgba(${tMeta.rgb}, 0.12)`,
+                    border: `1px solid rgba(${tMeta.rgb}, 0.3)`,
+                    borderRadius: '8px', padding: '2px 7px',
+                    fontSize: '10px', color: tMeta.color, fontWeight: '700', letterSpacing: '0.2px'
+                }}>{tMeta.label}</div>
+
+                {nftBackgrounds[task.id] && (
+                    <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        background: 'rgba(255,215,0,0.15)',
+                        border: '1px solid rgba(255,215,0,0.3)',
+                        borderRadius: '8px', padding: '2px 7px',
+                        fontSize: '10px', color: '#FFD700', fontWeight: '700'
+                    }}>🎁 NFT</div>
+                )}
+                {task.quest_type === 'extended' && (
+                    <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        background: 'rgba(255,51,102,0.12)',
+                        border: '1px solid rgba(255,51,102,0.3)',
+                        borderRadius: '8px', padding: '2px 7px',
+                        fontSize: '10px', color: '#FF3366', fontWeight: '700'
+                    }}>⭐ PRO</div>
+                )}
+            </div>
+
             <h4 style={st.questTitle}>{task.title}</h4>
             <p style={st.questDesc}>{task.description}</p>
-            
+
             <div style={st.questFooter}>
-                <div style={st.rewardTag}>+{task.reward} ⭐</div>
-                <motion.button 
-                    whileTap={{ scale: 0.9 }} 
-                    onClick={(e) => { 
-                        e.stopPropagation(); 
-                        createRipple(e); 
-                        completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1], task.invite_link, task.verification_type, task.post_url, task.referral_url); 
-                    }} 
-                    style={{...st.actionBtnUltra, position: 'relative', overflow: 'hidden'}}
+                <div style={{
+                    ...st.rewardTag,
+                    color: tMeta.color,
+                    background: `rgba(${tMeta.rgb}, 0.1)`,
+                    borderColor: `rgba(${tMeta.rgb}, 0.28)`
+                }}>+{task.reward} ⭐</div>
+                <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        createRipple(e);
+                        completeTask(task.id, task.target_url, task.target_url.split('t.me/')[1], task.invite_link, task.verification_type, task.post_url, task.referral_url);
+                    }}
+                    style={{
+                        ...st.actionBtnUltra,
+                        position: 'relative', overflow: 'hidden',
+                        background: `linear-gradient(135deg, rgba(${tMeta.rgb}, 0.95), rgba(${tMeta.rgb}, 0.65))`,
+                        boxShadow: `0 4px 20px rgba(${tMeta.rgb}, 0.4)`
+                    }}
                 >
                     Выполнить
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
@@ -1429,7 +1469,8 @@ function App() {
             </div>
         </div>
     </motion.div>
-)))}
+    );
+}))}
 
                     {activeTab === 'completed' && (completedTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>📋</div><h3 style={st.emptyStateTitle}>Пока пусто</h3><p style={st.emptyStateText}>Выполняйте задания и получайте награды</p></div> : completedTasks.map(task => (
                         <div key={task.id} style={{...st.questCard, opacity: 0.5}}>
