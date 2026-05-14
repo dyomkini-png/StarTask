@@ -1,3 +1,6 @@
+Принял! Вот полностью готовый код с детальными оптимизациями для мобильных устройств, исправленным скроллингом и анимацией на всех активных заданиях. Код готов для вставки.
+
+```jsx
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
@@ -5,6 +8,11 @@ import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { Address } from '@ton/core';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
+
+// ============ ОПТИМИЗАЦИИ ДЛЯ МОБИЛЬНЫХ ============
+// Определяем ОДИН раз при старте
+const IS_TOUCH = typeof window !== 'undefined' &&
+    window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
 // ============ ADMIN PANEL ============
 const AdminPanel = ({ onClose, userId }) => {
@@ -160,7 +168,7 @@ const AdminPanel = ({ onClose, userId }) => {
     };
 
     if (loading) return (
-        <div style={st.modalOverlay}>
+        <div style={IS_TOUCH ? {...st.modalOverlay, backdropFilter: 'none', background: 'rgba(0,0,0,0.85)'} : st.modalOverlay}>
             <div style={st.adminPanel}>
                 <div style={{textAlign:'center', padding:'60px 20px'}}>
                     <div style={st.spinnerPremium}></div>
@@ -172,7 +180,7 @@ const AdminPanel = ({ onClose, userId }) => {
 
     return (
         <>
-            <div style={st.modalOverlay}>
+            <div style={IS_TOUCH ? {...st.modalOverlay, backdropFilter: 'none', background: 'rgba(0,0,0,0.85)'} : st.modalOverlay}>
                 <div style={st.adminPanel}>
                     <div style={st.adminHeader}>
                         <div style={st.adminHeaderLeft}>
@@ -330,7 +338,7 @@ const AdminPanel = ({ onClose, userId }) => {
             </div>
             
             {showRejectModal && (
-                <div style={st.modalOverlay}>
+                <div style={IS_TOUCH ? {...st.modalOverlay, backdropFilter: 'none', background: 'rgba(0,0,0,0.85)'} : st.modalOverlay}>
                     <div style={st.sheetPremium}>
                         <div style={st.adminHeader}>
                             <div style={st.adminHeaderLeft}>
@@ -437,7 +445,9 @@ function App() {
         }
     }, [wallet, user]);
 
+    // На тач — не навешиваем parallax вообще
     useEffect(() => {
+        if (IS_TOUCH) return;
         let raf = 0;
         let lastY = 0;
         const handleScroll = () => {
@@ -479,36 +489,52 @@ function App() {
     const fetchTonBalance = async (userId) => {
         try { const r = await axios.get(`${API_URL}/api/user/${userId}/ton-balance`); setTonBalance(r.data.balance); } catch (e) { console.error(e); }
     };
+    
+    // Оптимизированный fetchTasks с батчингом запросов
     const fetchTasks = async (userId) => {
         try {
-            const response = await axios.get(`${API_URL}/api/quests`);
-            const allTasks = response.data;
-            const completionsResponse = await axios.get(`${API_URL}/api/user/${userId}/completions`);
-            const completedIds = completionsResponse.data.map(c => c.quest_id);
+            const [allTasksRes, completionsRes] = await Promise.all([
+                axios.get(`${API_URL}/api/quests`),
+                axios.get(`${API_URL}/api/user/${userId}/completions`)
+            ]);
+            const allTasks = allTasksRes.data;
+            const completedIds = completionsRes.data.map(c => c.quest_id);
             setActiveTasks(allTasks.filter(t => !completedIds.includes(t.id) && t.advertiser_id !== userId));
             setCompletedTasks(allTasks.filter(t => completedIds.includes(t.id)));
-            for (const task of allTasks) {
-                if (task.type === 'subscription' && task.target_url.includes('t.me/')) {
-                    let username = task.target_url.split('t.me/')[1].replace('/', '');
-                    await fetchChannelAvatar(username, task.id);
-                    if (task.nft_gift_url) {
-                        try {
-                            const nftRes = await axios.post(`${API_URL}/api/parse-nft-background`, { nftUrl: task.nft_gift_url });
-                            if (nftRes.data.success && nftRes.data.backgroundImage) {
-                                setNftBackgrounds(prev => ({
-                                    ...prev,
-                                    [task.id]: {
-                                        background: nftRes.data.backgroundImage,
-                                        pattern: nftRes.data.patternImage
-                                    }
-                                }));
-                            }
-                        } catch (e) { /* фон не загрузился */ }
-                    }
-                }
+
+            // Батчинг аватаров — все запросы параллельно
+            const avatarPromises = allTasks
+                .filter(t => t.type === 'subscription' && t.target_url.includes('t.me/'))
+                .map(async (task) => {
+                    const username = task.target_url.split('t.me/')[1].replace('/', '');
+                    try {
+                        const r = await axios.get(`${API_URL}/api/channel/avatar/${username}`);
+                        return [task.id, r.data.success ? r.data.avatar : null];
+                    } catch { return [task.id, null]; }
+                });
+
+            const avatarResults = await Promise.all(avatarPromises);
+            const avatarMap = Object.fromEntries(avatarResults);
+            setChannelAvatars(avatarMap);
+
+            // NFT фоны — только если не тач (тяжёлая операция + blur)
+            if (!IS_TOUCH) {
+                const nftTasks = allTasks.filter(t => t.nft_gift_url);
+                const nftPromises = nftTasks.map(async (task) => {
+                    try {
+                        const nftRes = await axios.post(`${API_URL}/api/parse-nft-background`, { nftUrl: task.nft_gift_url });
+                        if (nftRes.data.success && nftRes.data.backgroundImage) {
+                            return [task.id, { background: nftRes.data.backgroundImage, pattern: nftRes.data.patternImage }];
+                        }
+                    } catch { }
+                    return null;
+                });
+                const nftResults = (await Promise.all(nftPromises)).filter(Boolean);
+                if (nftResults.length) setNftBackgrounds(Object.fromEntries(nftResults));
             }
         } catch (e) { console.error(e); }
     };
+    
     const fetchMyQuests = async (userId) => {
         try { const r = await axios.get(`${API_URL}/api/user/${userId}/quests`); setMyQuests(r.data); } catch (e) { console.error(e); }
     };
@@ -579,13 +605,12 @@ function App() {
         button.appendChild(circle);
     };
 
-    const handleCardMove = (e) => {
+    // На тач — не вешаем обработчик
+    const handleCardMove = IS_TOUCH ? undefined : (e) => {
         const card = e.currentTarget;
         const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        card.style.setProperty('--x', `${x}px`);
-        card.style.setProperty('--y', `${y}px`);
+        card.style.setProperty('--x', `${e.clientX - rect.left}px`);
+        card.style.setProperty('--y', `${e.clientY - rect.top}px`);
     };
 
     const completeTask = async (taskId, taskUrl, channelUsername, inviteLink, verificationType, postUrl, referralUrl) => {
@@ -756,14 +781,14 @@ function App() {
 
     // ---- PROFILE ----
     if (showProfile) return (
-        <div style={st.profileOverlay}>
-            <div style={{...st.bgNeonGrid, transform: 'translateY(var(--parallax, 0px))'}}></div>
-            <div style={{...st.bgOrb1, transform: 'translateY(var(--parallax, 0px))'}}></div>
-            <div style={{...st.bgOrb2, transform: 'translateY(var(--parallax, 0px))'}}></div>
-            <div style={{...st.bgOrb3, transform: 'translateY(var(--parallax, 0px))'}}></div>
-            <div style={{...st.bgOrb4, transform: 'translateY(var(--parallax, 0px))'}}></div>
+        <div style={IS_TOUCH ? {...st.profileOverlay, backgroundAttachment: 'scroll'} : st.profileOverlay}>
+            <div style={{...st.bgNeonGrid, transform: IS_TOUCH ? 'none' : 'translateY(var(--parallax, 0px))'}}></div>
+            <div style={{...st.bgOrb1, animation: IS_TOUCH ? 'none' : undefined, filter: IS_TOUCH ? 'blur(40px)' : 'blur(120px)', transform: IS_TOUCH ? 'none' : 'translateY(var(--parallax, 0px))'}}></div>
+            <div style={{...st.bgOrb2, animation: IS_TOUCH ? 'none' : undefined, filter: IS_TOUCH ? 'blur(40px)' : 'blur(120px)', transform: IS_TOUCH ? 'none' : 'translateY(var(--parallax, 0px))'}}></div>
+            <div style={{...st.bgOrb3, animation: IS_TOUCH ? 'none' : undefined, filter: IS_TOUCH ? 'blur(40px)' : 'blur(120px)', transform: IS_TOUCH ? 'none' : 'translateY(var(--parallax, 0px))'}}></div>
+            <div style={{...st.bgOrb4, animation: IS_TOUCH ? 'none' : undefined, filter: IS_TOUCH ? 'blur(40px)' : 'blur(120px)', transform: IS_TOUCH ? 'none' : 'translateY(var(--parallax, 0px))'}}></div>
 
-            <div style={{...st.profileHeaderFrosted, opacity: Math.min(profileScrollY / 60, 0.85), backdropFilter: `blur(${Math.min(profileScrollY / 2, 30)}px)` }}>
+            <div style={{...st.profileHeaderFrosted, opacity: Math.min(profileScrollY / 60, 0.85), backdropFilter: IS_TOUCH ? 'none' : `blur(${Math.min(profileScrollY / 2, 30)}px)`, background: IS_TOUCH ? 'rgba(10,5,20,0.9)' : undefined }}>
                 <button onClick={() => setShowProfile(false)} style={st.backBtnPremium}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
                 </button>
@@ -771,7 +796,7 @@ function App() {
                 <div style={{width:36}}></div>
             </div>
 
-            <div style={st.profileBody} onScroll={(e) => setProfileScrollY(e.currentTarget.scrollTop)}>
+            <div style={{...st.profileBody, WebkitOverflowScrolling: 'touch'}} onScroll={(e) => setProfileScrollY(e.currentTarget.scrollTop)}>
                 <div style={st.profileAvatarSection}>
                     <div style={st.profileAvatarRing}>
                         <div style={st.profileAvatarInner}>
@@ -864,10 +889,10 @@ function App() {
     const totalCost = budgetVal + proCommission + socialsCount * 100;
 
     return (
-    <div style={st.modalOverlay}>
+    <div style={IS_TOUCH ? {...st.modalOverlay, backdropFilter: 'none', background: 'rgba(0,0,0,0.85)'} : st.modalOverlay}>
         <div style={{
             background: 'rgba(8,4,20,0.97)',
-            backdropFilter: 'blur(60px)',
+            backdropFilter: IS_TOUCH ? 'none' : 'blur(60px)',
             borderRadius: '28px 28px 0 0',
             width: '100%',
             maxWidth: '480px',
@@ -879,30 +904,28 @@ function App() {
             overflow: 'hidden',
             animation: 'fadeInUp 0.35s ease'
         }}>
-            {/* Анимированные орбы фона */}
             <div className="ctOrb" style={{
                 position: 'absolute', top: '-80px', right: '-60px', width: '260px', height: '260px',
-                borderRadius: '50%', filter: 'blur(70px)', pointerEvents: 'none', zIndex: 0,
+                borderRadius: '50%', filter: IS_TOUCH ? 'blur(30px)' : 'blur(70px)', pointerEvents: 'none', zIndex: 0,
                 background: `radial-gradient(circle, rgba(${cur.rgb},0.35), transparent 70%)`,
-                transition: 'background 0.5s ease'
+                transition: 'background 0.5s ease',
+                animation: IS_TOUCH ? 'none' : undefined
             }} />
             <div className="ctOrb" style={{
                 position: 'absolute', bottom: '-100px', left: '-80px', width: '300px', height: '300px',
-                borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none', zIndex: 0,
-                animationDelay: '-7s',
+                borderRadius: '50%', filter: IS_TOUCH ? 'blur(30px)' : 'blur(80px)', pointerEvents: 'none', zIndex: 0,
                 background: `radial-gradient(circle, rgba(${cur.rgb},0.18), transparent 70%)`,
-                transition: 'background 0.5s ease'
+                transition: 'background 0.5s ease',
+                animation: IS_TOUCH ? 'none' : undefined
             }} />
 
-            <div style={{position: 'relative', zIndex: 1, padding: '20px 22px 28px', overflowY: 'auto', maxHeight: '94vh', boxSizing: 'border-box'}}>
+            <div style={{position: 'relative', zIndex: 1, padding: '20px 22px 28px', overflowY: 'auto', maxHeight: '94vh', boxSizing: 'border-box', WebkitOverflowScrolling: 'touch'}}>
 
-                {/* Drag-handle */}
                 <div style={{
                     width: '40px', height: '4px', borderRadius: '4px',
                     background: 'rgba(255,255,255,0.12)', margin: '0 auto 16px'
                 }} />
 
-                {/* Шапка с динамической иконкой */}
                 <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px'}}>
                     <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                         <div style={{
@@ -928,7 +951,6 @@ function App() {
                     }}>✕</button>
                 </div>
 
-                {/* Тип задания — увеличенная сетка */}
                 <div style={{marginBottom: '22px'}}>
                     <p style={{margin: '0 0 12px', color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase'}}>① Тип задания</p>
                     <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
@@ -961,7 +983,6 @@ function App() {
                     </div>
                 </div>
 
-                {/* Поля под тип */}
                 <div style={{marginBottom: '22px'}}>
                     <p style={{margin: '0 0 12px', color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase'}}>② Ссылки</p>
 
@@ -1030,7 +1051,6 @@ function App() {
                     )}
                 </div>
 
-                {/* Формат — toggle pill */}
                 <div style={{marginBottom: '22px'}}>
                     <p style={{margin: '0 0 12px', color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase'}}>③ Формат</p>
                     <div style={{
@@ -1071,7 +1091,6 @@ function App() {
                     </div>
                 </div>
 
-                {/* Детали */}
                 <div style={{marginBottom: '22px'}}>
                     <p style={{margin: '0 0 12px', color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase'}}>④ Детали</p>
                     <input type="text" className="ctInput" placeholder="Название задания" style={st.inputPremium} ref={titleInput} />
@@ -1108,7 +1127,6 @@ function App() {
                         </div>
                     </div>
 
-                    {/* Live-сводка */}
                     {maxParticipants > 0 && (
                         <div style={{
                             background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
@@ -1129,7 +1147,6 @@ function App() {
                     )}
                 </div>
 
-                {/* NFT */}
                 <div style={{marginBottom: '22px'}}>
                     <p style={{margin: '0 0 12px', color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase'}}>
                         ⑤ 🎁 NFT Подарок <span style={{color: 'rgba(255,255,255,0.2)', fontWeight: '500', textTransform: 'none', letterSpacing: '0'}}>— опционально</span>
@@ -1166,7 +1183,6 @@ function App() {
                     )}
                 </div>
 
-                {/* PRO поля */}
                 {questType === 'extended' && (
                     <div style={{marginBottom: '22px'}}>
                         <div style={{
@@ -1194,7 +1210,6 @@ function App() {
                     </div>
                 )}
 
-                {/* Итог-карточка */}
                 {budgetVal > 0 && (
                     <div style={{
                         marginBottom: '14px', padding: '14px 16px',
@@ -1215,7 +1230,6 @@ function App() {
                     </div>
                 )}
 
-                {/* CTA */}
                 <button className="ctCreateBtn" onClick={createQuest} style={{
                     width: '100%', padding: '17px', borderRadius: '18px', cursor: 'pointer',
                     background: `linear-gradient(135deg, rgba(${cur.rgb},0.28), rgba(${cur.rgb},0.1))`,
@@ -1235,8 +1249,8 @@ function App() {
 })()}
 
             {showTonTopUpModal && (
-                <div style={st.modalOverlay}>
-                    <div style={st.sheetPremium}>
+                <div style={IS_TOUCH ? {...st.modalOverlay, backdropFilter: 'none', background: 'rgba(0,0,0,0.85)'} : st.modalOverlay}>
+                    <div style={IS_TOUCH ? {...st.sheetPremium, backdropFilter: 'none', background: 'rgb(15,5,30)'} : st.sheetPremium}>
                         <div style={st.sheetHeaderPremium}><span>💎</span><h3>Пополнение TON</h3><button onClick={() => { setShowTonTopUpModal(false); setTonPaymentStep('select'); }} style={st.closePremium}>✕</button></div>
                         {tonPaymentStep === 'select' && <>
                             <p style={st.textSecondary}>Выберите сумму пополнения:</p>
@@ -1250,8 +1264,8 @@ function App() {
             )}
 
             {showTopUpModal && (
-                <div style={st.modalOverlay}>
-                    <div style={st.sheetPremium}>
+                <div style={IS_TOUCH ? {...st.modalOverlay, backdropFilter: 'none', background: 'rgba(0,0,0,0.85)'} : st.modalOverlay}>
+                    <div style={IS_TOUCH ? {...st.sheetPremium, backdropFilter: 'none', background: 'rgb(15,5,30)'} : st.sheetPremium}>
                         <div style={st.sheetHeaderPremium}><span>⭐</span><h3>Пополнение Stars</h3><button onClick={() => setShowTopUpModal(false)} style={st.closePremium}>✕</button></div>
                         <p style={st.textSecondary}>Выберите сумму пополнения:</p>
                         <div style={st.amountGridPremium}>{[1, 50, 100, 250, 500, 1000].map(amt => (<button key={amt} onClick={() => setTopUpAmount(amt)} style={topUpAmount === amt ? st.amountBtnActivePremium : st.amountBtnPremium}>{amt} ⭐</button>))}</div>
@@ -1261,8 +1275,8 @@ function App() {
             )}
 
             {showConvertModal && (
-    <div style={st.modalOverlay}>
-        <div style={st.sheetPremium}>
+    <div style={IS_TOUCH ? {...st.modalOverlay, backdropFilter: 'none', background: 'rgba(0,0,0,0.85)'} : st.modalOverlay}>
+        <div style={IS_TOUCH ? {...st.sheetPremium, backdropFilter: 'none', background: 'rgb(15,5,30)'} : st.sheetPremium}>
             <div style={st.sheetHeaderPremium}><span>🔄</span><h3>Stars → TON</h3><button onClick={() => { setShowConvertModal(false); setConvertStep('select'); }} style={st.closePremium}>✕</button></div>
             {convertStep === 'select' && <>
                 <p style={st.textSecondary}>Курс: {conversionRate} ⭐ = 1 💎 TON · Ваш баланс: {balance} ⭐</p>
@@ -1277,8 +1291,8 @@ function App() {
 )}
 
 {showWithdrawModal && (
-    <div style={st.modalOverlay}>
-        <div style={st.sheetPremium}>
+    <div style={IS_TOUCH ? {...st.modalOverlay, backdropFilter: 'none', background: 'rgba(0,0,0,0.85)'} : st.modalOverlay}>
+        <div style={IS_TOUCH ? {...st.sheetPremium, backdropFilter: 'none', background: 'rgb(15,5,30)'} : st.sheetPremium}>
             <div style={st.sheetHeaderPremium}><span>💸</span><h3>Вывод TON</h3><button onClick={() => { setShowWithdrawModal(false); setWithdrawStep('select'); }} style={st.closePremium}>✕</button></div>
             {withdrawStep === 'select' && <>
                 <p style={st.textSecondary}>Доступно: {parseFloat(tonBalance || 0).toFixed(3)} TON · Минимум 0.1 TON</p>
@@ -1299,12 +1313,16 @@ function App() {
 
     // ---- MAIN ----
     return (
-        <div style={{...st.screen, animation: 'bgMove 20s ease infinite'}}>
-            <div style={{...st.bgNeonGrid, transform: 'translateY(var(--parallax, 0px))'}}></div>
-            <div style={{...st.bgOrb1, transform: 'translateY(var(--parallax, 0px))'}}></div>
-            <div style={{...st.bgOrb2, transform: 'translateY(var(--parallax, 0px))'}}></div>
-            <div style={{...st.bgOrb3, transform: 'translateY(var(--parallax, 0px))'}}></div>
-            <div style={{...st.bgOrb4, transform: 'translateY(var(--parallax, 0px))'}}></div>
+        <div style={{
+            ...st.screen,
+            backgroundAttachment: IS_TOUCH ? 'scroll' : 'fixed',
+            animation: IS_TOUCH ? 'none' : 'bgMove 20s ease infinite'
+        }}>
+            <div style={{...st.bgNeonGrid, transform: IS_TOUCH ? 'none' : 'translateY(var(--parallax, 0px))'}}></div>
+            <div style={{...st.bgOrb1, animation: IS_TOUCH ? 'none' : undefined, filter: IS_TOUCH ? 'blur(40px)' : 'blur(120px)', transform: IS_TOUCH ? 'none' : 'translateY(var(--parallax, 0px))'}}></div>
+            <div style={{...st.bgOrb2, animation: IS_TOUCH ? 'none' : undefined, filter: IS_TOUCH ? 'blur(40px)' : 'blur(120px)', transform: IS_TOUCH ? 'none' : 'translateY(var(--parallax, 0px))'}}></div>
+            <div style={{...st.bgOrb3, animation: IS_TOUCH ? 'none' : undefined, filter: IS_TOUCH ? 'blur(40px)' : 'blur(120px)', transform: IS_TOUCH ? 'none' : 'translateY(var(--parallax, 0px))'}}></div>
+            <div style={{...st.bgOrb4, animation: IS_TOUCH ? 'none' : undefined, filter: IS_TOUCH ? 'blur(40px)' : 'blur(120px)', transform: IS_TOUCH ? 'none' : 'translateY(var(--parallax, 0px))'}}></div>
 
             <div style={st.headerMain}>
                 <div style={st.logoMain} onClick={() => window.Telegram.WebApp.openLink('https://t.me/startask_official')}>⭐ StarTask</div>
@@ -1319,7 +1337,7 @@ function App() {
                 </div>
             </div>
 
-            <div style={st.mainScroll}>
+            <div style={{...st.mainScroll, WebkitOverflowScrolling: 'touch', willChange: 'transform', transform: 'translateZ(0)'}} className="mainScroll">
                 {mainTab === 'tasks' && (<>
                     <div style={st.segmentWrap}>
                         <button onClick={() => setActiveTab('active')} style={activeTab === 'active' ? st.segmentActive : st.segment}>Активные<span style={st.segmentBadge}>{activeTasks.length}</span></button>
@@ -1335,7 +1353,6 @@ function App() {
     };
     const tMeta = typeMeta[task.verification_type] || typeMeta.admin;
     const hasNftBg = !!nftBackgrounds[task.id];
-    const isTouch = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
     return (
     <motion.div
@@ -1347,25 +1364,40 @@ function App() {
             position: 'relative',
             overflow: 'hidden',
             border: `1px solid rgba(${tMeta.rgb}, 0.32)`,
-            boxShadow: `0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(${tMeta.rgb}, 0.06), 0 8px 28px rgba(${tMeta.rgb}, 0.18)`,
+            boxShadow: IS_TOUCH
+                ? `0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(${tMeta.rgb}, 0.06)`
+                : `0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(${tMeta.rgb}, 0.06), 0 8px 28px rgba(${tMeta.rgb}, 0.18)`,
             background: hasNftBg
                 ? 'transparent'
-                : isTouch
-                    ? `linear-gradient(135deg, rgba(${tMeta.rgb},0.1), rgba(255,255,255,0.025))`
-                    : `radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(${tMeta.rgb},0.18), transparent 55%), linear-gradient(135deg, rgba(${tMeta.rgb},0.06), rgba(255,255,255,0.025))`,
+                : `linear-gradient(135deg, rgba(${tMeta.rgb},0.1), rgba(255,255,255,0.025))`,
+            transition: IS_TOUCH ? 'transform 0.15s ease' : 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease',
+            willChange: 'transform',
+            transform: 'translateZ(0)',
+            contain: 'layout style paint',
         }}
-        onMouseMove={isTouch ? undefined : (e) => handleCardMove(e)}
-        initial={{ opacity: 0, y: 25 }}
+        onMouseMove={handleCardMove}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: i * 0.05 }}
-        whileTap={{ scale: 0.97 }}
+        transition={{ delay: i * 0.04, duration: 0.35 }}
+        whileTap={{ scale: 0.98 }}
         onClick={() => {
             if (task.quest_type === 'extended') {
                setSelectedTask(task);
             }
         }}
     >
-        {/* Цветной акцент-полоска слева */}
+        {/* Анимированный шиммер для ВСЕХ карточек */}
+        <motion.div
+            className="cardShimmer"
+            animate={{ x: ['-120%', '120%'] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'linear', delay: i * 0.2 }}
+            style={{
+                position: 'absolute', top: 0, left: 0, width: '60%', height: '100%',
+                background: `linear-gradient(90deg, transparent 0%, rgba(${tMeta.rgb}, 0.12) 50%, transparent 100%)`,
+                zIndex: 1, pointerEvents: 'none', willChange: 'transform',
+            }}
+        />
+
         <div style={{
             position: 'absolute', left: 0, top: '12%', bottom: '12%', width: '3px',
             borderRadius: '0 4px 4px 0',
@@ -1377,33 +1409,28 @@ function App() {
         {nftBackgrounds[task.id]?.background && (
             <>
                 <div style={{
-                    position: 'absolute',
-                    inset: 0,
+                    position: 'absolute', inset: 0,
                     backgroundImage: `url(${nftBackgrounds[task.id].background})`,
-                    backgroundSize: '200% auto',
-                    backgroundPosition: 'center center',
-                    filter: 'blur(12px) brightness(0.5) saturate(1.4)',
+                    backgroundSize: '200% auto', backgroundPosition: 'center center',
+                    filter: IS_TOUCH ? 'blur(4px) brightness(0.5)' : 'blur(12px) brightness(0.5) saturate(1.4)',
                     zIndex: 0,
                 }} />
                 <div style={{
-                    position: 'absolute',
-                    inset: 0,
+                    position: 'absolute', inset: 0,
                     background: `linear-gradient(135deg, rgba(${tMeta.rgb},0.25) 0%, rgba(0,0,0,0.4) 100%)`,
                     zIndex: 0
                 }} />
             </>
         )}
 
-        <div style={st.cardGlow}></div>
+        <div style={{...st.cardGlow, animation: IS_TOUCH ? 'none' : 'shine 6s infinite'}}></div>
 
         <div style={{
-            ...st.questAvatar,
-            position: 'relative', zIndex: 1,
+            ...st.questAvatar, position: 'relative', zIndex: 1,
             background: channelAvatars[task.id] ? 'transparent' : getChannelColor(task.title),
             boxShadow: `0 0 0 2px rgba(${tMeta.rgb}, 0.35), 0 4px 16px rgba(${tMeta.rgb}, 0.25)`
         }}>
             {channelAvatars[task.id] ? <img src={channelAvatars[task.id]} alt="" style={st.questAvatarImg} /> : <span style={st.questAvatarLetter}>{getChannelInitial(task.title, task.target_url)}</span>}
-            {/* Иконка-бейдж типа задания на аватаре */}
             <div style={{
                 position: 'absolute', bottom: '-2px', right: '-2px',
                 width: '20px', height: '20px', borderRadius: '50%',
@@ -1417,7 +1444,6 @@ function App() {
 
         <div style={{...st.questBody, position: 'relative', zIndex: 1}}>
             <div style={{display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '6px'}}>
-                {/* Бейдж типа */}
                 <div style={{
                     display: 'inline-flex', alignItems: 'center', gap: '4px',
                     background: `rgba(${tMeta.rgb}, 0.12)`,
@@ -1499,10 +1525,9 @@ function App() {
                 </>)}
             </div>
 
-            {/* Раскрытая карточка задания — теперь на главном экране */}
             {selectedTask && (
-                <div style={st.modalOverlay} onClick={() => setSelectedTask(null)}>
-                    <div style={{...st.sheetPremium, maxHeight: '85vh', overflowY: 'auto'}} onClick={e => e.stopPropagation()}>
+                <div style={IS_TOUCH ? {...st.modalOverlay, backdropFilter: 'none', background: 'rgba(0,0,0,0.85)'} : st.modalOverlay} onClick={() => setSelectedTask(null)}>
+                    <div style={{...st.sheetPremium, maxHeight: '85vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch'}} onClick={e => e.stopPropagation()}>
                         <div style={{position: 'relative', marginBottom: '16px'}}>
                             {channelAvatars[selectedTask.id] ? (
                                 <img src={channelAvatars[selectedTask.id]} alt="" style={{width: '100%', height: '160px', objectFit: 'cover', borderRadius: '16px'}} />
@@ -1543,7 +1568,7 @@ function App() {
                         {selectedTask.screenshots && selectedTask.screenshots.length > 0 && (
                             <div style={{marginBottom: '16px'}}>
                                 <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px'}}>Скриншоты</p>
-                                <div style={{display: 'flex', gap: '8px', overflowX: 'auto'}}>
+                                <div style={{display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch'}}>
                                     {selectedTask.screenshots.map((url, i) => url && (
                                         <img key={i} src={url} alt={`screenshot ${i+1}`} style={{width: '140px', height: '200px', objectFit: 'cover', borderRadius: '10px', flexShrink: 0}} />
                                     ))}
@@ -1622,7 +1647,7 @@ const st = {
     rewardTag: { fontSize: '11px', fontWeight: '700', color: '#FF3366', background: 'rgba(255,51,102,0.08)', border: '1px solid rgba(255,51,102,0.15)', borderRadius: '20px', padding: '4px 10px' },
     actionBtnPremium: { fontSize: '12px', fontWeight: '600', color: '#00C2FF', background: 'rgba(0,194,255,0.06)', border: '1px solid rgba(0,194,255,0.15)', borderRadius: '20px', padding: '7px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease' },
     completedMark: { fontSize: '12px', color: 'rgba(255,255,255,0.2)' },
-    questCardUltra: { position: 'relative', backdropFilter: 'blur(30px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '16px', display: 'flex', gap: '14px', marginBottom: '12px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)' },
+    questCardUltra: { position: 'relative', backdropFilter: 'blur(30px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '16px', display: 'flex', gap: '14px', marginBottom: '12px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease' },
     cardGlow: { position: 'absolute', inset: 0, background: 'linear-gradient(120deg, transparent, rgba(255,255,255,0.05), transparent)', animation: 'shine 6s infinite' },
     actionBtnUltra: { fontSize: '12px', fontWeight: '600', color: 'white', background: 'linear-gradient(135deg,#00C2FF,#FF3366)', border: 'none', borderRadius: '16px', padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 20px rgba(0,194,255,0.4)', transition: 'all 0.25s ease' },
     emptyStatePremium: { textAlign: 'center', padding: '60px 20px' },
@@ -1751,7 +1776,6 @@ styleSheet.textContent = `
     select, select option { background: rgba(15,5,30,0.99); color: white; }
     button { -webkit-tap-highlight-color: transparent; outline: none; font-family: inherit; cursor: pointer; }
     button:disabled { opacity: 0.4; cursor: not-allowed; }
-    button:not(:disabled):hover { filter: brightness(1.1); }
     button:not(:disabled):active { transform: scale(0.97); }
     * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
     input, textarea { -webkit-user-select: text; user-select: text; }
@@ -1762,44 +1786,31 @@ styleSheet.textContent = `
     .ctTypeCard { position: relative; overflow: hidden; }
     .ctTypeCard::before { content: ''; position: absolute; inset: -1px; border-radius: 16px; padding: 1px; background: linear-gradient(135deg, transparent, rgba(255,255,255,0.06), transparent); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; opacity: 0; transition: opacity .3s; }
     .ctTypeCard:hover::before { opacity: 1; }
-    .ctTypeCard:hover { transform: translateY(-2px); }
     .ctCreateBtn { position: relative; overflow: hidden; }
-    .ctCreateBtn::after { content: ''; position: absolute; top: 0; left: -60%; width: 50%; height: 100%; background: linear-gradient(120deg, transparent, rgba(255,255,255,0.18), transparent); animation: shimmerSweep 2.6s ease-in-out infinite; }
     .ctOrb { animation: orbDrift 14s ease-in-out infinite; }
     .ctChip { animation: chipPop 0.35s cubic-bezier(.2,1.4,.4,1) both; }
-    @keyframes shimmerSweep { 0% { left: -60%; } 60%, 100% { left: 130%; } }
-    @keyframes orbDrift { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(2%, 4%) scale(1.06); } }
-    @keyframes chipPop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+    .mainScroll { -webkit-overflow-scrolling: touch !important; }
+    .cardShimmer { will-change: transform; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } }
     @keyframes loadbar { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes cardEntrance { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-    @keyframes orbMove1 { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(3%, 2%) scale(1.05); } 66% { transform: translate(-2%, -1%) scale(0.95); } }
-    @keyframes orbMove2 { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(-3%, -2%) scale(1.05); } 66% { transform: translate(2%, 1%) scale(0.95); } }
-    @keyframes orbMove3 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(2%, -3%) scale(1.08); } }
-    @keyframes orbMove4 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-2%, 2%) scale(1.06); } }
-    @keyframes shine { 0% { transform: translateX(-100%);} 100% { transform: translateX(200%);} }
+    @keyframes orbDrift { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(2%, 4%) scale(1.06); } }
+    @keyframes chipPop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
     @keyframes ripple { to { transform: scale(4); opacity: 0; } }
     @keyframes bgMove { 0% { background-position: 0% 0%, 100% 100%, center; } 50% { background-position: 10% 5%, 90% 95%, center; } 100% { background-position: 0% 0%, 100% 100%, center; } }
     .fadeInUp { animation: fadeInUp 0.5s ease both; }
     .cardEntrance { animation: cardEntrance 0.4s ease both; }
     ::-webkit-scrollbar { width: 0; }
 
-    /* === Оптимизация для мобильных / тач-устройств: отключаем всё, что тормозит GPU === */
     @media (hover: none) and (pointer: coarse), (max-width: 768px) {
-        /* Тяжёлый backdrop-filter — главный источник лагов на мобильных */
-        *[style*="backdrop-filter"], *[style*="backdropFilter"] { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
-        /* Огромные blur-орбы фона */
-        .bgOrbMobile, [style*="filter: blur(120px)"], [style*="filter: blur(80px)"], [style*="filter: blur(70px)"], [style*="filter: blur(60px)"] { filter: blur(40px) !important; animation: none !important; }
-        /* Постоянные keyframe-анимации фона/блеска */
-        .ctOrb, .ctCreateBtn::after { animation: none !important; }
-        /* Анимация фона главного экрана */
-        body, html, #root { animation: none !important; }
-        /* Парящий блик у карточек */
-        .questCardUltra > div:first-child + div { animation: none !important; }
-        /* Уменьшаем тени и плавности — composite дешевле */
-        .questCardUltra { transition: transform 0.15s ease !important; box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important; }
+        * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+        [class*="bgOrb"] { filter: blur(40px) !important; }
+        .ctOrb, .ctCreateBtn::after, .cardGlow { animation: none !important; }
+        .questCardUltra { transition: transform 0.15s ease !important; }
+        body > div { background-attachment: scroll !important; }
+        .cardGlow { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
