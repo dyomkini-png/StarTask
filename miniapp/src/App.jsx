@@ -842,7 +842,22 @@ function App() {
                 )}
             </div>
 
-{showCreateForm && (
+{showCreateForm && (() => {
+    const typeMeta = {
+        admin:    { icon: '📢', title: 'Подписка',  desc: 'Подписаться на канал', color: '#00C2FF', rgb: '0,194,255' },
+        invite:   { icon: '🔗', title: 'Инвайт',    desc: 'Вступить по ссылке',   color: '#A855F7', rgb: '168,85,247' },
+        repost:   { icon: '🔁', title: 'Репост',    desc: 'Переслать запись',     color: '#FFC107', rgb: '255,193,7' },
+        referral: { icon: '👥', title: 'Реферал',   desc: 'Переход по ссылке',    color: '#4CAF50', rgb: '76,175,80' },
+    };
+    const cur = typeMeta[verificationType];
+    const rewardVal = parseInt(rewardInput.current?.value) || 0;
+    const budgetVal = parseInt(totalBudget) || 0;
+    const maxParticipants = rewardVal > 0 && budgetVal >= rewardVal ? Math.floor(budgetVal / rewardVal) : 0;
+    const proCommission = questType === 'extended' ? Math.max(50, Math.round(budgetVal * 0.05)) : 0;
+    const socialsCount = questType === 'extended' ? Object.values(socialLinks).filter(v => v && v.trim()).length : 0;
+    const totalCost = budgetVal + proCommission + socialsCount * 100;
+
+    return (
     <div style={st.modalOverlay}>
         <div style={{
             background: 'rgba(8,4,20,0.97)',
@@ -850,249 +865,273 @@ function App() {
             borderRadius: '28px 28px 0 0',
             width: '100%',
             maxWidth: '480px',
-            maxHeight: '92vh',
-            overflowY: 'auto',
+            maxHeight: '94vh',
             border: '1px solid rgba(255,255,255,0.07)',
             borderBottom: 'none',
             boxSizing: 'border-box',
             position: 'relative',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            animation: 'fadeInUp 0.35s ease'
         }}>
-            {/* Декоративный градиент сверху */}
-            <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: '200px',
-                background: verificationType === 'admin' ? 'radial-gradient(ellipse at 50% -20%, rgba(0,194,255,0.18) 0%, transparent 70%)' :
-                            verificationType === 'invite' ? 'radial-gradient(ellipse at 50% -20%, rgba(168,85,247,0.18) 0%, transparent 70%)' :
-                            verificationType === 'repost' ? 'radial-gradient(ellipse at 50% -20%, rgba(255,193,7,0.18) 0%, transparent 70%)' :
-                            'radial-gradient(ellipse at 50% -20%, rgba(76,175,80,0.18) 0%, transparent 70%)',
-                pointerEvents: 'none', zIndex: 0, transition: 'background 0.4s ease'
+            {/* Анимированные орбы фона */}
+            <div className="ctOrb" style={{
+                position: 'absolute', top: '-80px', right: '-60px', width: '260px', height: '260px',
+                borderRadius: '50%', filter: 'blur(70px)', pointerEvents: 'none', zIndex: 0,
+                background: `radial-gradient(circle, rgba(${cur.rgb},0.35), transparent 70%)`,
+                transition: 'background 0.5s ease'
+            }} />
+            <div className="ctOrb" style={{
+                position: 'absolute', bottom: '-100px', left: '-80px', width: '300px', height: '300px',
+                borderRadius: '50%', filter: 'blur(80px)', pointerEvents: 'none', zIndex: 0,
+                animationDelay: '-7s',
+                background: `radial-gradient(circle, rgba(${cur.rgb},0.18), transparent 70%)`,
+                transition: 'background 0.5s ease'
             }} />
 
-            <div style={{position: 'relative', zIndex: 1, padding: '24px', overflowY: 'auto', maxHeight: '92vh', boxSizing: 'border-box'}}>
+            <div style={{position: 'relative', zIndex: 1, padding: '20px 22px 28px', overflowY: 'auto', maxHeight: '94vh', boxSizing: 'border-box'}}>
 
-                {/* Шапка */}
-                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px'}}>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                {/* Drag-handle */}
+                <div style={{
+                    width: '40px', height: '4px', borderRadius: '4px',
+                    background: 'rgba(255,255,255,0.12)', margin: '0 auto 16px'
+                }} />
+
+                {/* Шапка с динамической иконкой */}
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px'}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                         <div style={{
-                            width: '36px', height: '36px', borderRadius: '12px',
-                            background: verificationType === 'admin' ? 'rgba(0,194,255,0.12)' :
-                                        verificationType === 'invite' ? 'rgba(168,85,247,0.12)' :
-                                        verificationType === 'repost' ? 'rgba(255,193,7,0.12)' : 'rgba(76,175,80,0.12)',
-                            border: verificationType === 'admin' ? '1px solid rgba(0,194,255,0.25)' :
-                                    verificationType === 'invite' ? '1px solid rgba(168,85,247,0.25)' :
-                                    verificationType === 'repost' ? '1px solid rgba(255,193,7,0.25)' : '1px solid rgba(76,175,80,0.25)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px',
-                            transition: 'all 0.3s ease'
-                        }}>
-                            {verificationType === 'admin' ? '📢' : verificationType === 'invite' ? '🔗' : verificationType === 'repost' ? '🔁' : '👥'}
-                        </div>
+                            width: '46px', height: '46px', borderRadius: '14px',
+                            background: `linear-gradient(135deg, rgba(${cur.rgb},0.25), rgba(${cur.rgb},0.05))`,
+                            border: `1px solid rgba(${cur.rgb},0.3)`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px',
+                            boxShadow: `0 8px 24px rgba(${cur.rgb},0.18)`,
+                            transition: 'all 0.4s ease'
+                        }}>{cur.icon}</div>
                         <div>
-                            <p style={{margin: 0, color: 'white', fontSize: '17px', fontWeight: '800', letterSpacing: '-0.3px'}}>Новое задание</p>
-                            <p style={{margin: 0, color: 'rgba(255,255,255,0.3)', fontSize: '11px'}}>
-                                {verificationType === 'admin' ? 'Подписка на канал' :
-                                 verificationType === 'invite' ? 'Переход по инвайту' :
-                                 verificationType === 'repost' ? 'Репост записи' : 'Реферальный переход'}
+                            <p style={{margin: 0, color: 'white', fontSize: '19px', fontWeight: '800', letterSpacing: '-0.4px'}}>Новое задание</p>
+                            <p key={verificationType} className="ctChip" style={{margin: '2px 0 0', color: cur.color, fontSize: '12px', fontWeight: '600'}}>
+                                {cur.desc}
                             </p>
                         </div>
                     </div>
                     <button onClick={() => setShowCreateForm(false)} style={{
                         background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: '50%', width: '32px', height: '32px', display: 'flex',
+                        borderRadius: '50%', width: '34px', height: '34px', display: 'flex',
                         alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)',
                         fontSize: '14px', cursor: 'pointer'
                     }}>✕</button>
                 </div>
 
-                {/* Тип задания — крупные иконки */}
-                <div style={{marginBottom: '20px'}}>
-                    <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontWeight: '600', letterSpacing: '1.5px', textTransform: 'uppercase'}}>Тип задания</p>
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
-                        {[
-                            { id: 'admin', icon: '📢', title: 'Подписка', desc: 'Подписаться на канал', color: '#00C2FF', bg: 'rgba(0,194,255,' },
-                            { id: 'invite', icon: '🔗', title: 'Инвайт', desc: 'Вступить по ссылке', color: '#A855F7', bg: 'rgba(168,85,247,' },
-                            { id: 'repost', icon: '🔁', title: 'Репост', desc: 'Переслать запись', color: '#FFC107', bg: 'rgba(255,193,7,' },
-                            { id: 'referral', icon: '👥', title: 'Реферал', desc: 'Переход по ссылке', color: '#4CAF50', bg: 'rgba(76,175,80,' },
-                        ].map(({ id, icon, title, desc, color, bg }) => {
+                {/* Тип задания — увеличенная сетка */}
+                <div style={{marginBottom: '22px'}}>
+                    <p style={{margin: '0 0 12px', color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase'}}>① Тип задания</p>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
+                        {Object.entries(typeMeta).map(([id, m]) => {
                             const isActive = verificationType === id;
                             return (
-                                <button key={id} onClick={() => setVerificationType(id)} style={{
-                                    padding: '14px 12px',
-                                    background: isActive ? `${bg}0.1)` : 'rgba(255,255,255,0.025)',
-                                    border: isActive ? `1.5px solid ${bg}0.4)` : '1.5px solid rgba(255,255,255,0.06)',
+                                <button key={id} className="ctTypeCard" onClick={() => setVerificationType(id)} style={{
+                                    padding: '16px 14px',
+                                    background: isActive ? `linear-gradient(135deg, rgba(${m.rgb},0.14), rgba(${m.rgb},0.04))` : 'rgba(255,255,255,0.025)',
+                                    border: isActive ? `1.5px solid rgba(${m.rgb},0.5)` : '1.5px solid rgba(255,255,255,0.06)',
                                     borderRadius: '16px', cursor: 'pointer', textAlign: 'left',
                                     transition: 'all 0.25s ease',
-                                    boxShadow: isActive ? `0 4px 20px ${bg}0.15)` : 'none'
+                                    boxShadow: isActive ? `0 8px 28px rgba(${m.rgb},0.22)` : 'none',
+                                    transform: isActive ? 'translateY(-2px)' : 'none'
                                 }}>
-                                    <div style={{fontSize: '22px', marginBottom: '6px'}}>{icon}</div>
-                                    <p style={{margin: '0 0 2px', color: isActive ? color : 'rgba(255,255,255,0.7)', fontSize: '13px', fontWeight: '700'}}>{title}</p>
-                                    <p style={{margin: 0, color: 'rgba(255,255,255,0.3)', fontSize: '10px'}}>{desc}</p>
-                                    {isActive && <div style={{
-                                        width: '20px', height: '2px', borderRadius: '10px',
-                                        background: color, marginTop: '8px'
-                                    }} />}
+                                    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px'}}>
+                                        <div style={{fontSize: '24px'}}>{m.icon}</div>
+                                        {isActive && <div style={{
+                                            width: '18px', height: '18px', borderRadius: '50%',
+                                            background: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: '10px', color: 'white', fontWeight: '900',
+                                            boxShadow: `0 0 12px ${m.color}80`
+                                        }}>✓</div>}
+                                    </div>
+                                    <p style={{margin: '0 0 3px', color: isActive ? m.color : 'rgba(255,255,255,0.85)', fontSize: '14px', fontWeight: '700'}}>{m.title}</p>
+                                    <p style={{margin: 0, color: 'rgba(255,255,255,0.35)', fontSize: '10.5px', lineHeight: 1.3}}>{m.desc}</p>
                                 </button>
                             );
                         })}
                     </div>
                 </div>
 
-                {/* Разделитель */}
-                <div style={{height: '1px', background: 'rgba(255,255,255,0.05)', margin: '0 0 20px'}} />
+                {/* Поля под тип */}
+                <div style={{marginBottom: '22px'}}>
+                    <p style={{margin: '0 0 12px', color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase'}}>② Ссылки</p>
 
-                {/* Поля под тип задания */}
-                <div style={{marginBottom: '4px'}}>
                     {verificationType === 'admin' && (
-                        <div style={{marginBottom: '12px'}}>
+                        <>
                             <div style={{
-                                background: 'rgba(0,194,255,0.05)', border: '1px solid rgba(0,194,255,0.12)',
-                                borderRadius: '12px', padding: '10px 14px', marginBottom: '10px',
-                                display: 'flex', alignItems: 'center', gap: '8px'
+                                background: `rgba(${cur.rgb},0.05)`, border: `1px solid rgba(${cur.rgb},0.15)`,
+                                borderRadius: '14px', padding: '12px 14px', marginBottom: '12px',
+                                display: 'flex', alignItems: 'flex-start', gap: '10px'
                             }}>
-                                <span style={{fontSize: '14px'}}>ℹ️</span>
-                                <p style={{margin: 0, fontSize: '11px', color: 'rgba(0,194,255,0.7)', lineHeight: 1.4}}>
-                                    Добавьте <strong style={{color: '#00C2FF'}}>@StarTaskBot</strong> как администратора канала для точной проверки подписки
+                                <span style={{fontSize: '15px', marginTop: '1px'}}>ℹ️</span>
+                                <p style={{margin: 0, fontSize: '11.5px', color: `rgba(${cur.rgb},0.85)`, lineHeight: 1.45}}>
+                                    Добавьте <strong style={{color: cur.color}}>@StarTaskBot</strong> администратором канала — нужно для автоматической проверки подписки.
                                 </p>
                             </div>
-                            <input type="text" placeholder="t.me/yourchannel" style={{
-                                ...st.inputPremium,
-                                borderColor: 'rgba(0,194,255,0.2)',
-                                background: 'rgba(0,194,255,0.03)'
-                            }} ref={channelInput} />
-                        </div>
+                            <input type="text" className="ctInput" placeholder="t.me/yourchannel" style={{...st.inputPremium, borderColor: `rgba(${cur.rgb},0.2)`, background: `rgba(${cur.rgb},0.03)`}} ref={channelInput} />
+                        </>
                     )}
                     {verificationType === 'invite' && (
-                        <div style={{marginBottom: '12px'}}>
+                        <>
                             <div style={{
-                                background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.12)',
-                                borderRadius: '12px', padding: '10px 14px', marginBottom: '10px',
-                                display: 'flex', alignItems: 'center', gap: '8px'
+                                background: `rgba(${cur.rgb},0.05)`, border: `1px solid rgba(${cur.rgb},0.15)`,
+                                borderRadius: '14px', padding: '12px 14px', marginBottom: '12px',
+                                display: 'flex', alignItems: 'flex-start', gap: '10px'
                             }}>
-                                <span style={{fontSize: '14px'}}>🔗</span>
-                                <p style={{margin: 0, fontSize: '11px', color: 'rgba(168,85,247,0.8)', lineHeight: 1.4}}>
-                                    Пользователь вступает по уникальной ссылке. Верификация — доверенная.
+                                <span style={{fontSize: '15px', marginTop: '1px'}}>🔗</span>
+                                <p style={{margin: 0, fontSize: '11.5px', color: `rgba(${cur.rgb},0.85)`, lineHeight: 1.45}}>
+                                    Пользователь вступает по уникальной ссылке. Доверенная верификация.
                                 </p>
                             </div>
-                            <input type="text" placeholder="t.me/+invite_code" style={{
-                                ...st.inputPremium,
-                                borderColor: 'rgba(168,85,247,0.2)',
-                                background: 'rgba(168,85,247,0.03)'
-                            }} value={inviteLinkInput} onChange={(e) => setInviteLinkInput(e.target.value)} />
-                            <input type="text" placeholder="Ссылка на канал (t.me/...)" style={st.inputPremium} ref={channelInput} />
-                        </div>
+                            <input type="text" className="ctInput" placeholder="t.me/+invite_code" style={{...st.inputPremium, borderColor: `rgba(${cur.rgb},0.2)`, background: `rgba(${cur.rgb},0.03)`}} value={inviteLinkInput} onChange={(e) => setInviteLinkInput(e.target.value)} />
+                            <input type="text" className="ctInput" placeholder="Ссылка на канал (t.me/...)" style={st.inputPremium} ref={channelInput} />
+                        </>
                     )}
                     {verificationType === 'repost' && (
-                        <div style={{marginBottom: '12px'}}>
+                        <>
                             <div style={{
-                                background: 'rgba(255,193,7,0.05)', border: '1px solid rgba(255,193,7,0.12)',
-                                borderRadius: '12px', padding: '10px 14px', marginBottom: '10px',
-                                display: 'flex', alignItems: 'center', gap: '8px'
+                                background: `rgba(${cur.rgb},0.05)`, border: `1px solid rgba(${cur.rgb},0.15)`,
+                                borderRadius: '14px', padding: '12px 14px', marginBottom: '12px',
+                                display: 'flex', alignItems: 'flex-start', gap: '10px'
                             }}>
-                                <span style={{fontSize: '14px'}}>🔁</span>
-                                <p style={{margin: 0, fontSize: '11px', color: 'rgba(255,193,7,0.8)', lineHeight: 1.4}}>
-                                    Пользователь пересылает пост. Верификация — доверенная после перехода.
+                                <span style={{fontSize: '15px', marginTop: '1px'}}>🔁</span>
+                                <p style={{margin: 0, fontSize: '11.5px', color: `rgba(${cur.rgb},0.85)`, lineHeight: 1.45}}>
+                                    Пользователь пересылает пост. Доверенная верификация после перехода.
                                 </p>
                             </div>
-                            <input type="text" placeholder="Ссылка на пост (t.me/channel/123)" style={{
-                                ...st.inputPremium,
-                                borderColor: 'rgba(255,193,7,0.2)',
-                                background: 'rgba(255,193,7,0.03)'
-                            }} value={postUrl} onChange={(e) => setPostUrl(e.target.value)} />
-                            <input type="text" placeholder="Ссылка на канал (t.me/...)" style={st.inputPremium} ref={channelInput} />
-                        </div>
+                            <input type="text" className="ctInput" placeholder="Ссылка на пост (t.me/channel/123)" style={{...st.inputPremium, borderColor: `rgba(${cur.rgb},0.2)`, background: `rgba(${cur.rgb},0.03)`}} value={postUrl} onChange={(e) => setPostUrl(e.target.value)} />
+                            <input type="text" className="ctInput" placeholder="Ссылка на канал (t.me/...)" style={st.inputPremium} ref={channelInput} />
+                        </>
                     )}
                     {verificationType === 'referral' && (
-                        <div style={{marginBottom: '12px'}}>
+                        <>
                             <div style={{
-                                background: 'rgba(76,175,80,0.05)', border: '1px solid rgba(76,175,80,0.12)',
-                                borderRadius: '12px', padding: '10px 14px', marginBottom: '10px',
-                                display: 'flex', alignItems: 'center', gap: '8px'
+                                background: `rgba(${cur.rgb},0.05)`, border: `1px solid rgba(${cur.rgb},0.15)`,
+                                borderRadius: '14px', padding: '12px 14px', marginBottom: '12px',
+                                display: 'flex', alignItems: 'flex-start', gap: '10px'
                             }}>
-                                <span style={{fontSize: '14px'}}>👥</span>
-                                <p style={{margin: 0, fontSize: '11px', color: 'rgba(76,175,80,0.8)', lineHeight: 1.4}}>
-                                    Пользователь переходит по реферальной ссылке. Верификация — доверенная.
+                                <span style={{fontSize: '15px', marginTop: '1px'}}>👥</span>
+                                <p style={{margin: 0, fontSize: '11.5px', color: `rgba(${cur.rgb},0.85)`, lineHeight: 1.45}}>
+                                    Пользователь переходит по реферальной ссылке. Доверенная верификация.
                                 </p>
                             </div>
-                            <input type="text" placeholder="Реферальная ссылка (t.me/bot?start=ref...)" style={{
-                                ...st.inputPremium,
-                                borderColor: 'rgba(76,175,80,0.2)',
-                                background: 'rgba(76,175,80,0.03)'
-                            }} value={referralUrl} onChange={(e) => setReferralUrl(e.target.value)} />
-                            <input type="text" placeholder="Ссылка на канал/бота (t.me/...)" style={st.inputPremium} ref={channelInput} />
-                        </div>
+                            <input type="text" className="ctInput" placeholder="Реферальная ссылка (t.me/bot?start=ref...)" style={{...st.inputPremium, borderColor: `rgba(${cur.rgb},0.2)`, background: `rgba(${cur.rgb},0.03)`}} value={referralUrl} onChange={(e) => setReferralUrl(e.target.value)} />
+                            <input type="text" className="ctInput" placeholder="Ссылка на канал/бота (t.me/...)" style={st.inputPremium} ref={channelInput} />
+                        </>
                     )}
                 </div>
 
-                {/* Разделитель */}
-                <div style={{height: '1px', background: 'rgba(255,255,255,0.05)', margin: '4px 0 20px'}} />
-
-                {/* Базовое / PRO */}
-                <div style={{marginBottom: '20px'}}>
-                    <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontWeight: '600', letterSpacing: '1.5px', textTransform: 'uppercase'}}>Формат</p>
-                    <div style={{display: 'flex', gap: '8px'}}>
+                {/* Формат — toggle pill */}
+                <div style={{marginBottom: '22px'}}>
+                    <p style={{margin: '0 0 12px', color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase'}}>③ Формат</p>
+                    <div style={{
+                        display: 'flex', padding: '4px', borderRadius: '16px',
+                        background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)',
+                        position: 'relative'
+                    }}>
+                        <div style={{
+                            position: 'absolute', top: '4px', bottom: '4px',
+                            left: questType === 'basic' ? '4px' : '50%',
+                            width: 'calc(50% - 4px)',
+                            borderRadius: '12px',
+                            background: questType === 'extended'
+                                ? 'linear-gradient(135deg, rgba(255,51,102,0.18), rgba(255,51,102,0.06))'
+                                : 'rgba(255,255,255,0.06)',
+                            border: questType === 'extended' ? '1px solid rgba(255,51,102,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                            transition: 'all 0.3s cubic-bezier(.4,1.4,.5,1)',
+                            boxShadow: questType === 'extended' ? '0 4px 16px rgba(255,51,102,0.18)' : 'none'
+                        }} />
                         <button onClick={() => setQuestType('basic')} style={{
-                            flex: 1, padding: '12px', borderRadius: '14px', cursor: 'pointer',
-                            background: questType === 'basic' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
-                            border: questType === 'basic' ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid rgba(255,255,255,0.05)',
-                            color: questType === 'basic' ? 'white' : 'rgba(255,255,255,0.35)',
-                            textAlign: 'center', transition: 'all 0.2s ease'
+                            flex: 1, padding: '12px 8px', borderRadius: '12px', cursor: 'pointer',
+                            background: 'transparent', border: 'none', position: 'relative', zIndex: 1,
+                            color: questType === 'basic' ? 'white' : 'rgba(255,255,255,0.4)',
+                            transition: 'color 0.2s'
                         }}>
-                            <p style={{margin: '0 0 2px', fontSize: '13px', fontWeight: '700'}}>📋 Базовое</p>
-                            <p style={{margin: 0, fontSize: '10px', opacity: 0.6}}>Без комиссии</p>
+                            <p style={{margin: '0 0 2px', fontSize: '13.5px', fontWeight: '700'}}>📋 Базовое</p>
+                            <p style={{margin: 0, fontSize: '10.5px', opacity: 0.6}}>Без комиссии</p>
                         </button>
                         <button onClick={() => setQuestType('extended')} style={{
-                            flex: 1, padding: '12px', borderRadius: '14px', cursor: 'pointer',
-                            background: questType === 'extended' ? 'rgba(255,51,102,0.08)' : 'rgba(255,255,255,0.02)',
-                            border: questType === 'extended' ? '1.5px solid rgba(255,51,102,0.3)' : '1.5px solid rgba(255,255,255,0.05)',
-                            color: questType === 'extended' ? '#FF3366' : 'rgba(255,255,255,0.35)',
-                            textAlign: 'center', transition: 'all 0.2s ease'
+                            flex: 1, padding: '12px 8px', borderRadius: '12px', cursor: 'pointer',
+                            background: 'transparent', border: 'none', position: 'relative', zIndex: 1,
+                            color: questType === 'extended' ? '#FF6B8A' : 'rgba(255,255,255,0.4)',
+                            transition: 'color 0.2s'
                         }}>
-                            <p style={{margin: '0 0 2px', fontSize: '13px', fontWeight: '700'}}>⭐ PRO</p>
-                            <p style={{margin: 0, fontSize: '10px', opacity: 0.6}}>5% комиссия</p>
+                            <p style={{margin: '0 0 2px', fontSize: '13.5px', fontWeight: '700'}}>⭐ PRO</p>
+                            <p style={{margin: 0, fontSize: '10.5px', opacity: 0.7}}>5% · приоритет</p>
                         </button>
                     </div>
                 </div>
 
-                {/* Основные поля */}
-                <div style={{marginBottom: '4px'}}>
-                    <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontWeight: '600', letterSpacing: '1.5px', textTransform: 'uppercase'}}>Детали задания</p>
-                    <input type="text" placeholder="Название задания" style={st.inputPremium} ref={titleInput} />
-                    <textarea placeholder="Краткое описание для пользователей" style={st.textareaPremium} ref={descInput} />
+                {/* Детали */}
+                <div style={{marginBottom: '22px'}}>
+                    <p style={{margin: '0 0 12px', color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase'}}>④ Детали</p>
+                    <input type="text" className="ctInput" placeholder="Название задания" style={st.inputPremium} ref={titleInput} />
+                    <textarea className="ctInput" placeholder="Краткое описание для пользователей" style={st.textareaPremium} ref={descInput} />
 
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px'}}>
-                        <div>
-                            <p style={{margin: '0 0 6px', color: 'rgba(255,255,255,0.3)', fontSize: '11px'}}>Награда ⭐</p>
-                            <input type="number" placeholder="5" style={{...st.inputPremium, marginBottom: 0, textAlign: 'center'}} ref={rewardInput} />
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px'}}>
+                        <div style={{
+                            padding: '12px 14px', borderRadius: '14px',
+                            background: 'linear-gradient(135deg, rgba(255,215,0,0.05), rgba(255,215,0,0.02))',
+                            border: '1px solid rgba(255,215,0,0.12)'
+                        }}>
+                            <p style={{margin: '0 0 4px', color: 'rgba(255,215,0,0.7)', fontSize: '10.5px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px'}}>Награда</p>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+                                <input type="number" className="ctInput" placeholder="5" style={{
+                                    width: '100%', padding: '4px 0', background: 'transparent', border: 'none',
+                                    color: 'white', fontSize: '20px', fontWeight: '800', outline: 'none', margin: 0
+                                }} ref={rewardInput} onChange={(e) => setTotalBudget(t => t)} />
+                                <span style={{fontSize: '16px'}}>⭐</span>
+                            </div>
                         </div>
-                        <div>
-                            <p style={{margin: '0 0 6px', color: 'rgba(255,255,255,0.3)', fontSize: '11px'}}>Бюджет ⭐</p>
-                            <input type="number" placeholder="500" style={{...st.inputPremium, marginBottom: 0, textAlign: 'center'}}
-                                value={totalBudget} onChange={(e) => setTotalBudget(e.target.value)} />
+                        <div style={{
+                            padding: '12px 14px', borderRadius: '14px',
+                            background: `linear-gradient(135deg, rgba(${cur.rgb},0.05), rgba(${cur.rgb},0.02))`,
+                            border: `1px solid rgba(${cur.rgb},0.15)`
+                        }}>
+                            <p style={{margin: '0 0 4px', color: `rgba(${cur.rgb},0.75)`, fontSize: '10.5px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px'}}>Бюджет</p>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+                                <input type="number" className="ctInput" placeholder="500" style={{
+                                    width: '100%', padding: '4px 0', background: 'transparent', border: 'none',
+                                    color: 'white', fontSize: '20px', fontWeight: '800', outline: 'none', margin: 0
+                                }} value={totalBudget} onChange={(e) => setTotalBudget(e.target.value)} />
+                                <span style={{fontSize: '16px'}}>⭐</span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Подсказка по участникам */}
-                    {totalBudget && rewardInput.current?.value && parseInt(totalBudget) >= parseInt(rewardInput.current?.value) && (
+                    {/* Live-сводка */}
+                    {maxParticipants > 0 && (
                         <div style={{
-                            background: 'rgba(0,194,255,0.04)', border: '1px solid rgba(0,194,255,0.12)',
-                            borderRadius: '12px', padding: '10px 14px', marginBottom: '10px',
+                            background: 'linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                            borderRadius: '14px', padding: '12px 14px', marginBottom: '10px',
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                         }}>
-                            <span style={{fontSize: '11px', color: 'rgba(255,255,255,0.4)'}}>👥 Макс. участников</span>
-                            <span style={{fontSize: '13px', fontWeight: '700', color: '#00C2FF'}}>
-                                {Math.floor(parseInt(totalBudget) / parseInt(rewardInput.current?.value))}
-                            </span>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                <span style={{fontSize: '15px'}}>👥</span>
+                                <span style={{fontSize: '12px', color: 'rgba(255,255,255,0.55)'}}>До <strong style={{color: 'white'}}>{maxParticipants}</strong> участников</span>
+                            </div>
+                            <div style={{
+                                padding: '4px 10px', borderRadius: '8px',
+                                background: `rgba(${cur.rgb},0.12)`, border: `1px solid rgba(${cur.rgb},0.25)`,
+                                fontSize: '11px', color: cur.color, fontWeight: '700'
+                            }}>{rewardVal} ⭐ × {maxParticipants}</div>
                         </div>
                     )}
                 </div>
 
-                {/* NFT подарок */}
-                <div style={{marginBottom: '4px'}}>
-                    <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontWeight: '600', letterSpacing: '1.5px', textTransform: 'uppercase'}}>
-                        🎁 NFT Подарок <span style={{color: 'rgba(255,255,255,0.2)', fontWeight: '400', textTransform: 'none', letterSpacing: '0'}}>— опционально</span>
+                {/* NFT */}
+                <div style={{marginBottom: '22px'}}>
+                    <p style={{margin: '0 0 12px', color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase'}}>
+                        ⑤ 🎁 NFT Подарок <span style={{color: 'rgba(255,255,255,0.2)', fontWeight: '500', textTransform: 'none', letterSpacing: '0'}}>— опционально</span>
                     </p>
-                    <input type="text" placeholder="t.me/nft/GiftName-12345" style={{...st.inputPremium,
-                        borderColor: nftPreview ? 'rgba(255,215,0,0.3)' : undefined,
-                        background: nftPreview ? 'rgba(255,215,0,0.03)' : undefined
+                    <input type="text" className="ctInput" placeholder="t.me/nft/GiftName-12345" style={{
+                        ...st.inputPremium,
+                        borderColor: nftPreview ? 'rgba(255,215,0,0.35)' : undefined,
+                        background: nftPreview ? 'rgba(255,215,0,0.04)' : undefined
                     }}
                         value={nftGiftUrl}
                         onChange={(e) => {
@@ -1103,17 +1142,19 @@ function App() {
                     />
                     {nftPreview?.backgroundImage && (
                         <div style={{
-                            height: '80px', borderRadius: '12px', overflow: 'hidden',
+                            height: '90px', borderRadius: '14px', overflow: 'hidden',
                             backgroundImage: `url(${nftPreview.backgroundImage})`,
                             backgroundSize: '200% auto', backgroundPosition: 'center',
-                            filter: 'brightness(0.7)',
-                            border: '1px solid rgba(255,215,0,0.2)',
+                            filter: 'brightness(0.75)',
+                            border: '1px solid rgba(255,215,0,0.25)',
                             marginBottom: '10px',
-                            position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 6px 24px rgba(255,215,0,0.12)'
                         }}>
                             <span style={{
-                                background: 'rgba(0,0,0,0.5)', borderRadius: '20px', padding: '4px 12px',
-                                fontSize: '11px', color: '#FFD700', fontWeight: '600'
+                                background: 'rgba(0,0,0,0.55)', borderRadius: '20px', padding: '5px 14px',
+                                fontSize: '11.5px', color: '#FFD700', fontWeight: '700',
+                                border: '1px solid rgba(255,215,0,0.3)'
                             }}>🎁 Фон применён к карточке</span>
                         </div>
                     )}
@@ -1121,60 +1162,71 @@ function App() {
 
                 {/* PRO поля */}
                 {questType === 'extended' && (
-                    <div style={{marginBottom: '4px'}}>
-                        <div style={{height: '1px', background: 'rgba(255,51,102,0.15)', margin: '16px 0'}} />
+                    <div style={{marginBottom: '22px'}}>
                         <div style={{
-                            background: 'rgba(255,51,102,0.04)', border: '1px solid rgba(255,51,102,0.12)',
-                            borderRadius: '12px', padding: '10px 14px', marginBottom: '14px',
-                            display: 'flex', alignItems: 'center', gap: '8px'
+                            background: 'linear-gradient(135deg, rgba(255,51,102,0.08), rgba(255,51,102,0.02))',
+                            border: '1px solid rgba(255,51,102,0.2)',
+                            borderRadius: '14px', padding: '12px 14px', marginBottom: '14px',
+                            display: 'flex', alignItems: 'flex-start', gap: '10px'
                         }}>
-                            <span style={{fontSize: '14px'}}>⭐</span>
-                            <p style={{margin: 0, fontSize: '11px', color: 'rgba(255,51,102,0.8)', lineHeight: 1.4}}>
-                                PRO: 5% от бюджета (мин. 50 ⭐) + 100 ⭐ за каждую соцсеть. Списывается при одобрении.
+                            <span style={{fontSize: '15px', marginTop: '1px'}}>⭐</span>
+                            <p style={{margin: 0, fontSize: '11.5px', color: 'rgba(255,107,138,0.95)', lineHeight: 1.5}}>
+                                PRO: <strong>5%</strong> от бюджета (мин. 50 ⭐) + <strong>100 ⭐</strong> за каждую соцсеть. Списывается при одобрении.
                             </p>
                         </div>
-                        <p style={{margin: '0 0 8px', color: 'rgba(255,255,255,0.35)', fontSize: '11px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase'}}>PRO поля</p>
-                        <textarea placeholder="Подробное описание канала — тематика, аудитория..." style={{...st.textareaPremium, minHeight: '90px', borderColor: 'rgba(255,51,102,0.15)'}} value={extendedDescription} onChange={(e) => setExtendedDescription(e.target.value)} />
-                        <input type="number" placeholder="Количество подписчиков" style={{...st.inputPremium, borderColor: 'rgba(255,51,102,0.12)'}} value={subscribersCount} onChange={(e) => setSubscribersCount(e.target.value)} />
-                        <p style={{margin: '0 0 8px', color: 'rgba(255,255,255,0.25)', fontSize: '11px'}}>Скриншоты (URL):</p>
+                        <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.35)', fontSize: '10px', fontWeight: '700', letterSpacing: '1.5px', textTransform: 'uppercase'}}>PRO поля</p>
+                        <textarea className="ctInput" placeholder="Подробное описание канала — тематика, аудитория..." style={{...st.textareaPremium, minHeight: '90px', borderColor: 'rgba(255,51,102,0.15)'}} value={extendedDescription} onChange={(e) => setExtendedDescription(e.target.value)} />
+                        <input type="number" className="ctInput" placeholder="Количество подписчиков" style={{...st.inputPremium, borderColor: 'rgba(255,51,102,0.15)'}} value={subscribersCount} onChange={(e) => setSubscribersCount(e.target.value)} />
+                        <p style={{margin: '6px 0 8px', color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: '600'}}>📸 Скриншоты</p>
                         {screenshots.map((url, i) => (
-                            <input key={i} type="text" placeholder={`Скриншот ${i + 1}`} style={{...st.inputPremium, marginBottom: '8px', borderColor: 'rgba(255,51,102,0.1)'}} value={url} onChange={(e) => { const u = [...screenshots]; u[i] = e.target.value; setScreenshots(u); }} />
+                            <input key={i} type="text" className="ctInput" placeholder={`Скриншот ${i + 1}`} style={{...st.inputPremium, marginBottom: '8px', borderColor: 'rgba(255,51,102,0.12)'}} value={url} onChange={(e) => { const u = [...screenshots]; u[i] = e.target.value; setScreenshots(u); }} />
                         ))}
-                        <p style={{margin: '0 0 8px', color: 'rgba(255,255,255,0.25)', fontSize: '11px'}}>Соцсети (+100 ⭐ каждая):</p>
+                        <p style={{margin: '6px 0 8px', color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: '600'}}>🌐 Соцсети <span style={{color: 'rgba(255,51,102,0.7)'}}>+100 ⭐ каждая</span></p>
                         {[['telegram','✈️ Telegram'],['instagram','📸 Instagram'],['youtube','▶️ YouTube'],['tiktok','🎵 TikTok']].map(([key, label]) => (
-                            <input key={key} type="text" placeholder={label} style={{...st.inputPremium, marginBottom: '8px', borderColor: 'rgba(255,51,102,0.1)'}} value={socialLinks[key]} onChange={(e) => setSocialLinks(p => ({...p, [key]: e.target.value}))} />
+                            <input key={key} type="text" className="ctInput" placeholder={label} style={{...st.inputPremium, marginBottom: '8px', borderColor: socialLinks[key] ? 'rgba(255,51,102,0.3)' : 'rgba(255,51,102,0.1)', background: socialLinks[key] ? 'rgba(255,51,102,0.04)' : undefined}} value={socialLinks[key]} onChange={(e) => setSocialLinks(p => ({...p, [key]: e.target.value}))} />
                         ))}
                     </div>
                 )}
 
-                {/* Кнопка создать */}
-                <button onClick={createQuest} style={{
-                    width: '100%', padding: '15px', borderRadius: '16px', cursor: 'pointer',
-                    background: verificationType === 'admin' ? 'linear-gradient(135deg, rgba(0,194,255,0.2), rgba(0,194,255,0.08))' :
-                                verificationType === 'invite' ? 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(168,85,247,0.08))' :
-                                verificationType === 'repost' ? 'linear-gradient(135deg, rgba(255,193,7,0.2), rgba(255,193,7,0.08))' :
-                                'linear-gradient(135deg, rgba(76,175,80,0.2), rgba(76,175,80,0.08))',
-                    border: verificationType === 'admin' ? '1px solid rgba(0,194,255,0.35)' :
-                            verificationType === 'invite' ? '1px solid rgba(168,85,247,0.35)' :
-                            verificationType === 'repost' ? '1px solid rgba(255,193,7,0.35)' :
-                            '1px solid rgba(76,175,80,0.35)',
-                    color: verificationType === 'admin' ? '#00C2FF' :
-                           verificationType === 'invite' ? '#A855F7' :
-                           verificationType === 'repost' ? '#FFC107' : '#4CAF50',
-                    fontSize: '15px', fontWeight: '700', letterSpacing: '-0.2px',
-                    marginTop: '8px', transition: 'all 0.2s ease',
-                    boxShadow: verificationType === 'admin' ? '0 4px 20px rgba(0,194,255,0.12)' :
-                               verificationType === 'invite' ? '0 4px 20px rgba(168,85,247,0.12)' :
-                               verificationType === 'repost' ? '0 4px 20px rgba(255,193,7,0.12)' :
-                               '0 4px 20px rgba(76,175,80,0.12)'
+                {/* Итог-карточка */}
+                {budgetVal > 0 && (
+                    <div style={{
+                        marginBottom: '14px', padding: '14px 16px',
+                        background: `linear-gradient(135deg, rgba(${cur.rgb},0.08), rgba(255,255,255,0.02))`,
+                        border: `1px solid rgba(${cur.rgb},0.2)`,
+                        borderRadius: '16px'
+                    }}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+                            <span style={{fontSize: '11px', color: 'rgba(255,255,255,0.45)', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase'}}>К оплате</span>
+                            <span style={{fontSize: '20px', fontWeight: '900', color: 'white'}}>{totalCost} <span style={{fontSize: '15px'}}>⭐</span></span>
+                        </div>
+                        <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
+                            <span style={{fontSize: '10.5px', padding: '3px 8px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)'}}>Бюджет {budgetVal}⭐</span>
+                            {proCommission > 0 && <span style={{fontSize: '10.5px', padding: '3px 8px', borderRadius: '6px', background: 'rgba(255,51,102,0.1)', color: '#FF6B8A'}}>+ комиссия {proCommission}⭐</span>}
+                            {socialsCount > 0 && <span style={{fontSize: '10.5px', padding: '3px 8px', borderRadius: '6px', background: 'rgba(255,51,102,0.1)', color: '#FF6B8A'}}>+ {socialsCount} соцсет.</span>}
+                            <span style={{fontSize: '10.5px', padding: '3px 8px', borderRadius: '6px', background: `rgba(${cur.rgb},0.1)`, color: cur.color}}>Баланс: {balance}⭐</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* CTA */}
+                <button className="ctCreateBtn" onClick={createQuest} style={{
+                    width: '100%', padding: '17px', borderRadius: '18px', cursor: 'pointer',
+                    background: `linear-gradient(135deg, rgba(${cur.rgb},0.28), rgba(${cur.rgb},0.1))`,
+                    border: `1px solid rgba(${cur.rgb},0.45)`,
+                    color: cur.color,
+                    fontSize: '15.5px', fontWeight: '800', letterSpacing: '-0.2px',
+                    marginTop: '4px', transition: 'all 0.2s ease',
+                    boxShadow: `0 8px 32px rgba(${cur.rgb},0.22), inset 0 1px 0 rgba(255,255,255,0.08)`
                 }}>
-                    {verificationType === 'admin' ? '📢' : verificationType === 'invite' ? '🔗' : verificationType === 'repost' ? '🔁' : '👥'} Создать задание
+                    {cur.icon} Создать задание
                 </button>
 
             </div>
         </div>
     </div>
-)}
+    );
+})()}
 
             {showTonTopUpModal && (
                 <div style={st.modalOverlay}>
@@ -1656,6 +1708,18 @@ styleSheet.textContent = `
     *:focus { outline: none; }
     .questCardUltra:active { transform: scale(0.98); transition: transform 0.15s ease; }
     .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.3); transform: scale(0); animation: ripple 0.6s linear; pointer-events: none; }
+    .ctInput:focus { border-color: rgba(255,255,255,0.22) !important; background: rgba(255,255,255,0.05) !important; box-shadow: 0 0 0 4px rgba(255,255,255,0.04); }
+    .ctTypeCard { position: relative; overflow: hidden; }
+    .ctTypeCard::before { content: ''; position: absolute; inset: -1px; border-radius: 16px; padding: 1px; background: linear-gradient(135deg, transparent, rgba(255,255,255,0.06), transparent); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; opacity: 0; transition: opacity .3s; }
+    .ctTypeCard:hover::before { opacity: 1; }
+    .ctTypeCard:hover { transform: translateY(-2px); }
+    .ctCreateBtn { position: relative; overflow: hidden; }
+    .ctCreateBtn::after { content: ''; position: absolute; top: 0; left: -60%; width: 50%; height: 100%; background: linear-gradient(120deg, transparent, rgba(255,255,255,0.18), transparent); animation: shimmerSweep 2.6s ease-in-out infinite; }
+    .ctOrb { animation: orbDrift 14s ease-in-out infinite; }
+    .ctChip { animation: chipPop 0.35s cubic-bezier(.2,1.4,.4,1) both; }
+    @keyframes shimmerSweep { 0% { left: -60%; } 60%, 100% { left: 130%; } }
+    @keyframes orbDrift { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(2%, 4%) scale(1.06); } }
+    @keyframes chipPop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } }
     @keyframes loadbar { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
