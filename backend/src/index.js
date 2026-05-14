@@ -515,7 +515,7 @@ app.post('/api/create-quest', async (req, res) => {
         quest_type, extended_description, screenshots, social_links, 
         subscribers_count, commission_amount, commission_paid,
         budget, remaining, status, nft_gift_url, post_url, referral_url
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) RETURNING *`,
     [
         userId, title, description, reward, 'stars', 'subscription',
         targetUrl, inviteLink || null, verificationType || 'admin',
