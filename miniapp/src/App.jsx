@@ -1422,25 +1422,19 @@ function App() {
 
         <div style={{...st.cardGlow, animation: IS_TOUCH ? 'none' : 'shine 6s infinite'}}></div>
 
+        {/* Аватарка БЕЗ бейджа */}
         <div style={{
-            ...st.questAvatar, position: 'relative', zIndex: 1,
+            ...st.questAvatar,
+            position: 'relative', zIndex: 1,
             background: channelAvatars[task.id] ? 'transparent' : getChannelColor(task.title),
             boxShadow: `0 0 0 2px rgba(${tMeta.rgb}, 0.35), 0 4px 16px rgba(${tMeta.rgb}, 0.25)`
         }}>
             {channelAvatars[task.id] ? <img src={channelAvatars[task.id]} alt="" style={st.questAvatarImg} /> : <span style={st.questAvatarLetter}>{getChannelInitial(task.title, task.target_url)}</span>}
-            <div style={{
-                position: 'absolute', bottom: '-2px', right: '-2px',
-                width: '20px', height: '20px', borderRadius: '50%',
-                background: `linear-gradient(135deg, rgba(${tMeta.rgb}, 0.95), rgba(${tMeta.rgb}, 0.65))`,
-                border: '2px solid rgba(8,4,20,0.95)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '10px',
-                boxShadow: `0 2px 8px rgba(${tMeta.rgb}, 0.5)`
-            }}>{tMeta.icon}</div>
         </div>
 
         <div style={{...st.questBody, position: 'relative', zIndex: 1}}>
             <div style={{display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '6px'}}>
+                {/* Бейдж типа текстом */}
                 <div style={{
                     display: 'inline-flex', alignItems: 'center', gap: '4px',
                     background: `rgba(${tMeta.rgb}, 0.12)`,
@@ -1634,19 +1628,19 @@ const st = {
     segmentBadge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.15)', borderRadius: '20px', fontSize: '10px', padding: '1px 8px', color: 'white' },
     questCard: { position: 'relative', background: 'rgba(255,255,255,0.025)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '16px', display: 'flex', gap: '14px', marginBottom: '10px', overflow: 'hidden', transition: 'all 0.3s ease' },
     questCardShine: { position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)' },
-    questAvatar: { width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 },
+    questAvatar: { width: '43px', height: '43px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 },
     questAvatarImg: { width: '100%', height: '100%', objectFit: 'cover' },
-    questAvatarLetter: { fontSize: '20px', fontWeight: '700', color: 'white' },
-    questBody: { flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' },
-    questTitle: { margin: 0, fontSize: '15px', fontWeight: '700', color: 'white', letterSpacing: '-0.2px', lineHeight: 1.3 },
-    questDesc: { margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 },
-    questFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' },
-    rewardTag: { fontSize: '11px', fontWeight: '700', color: '#FF3366', background: 'rgba(255,51,102,0.08)', border: '1px solid rgba(255,51,102,0.15)', borderRadius: '20px', padding: '4px 10px' },
-    actionBtnPremium: { fontSize: '12px', fontWeight: '600', color: '#00C2FF', background: 'rgba(0,194,255,0.06)', border: '1px solid rgba(0,194,255,0.15)', borderRadius: '20px', padding: '7px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease' },
-    completedMark: { fontSize: '12px', color: 'rgba(255,255,255,0.2)' },
-    questCardUltra: { position: 'relative', backdropFilter: 'blur(30px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '16px', display: 'flex', gap: '14px', marginBottom: '12px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease' },
+    questAvatarLetter: { fontSize: '18px', fontWeight: '700', color: 'white' },
+    questBody: { flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' },
+    questTitle: { margin: 0, fontSize: '14px', fontWeight: '700', color: 'white', letterSpacing: '-0.2px', lineHeight: 1.3 },
+    questDesc: { margin: 0, fontSize: '11px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 },
+    questFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '3px' },
+    rewardTag: { fontSize: '10px', fontWeight: '700', color: '#FF3366', background: 'rgba(255,51,102,0.08)', border: '1px solid rgba(255,51,102,0.15)', borderRadius: '16px', padding: '3px 8px' },
+    actionBtnPremium: { fontSize: '11px', fontWeight: '600', color: '#00C2FF', background: 'rgba(0,194,255,0.06)', border: '1px solid rgba(0,194,255,0.15)', borderRadius: '16px', padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.2s ease' },
+    completedMark: { fontSize: '11px', color: 'rgba(255,255,255,0.2)' },
+    questCardUltra: { position: 'relative', backdropFilter: 'blur(30px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '18px', padding: '14px', display: 'flex', gap: '12px', marginBottom: '10px', overflow: 'hidden', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease' },
     cardGlow: { position: 'absolute', inset: 0, background: 'linear-gradient(120deg, transparent, rgba(255,255,255,0.05), transparent)', animation: 'shine 6s infinite' },
-    actionBtnUltra: { fontSize: '12px', fontWeight: '600', color: 'white', background: 'linear-gradient(135deg,#00C2FF,#FF3366)', border: 'none', borderRadius: '16px', padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 20px rgba(0,194,255,0.4)', transition: 'all 0.25s ease' },
+    actionBtnUltra: { fontSize: '11px', fontWeight: '600', color: 'white', background: 'linear-gradient(135deg,#00C2FF,#FF3366)', border: 'none', borderRadius: '14px', padding: '7px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: '0 4px 20px rgba(0,194,255,0.4)', transition: 'all 0.25s ease' },
     emptyStatePremium: { textAlign: 'center', padding: '60px 20px' },
     emptyStateIcon: { fontSize: '48px', marginBottom: '16px', display: 'block', opacity: 0.4 },
     emptyStateTitle: { color: 'white', fontSize: '18px', fontWeight: '700', marginBottom: '8px', letterSpacing: '-0.3px' },
