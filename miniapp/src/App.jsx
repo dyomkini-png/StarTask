@@ -6,6 +6,50 @@ import { Address } from '@ton/core';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
 
+const parseMaybeJson = (value) => {
+    if (!value) return null;
+    if (typeof value === 'object') return value;
+    if (typeof value !== 'string') return null;
+    try {
+        return JSON.parse(value);
+    } catch {
+        return null;
+    }
+};
+
+const normalizeScreenshots = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.filter(Boolean);
+
+    if (typeof value === 'string') {
+        const parsed = parseMaybeJson(value);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+
+        // поддержка postgres array формата: {"url1","url2"}
+        const pgArrayMatch = value.match(/^\{(.*)\}$/);
+        if (pgArrayMatch) {
+            return pgArrayMatch[1]
+                .split(',')
+                .map(v => v.replace(/^"|"$/g, '').trim())
+                .filter(Boolean);
+        }
+    }
+
+    return [];
+};
+
+const normalizeSocialLinks = (value) => {
+    if (!value) return null;
+    if (typeof value === 'object') return value;
+
+    if (typeof value === 'string') {
+        const parsed = parseMaybeJson(value);
+        if (parsed && typeof parsed === 'object') return parsed;
+    }
+
+    return null;
+};
+
 // ============ ОПТИМИЗАЦИИ ДЛЯ МОБИЛЬНЫХ ============
 // Определяем ОДИН раз при старте
 const IS_TOUCH = typeof window !== 'undefined' &&
@@ -494,7 +538,11 @@ function App() {
                 axios.get(`${API_URL}/api/quests`),
                 axios.get(`${API_URL}/api/user/${userId}/completions`)
             ]);
-            const allTasks = allTasksRes.data;
+            const allTasks = (allTasksRes.data || []).map((task) => ({
+                ...task,
+                screenshots: normalizeScreenshots(task.screenshots),
+                social_links: normalizeSocialLinks(task.social_links)
+            }));
             const completedIds = completionsRes.data.map(c => c.quest_id);
             setActiveTasks(allTasks.filter(t => !completedIds.includes(t.id) && t.advertiser_id !== userId));
             setCompletedTasks(allTasks.filter(t => completedIds.includes(t.id)));
@@ -515,7 +563,7 @@ function App() {
             setChannelAvatars(avatarMap);
 
             // NFT фоны — только если не тач (тяжёлая операция + blur)
-            if (!IS_TOUCH) {
+            
                 const nftTasks = allTasks.filter(t => t.nft_gift_url);
                 const nftPromises = nftTasks.map(async (task) => {
                     try {
@@ -528,7 +576,6 @@ function App() {
                 });
                 const nftResults = (await Promise.all(nftPromises)).filter(Boolean);
                 if (nftResults.length) setNftBackgrounds(Object.fromEntries(nftResults));
-            }
         } catch (e) { console.error(e); }
     };
     
