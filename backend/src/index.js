@@ -151,7 +151,7 @@ const parseMaybeJson = (value) => {
 
 const normalizeScreenshots = (value) => {
     if (!value) return [];
-    if (Array.isArray(value)) return value.filter(Boolean);
+    if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
 
     if (typeof value === 'string') {
         const parsed = parseMaybeJson(value);
@@ -164,6 +164,8 @@ const normalizeScreenshots = (value) => {
                 .map(v => v.replace(/^"|"$/g, '').trim())
                 .filter(Boolean);
         }
+
+        return [value.trim()].filter(Boolean);
     }
 
     return [];
@@ -724,6 +726,83 @@ app.get('/api/channel/avatar/:username', async (req, res) => {
     } catch (error) {
         console.error(`Error fetching avatar for @${username}:`, error.message);
         return res.status(500).json({ success: false, error: 'Failed to fetch channel data' });
+    }
+});
+
+app.get('/api/image-proxy', async (req, res) => {
+    const { url } = req.query;
+
+    if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'Image URL is required' });
+    }
+
+    let targetUrl;
+    try {
+        targetUrl = new URL(url);
+        if (!['http:', 'https:'].includes(targetUrl.protocol)) {
+            return res.status(400).json({ error: 'Only http/https URLs are allowed' });
+        }
+    } catch {
+        return res.status(400).json({ error: 'Invalid image URL' });
+    }
+
+    try {
+        const response = await axios.get(targetUrl.toString(), {
+            responseType: 'stream',
+            maxRedirects: 5,
+            timeout: 10000,
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; StarTaskBot/1.0)' }
+        });
+
+        const contentType = response.headers['content-type'] || '';
+        if (contentType.startsWith('image/')) {
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            return response.data.pipe(res);
+        }
+
+        response.data.destroy();
+
+        const htmlResponse = await axios.get(targetUrl.toString(), {
+            responseType: 'text',
+            maxRedirects: 5,
+            timeout: 10000,
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; StarTaskBot/1.0)' }
+        });
+
+        const $ = cheerio.load(htmlResponse.data);
+        const imageUrl =
+            $('meta[property="og:image"]').attr('content') ||
+            $('meta[name="twitter:image"]').attr('content') ||
+            $('img').first().attr('src');
+
+        if (!imageUrl) {
+            return res.status(404).json({ error: 'No image found at URL' });
+        }
+
+        const resolvedImageUrl = new URL(imageUrl, targetUrl).toString();
+        const imageResponse = await axios.get(resolvedImageUrl, {
+            responseType: 'stream',
+            maxRedirects: 5,
+            timeout: 10000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; StarTaskBot/1.0)',
+                Referer: targetUrl.toString()
+            }
+        });
+
+        const imageContentType = imageResponse.headers['content-type'] || 'image/jpeg';
+        if (!imageContentType.startsWith('image/')) {
+            imageResponse.data.destroy();
+            return res.status(415).json({ error: 'Resolved URL is not an image' });
+        }
+
+        res.setHeader('Content-Type', imageContentType);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        imageResponse.data.pipe(res);
+    } catch (error) {
+        console.error('Image proxy error:', error.message);
+        res.status(502).json({ error: 'Failed to load image' });
     }
 });
 

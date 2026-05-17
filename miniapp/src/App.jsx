@@ -6,6 +6,8 @@ import { Address } from '@ton/core';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
 
+const getScreenshotSrc = (url) => `${API_URL}/api/image-proxy?url=${encodeURIComponent(url)}`;
+
 const parseMaybeJson = (value) => {
     if (!value) return null;
     if (typeof value === 'object') return value;
@@ -19,11 +21,11 @@ const parseMaybeJson = (value) => {
 
 const normalizeScreenshots = (value) => {
     if (!value) return [];
-    if (Array.isArray(value)) return value.filter(Boolean);
+    if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
 
     if (typeof value === 'string') {
         const parsed = parseMaybeJson(value);
-        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+        if (Array.isArray(parsed)) return parsed.map(v => String(v).trim()).filter(Boolean);
 
         // поддержка postgres array формата: {"url1","url2"}
         const pgArrayMatch = value.match(/^\{(.*)\}$/);
@@ -33,6 +35,8 @@ const normalizeScreenshots = (value) => {
                 .map(v => v.replace(/^"|"$/g, '').trim())
                 .filter(Boolean);
         }
+
+        return [value.trim()].filter(Boolean);
     }
 
     return [];
@@ -279,7 +283,7 @@ const AdminPanel = ({ onClose, userId }) => {
                                                 {quest.screenshots && quest.screenshots.length > 0 && (
                                                     <div style={{display: 'flex', gap: '6px', marginTop: '8px', overflowX: 'auto'}}>
                                                         {quest.screenshots.map((url, i) => url && (
-                                                            <img key={i} src={url} alt="" style={{width: '80px', height: '120px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0}} />
+                                                            <img key={i} src={getScreenshotSrc(url)} alt="" style={{width: '80px', height: '120px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0}} />
                                                         ))}
                                                     </div>
                                                 )}
@@ -1610,7 +1614,7 @@ function App() {
                                 <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px'}}>Скриншоты</p>
                                 <div style={{display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch'}}>
                                     {selectedTask.screenshots.map((url, i) => url && (
-                                        <img key={i} src={url} alt={`screenshot ${i+1}`} style={{width: '140px', height: '200px', objectFit: 'cover', borderRadius: '10px', flexShrink: 0}} />
+                                        <img key={i} src={getScreenshotSrc(url)} alt={`screenshot ${i+1}`} style={{width: '140px', height: '200px', objectFit: 'cover', borderRadius: '10px', flexShrink: 0}} />
                                     ))}
                                 </div>
                             </div>
