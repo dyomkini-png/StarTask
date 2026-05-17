@@ -50,6 +50,12 @@ const normalizeSocialLinks = (value) => {
     return null;
 };
 
+const normalizeTask = (task) => ({
+    ...task,
+    screenshots: normalizeScreenshots(task.screenshots),
+    social_links: normalizeSocialLinks(task.social_links)
+});
+
 // ============ ОПТИМИЗАЦИИ ДЛЯ МОБИЛЬНЫХ ============
 // Определяем ОДИН раз при старте
 const IS_TOUCH = typeof window !== 'undefined' &&
@@ -91,14 +97,14 @@ const AdminPanel = ({ onClose, userId }) => {
     const fetchPendingQuests = async () => {
         try {
             const response = await axios.get(`${API_URL}/api/admin/pending-quests`);
-            setPendingQuests(response.data);
+            setPendingQuests((response.data || []).map(normalizeTask));
         } catch (error) { console.error(error); }
     };
 
     const fetchActiveQuests = async () => {
         try {
             const response = await axios.get(`${API_URL}/api/admin/active-quests?adminId=${userId}`);
-            setActiveQuests(response.data);
+            setActiveQuests((response.data || []).map(normalizeTask));
         } catch (error) { console.error(error); } finally { setLoading(false); }
     };
 
@@ -538,11 +544,7 @@ function App() {
                 axios.get(`${API_URL}/api/quests`),
                 axios.get(`${API_URL}/api/user/${userId}/completions`)
             ]);
-            const allTasks = (allTasksRes.data || []).map((task) => ({
-                ...task,
-                screenshots: normalizeScreenshots(task.screenshots),
-                social_links: normalizeSocialLinks(task.social_links)
-            }));
+            const allTasks = (allTasksRes.data || []).map(normalizeTask);
             const completedIds = completionsRes.data.map(c => c.quest_id);
             setActiveTasks(allTasks.filter(t => !completedIds.includes(t.id) && t.advertiser_id !== userId));
             setCompletedTasks(allTasks.filter(t => completedIds.includes(t.id)));
@@ -580,7 +582,7 @@ function App() {
     };
     
     const fetchMyQuests = async (userId) => {
-        try { const r = await axios.get(`${API_URL}/api/user/${userId}/quests`); setMyQuests(r.data); } catch (e) { console.error(e); }
+        try { const r = await axios.get(`${API_URL}/api/user/${userId}/quests`); setMyQuests((r.data || []).map(normalizeTask)); } catch (e) { console.error(e); }
     };
     const fetchConversionRate = async () => {
         try {

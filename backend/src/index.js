@@ -140,6 +140,48 @@ const db = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
+const parseMaybeJson = (value) => {
+    if (!value || typeof value !== 'string') return null;
+    try {
+        return JSON.parse(value);
+    } catch {
+        return null;
+    }
+};
+
+const normalizeScreenshots = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.filter(Boolean);
+
+    if (typeof value === 'string') {
+        const parsed = parseMaybeJson(value);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+
+        const pgArrayMatch = value.match(/^\{(.*)\}$/);
+        if (pgArrayMatch) {
+            return pgArrayMatch[1]
+                .split(',')
+                .map(v => v.replace(/^"|"$/g, '').trim())
+                .filter(Boolean);
+        }
+    }
+
+    return [];
+};
+
+const normalizeSocialLinks = (value) => {
+    if (!value) return null;
+    if (typeof value === 'object') return value;
+    const parsed = parseMaybeJson(value);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+};
+
+const normalizeQuestRow = (quest) => ({
+    ...quest,
+    screenshots: normalizeScreenshots(quest.screenshots),
+    social_links: normalizeSocialLinks(quest.social_links)
+});
+
 async function initDB() {
     await db.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -419,7 +461,7 @@ app.get('/api/quests', async (req, res) => {
              WHERE q.status = 'active' AND q.remaining > 0
              ORDER BY q.created_at DESC`
         );
-        res.json(quests.rows);
+        res.json(quests.rows.map(normalizeQuestRow));
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -431,7 +473,7 @@ app.get('/api/user/:userId/quests', async (req, res) => {
             'SELECT * FROM quests WHERE advertiser_id = $1 ORDER BY created_at DESC',
             [req.params.userId]
         );
-        res.json(quests.rows);
+        res.json(quests.rows.map(normalizeQuestRow));
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -539,7 +581,7 @@ app.post('/api/create-quest', async (req, res) => {
         res.json({ 
             success: true, 
             message: `Задание отправлено на модерацию. Бюджет ${totalBudget} ⭐ заблокирован.`,
-            quest: newQuest.rows[0],
+            quest: normalizeQuestRow(newQuest.rows[0]),
             maxParticipants,
             commissionAmount
         });
@@ -694,7 +736,7 @@ app.get('/api/admin/pending-quests', async (req, res) => {
              WHERE q.status = 'pending'
              ORDER BY q.created_at ASC`
         );
-        res.json(quests.rows);
+        res.json(quests.rows.map(normalizeQuestRow));
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -835,7 +877,7 @@ app.get('/api/admin/active-quests', async (req, res) => {
              WHERE q.status = 'active'
              ORDER BY q.created_at DESC`
         );
-        res.json(quests.rows);
+        res.json(quests.rows.map(normalizeQuestRow));
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
