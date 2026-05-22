@@ -6,7 +6,7 @@ import App from './App';
 
 // Инициализируем аналитику ДО рендера
 TelegramAnalytics.init({
-    token: 'eyJhcHBfbmFtZSI6InN0YXJ0YXNrIiwiYXBwX3VybCI6Imh0dHBzOi8vdC5tZS9TdGFyVGFza0JvdCIsImFwcF9kb21haW4iOiJodHRwczovL3N0YXJ0YXNrLXRlbi52ZXJjZWwuYXBwLyJ9!zYnDJaKj6pJo2pIA/kFcwp8tMsTcGDDPGMW1589jSKI=',
+    token: import.meta.env.VITE_ANALYTICS_TOKEN || '',
     appName: 'StarTask',
 });
 
