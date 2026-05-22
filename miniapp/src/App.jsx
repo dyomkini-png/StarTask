@@ -517,6 +517,18 @@ function App() {
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand(); tg.MainButton.hide();
         tg.setHeaderColor('#0a0014'); tg.setBackgroundColor('#0a0014');
+		
+		//Инициализация Telegram Analytics SDK
+		try {
+			Analytics.init({
+				token: import.meta.env.VITE_ANALYTICS_TOKEN || '',
+				appName: 'StarTask',
+				appVersion: '1.0.0'
+			});
+			console.log('✅ Analytics SDK initialized');
+		} catch (e) {
+			console.error('Analytics init error:', e);
+		}
         if (tg.initDataUnsafe?.user) authenticate(tg.initDataUnsafe.user);
     }, []);
 
@@ -531,6 +543,11 @@ function App() {
             fetchTasks(response.data.user.id);
             fetchMyQuests(response.data.user.id);
             fetchConversionRate();
+            // Отправляем событие в аналитику
+            Analytics.track('app_opened', {
+                user_id: response.data.user.id,
+                timestamp: new Date().toISOString()
+            });
         } catch (error) { console.error('Auth error:', error); } finally { setLoading(false); }
     };
 
@@ -612,7 +629,13 @@ function App() {
         try {
             setConvertStep('waiting');
             const response = await axios.post(`${API_URL}/api/convert/stars-to-ton`, { userId: user.id, starsAmount: convertAmount });
-            if (response.data.success) { setConvertStep('success'); fetchBalance(user.id); fetchTonBalance(user.id); }
+            if (response.data.success) {
+                Analytics.track('stars_converted', {
+                    amount: convertAmount,
+                    ton_received: convertAmount / conversionRate,
+                    user_id: user.id
+                });
+                setConvertStep('success'); fetchBalance(user.id); fetchTonBalance(user.id); }
         } catch (error) {
             setConvertStep('select');
             window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: error.response?.data?.error || 'Ошибка конвертации', buttons: [{ type: 'ok' }] });
@@ -627,7 +650,12 @@ function App() {
         try {
             setWithdrawStep('waiting');
             const response = await axios.post(`${API_URL}/api/withdraw/ton`, { userId: user.id, amount: withdrawAmount });
-            if (response.data.success) setWithdrawStep('success');
+            if (response.data.success) {
+                Analytics.track('withdrawal_requested', {
+                    amount: withdrawAmount,
+                    user_id: user.id
+                });
+                setWithdrawStep('success'); }
         } catch (error) {
             setWithdrawStep('select');
             window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: error.response?.data?.error || 'Ошибка вывода', buttons: [{ type: 'ok' }] });
@@ -675,7 +703,13 @@ function App() {
             try {
                 const response = await axios.post(`${API_URL}/api/check-subscription`, { userId: user.id, channelUsername, questId: taskId });
                 tg.MainButton.hide();
-                if (response.data.success) { tg.showPopup({ title: '🎉 Выполнено!', message: response.data.message, buttons: [{ type: 'ok' }] }); fetchBalance(user.id); fetchTasks(user.id); }
+                if (response.data.success) {
+                    Analytics.track('task_completed', {
+                        task_id: taskId,
+                        reward: questReward, // если есть доступ к награде
+                        user_id: user.id
+                    });
+                    tg.showPopup({ title: '🎉 Выполнено!', message: response.data.message, buttons: [{ type: 'ok' }] }); fetchBalance(user.id); fetchTasks(user.id); }
                 else tg.showPopup({ title: '❌ Не выполнено', message: response.data.message, buttons: [{ type: 'ok' }] });
             } catch (error) { tg.MainButton.hide(); tg.showPopup({ title: '⚠️ Ошибка', message: error.response?.data?.error || 'Ошибка проверки', buttons: [{ type: 'ok' }] }); }
         }, 5000);
@@ -724,6 +758,12 @@ function App() {
             });
 
             if (response.data.success) {
+                Analytics.track('quest_created', {
+                    quest_type: questType,
+                    reward: reward,
+                    budget: totalBudget,
+                    user_id: user.id
+                });
                 const commissionMsg = commissionAmount > 0 
                     ? `\n\n💳 При одобрении: ${commissionAmount} ⭐ комиссии` 
                     : '';
@@ -761,7 +801,12 @@ function App() {
             setTonPaymentStep('waiting');
             const tx = await tonConnectUI.sendTransaction({ validUntil: Math.floor(Date.now() / 1000) + 600, messages: [{ address: import.meta.env.VITE_PLATFORM_TON_WALLET, amount: (tonTopUpAmount * 1e9).toString() }] });
             const response = await axios.post(`${API_URL}/api/ton-payment/credit`, { userId: user.id, amount: tonTopUpAmount, boc: tx.boc });
-            if (response.data.success) { setTonPaymentStep('success'); fetchTonBalance(user.id); }
+            if (response.data.success) {
+                Analytics.track('ton_topup', {
+                    amount: tonTopUpAmount,
+                    user_id: user.id
+                });
+                setTonPaymentStep('success'); fetchTonBalance(user.id); }
         } catch (error) {
             setTonPaymentStep('select');
             window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: error?.message || 'Платёж не прошёл', buttons: [{ type: 'ok' }] });
