@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { Address } from '@ton/core';
+import Analytics from '@telegram-apps/analytics';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
 
@@ -64,6 +65,226 @@ const normalizeTask = (task) => ({
 // Определяем ОДИН раз при старте
 const IS_TOUCH = typeof window !== 'undefined' &&
     window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+
+const UI_LANG_KEY = 'startask:language';
+const UI_THEME_KEY = 'startask:theme';
+
+const translations = {
+    ru: {
+        loadingSubtitle: 'Платформа микрозаданий',
+        profile: 'Профиль',
+        settings: 'Настройки',
+        language: 'Язык',
+        theme: 'Тема',
+        light: 'Светлая',
+        dark: 'Тёмная',
+        walletConnected: 'TON кошелёк подключён',
+        disconnect: 'Отключить',
+        connectWallet: 'Подключить TON кошелёк',
+        createTask: 'Создать задание',
+        topUpStars: 'Пополнить Stars',
+        topUpTon: 'Пополнить TON',
+        convertStars: 'Конвертировать Stars → TON',
+        withdrawTon: 'Вывести TON',
+        adminPanel: 'Панель администратора',
+        myTasks: 'Мои задания',
+        pending: 'На модерации',
+        accepted: 'Принято',
+        rejected: 'Отклонено',
+        published: 'Опубликовано',
+        inactive: 'Снято',
+        noTasks: 'Нет заданий',
+        active: 'Активные',
+        completed: 'Выполненные',
+        allDone: 'Всё выполнено',
+        newTasksSoon: 'Новые задания появятся в ближайшее время',
+        empty: 'Пока пусто',
+        completeTasksToEarn: 'Выполняйте задания и получайте награды',
+        complete: 'Выполнить',
+        completedMark: 'Выполнено',
+        referralProgram: 'Партнёрская программа',
+        referralText: 'Приглашайте друзей и получайте ',
+        referralTail: ' от их заработка навсегда',
+        copyLink: 'Скопировать ссылку',
+        statistics: 'Статистика',
+        invitedFriends: 'Приглашено друзей',
+        earnedCommission: 'Заработано комиссии',
+        aboutProject: 'О проекте',
+        tasks: 'Задания',
+        partners: 'Партнёры',
+        project: 'О проекте',
+        subscribe: 'Подписка',
+        invite: 'Инвайт',
+        repost: 'Репост',
+        referral: 'Реферал',
+        subscribers: 'подписчиков',
+        reward: 'награда',
+        aboutChannel: 'О канале',
+        screenshots: 'Скриншоты',
+        socialLinks: 'Соцсети',
+        completeAndEarn: 'Выполнить и получить',
+        copiedTitle: '🔗 Скопировано!',
+        copiedMessage: 'Поделитесь с друзьями и получайте 10%',
+        infoCards: [
+            ['⭐', 'StarTask', 'Первая B2B-платформа для продвижения Telegram-каналов через вознаграждения в Stars и TON. С нами зарабатывают тысячи пользователей.'],
+            ['🚀', 'Как начать', 'Выберите задание → Выполните простое действие → Получите вознаграждение мгновенно на ваш баланс. Никаких задержек.'],
+            ['💎', 'TON Foundation', 'Проект поддержан TON Foundation. Мы строим Web3-экономику заданий с криптовалютными расчётами.']
+        ]
+    },
+    en: {
+        loadingSubtitle: 'Microtask rewards platform',
+        profile: 'Profile',
+        settings: 'Settings',
+        language: 'Language',
+        theme: 'Theme',
+        light: 'Light',
+        dark: 'Dark',
+        walletConnected: 'TON wallet connected',
+        disconnect: 'Disconnect',
+        connectWallet: 'Connect TON wallet',
+        createTask: 'Create task',
+        topUpStars: 'Top up Stars',
+        topUpTon: 'Top up TON',
+        convertStars: 'Convert Stars → TON',
+        withdrawTon: 'Withdraw TON',
+        adminPanel: 'Admin panel',
+        myTasks: 'My tasks',
+        pending: 'In review',
+        accepted: 'Accepted',
+        rejected: 'Rejected',
+        published: 'Published',
+        inactive: 'Removed',
+        noTasks: 'No tasks',
+        active: 'Active',
+        completed: 'Completed',
+        allDone: 'All done',
+        newTasksSoon: 'New tasks will appear soon',
+        empty: 'Nothing here yet',
+        completeTasksToEarn: 'Complete tasks and earn rewards',
+        complete: 'Complete',
+        completedMark: 'Completed',
+        referralProgram: 'Referral program',
+        referralText: 'Invite friends and get ',
+        referralTail: ' of their earnings forever',
+        copyLink: 'Copy link',
+        statistics: 'Statistics',
+        invitedFriends: 'Friends invited',
+        earnedCommission: 'Commission earned',
+        aboutProject: 'About',
+        tasks: 'Tasks',
+        partners: 'Partners',
+        project: 'About',
+        subscribe: 'Subscribe',
+        invite: 'Invite',
+        repost: 'Repost',
+        referral: 'Referral',
+        subscribers: 'subscribers',
+        reward: 'reward',
+        aboutChannel: 'About channel',
+        screenshots: 'Screenshots',
+        socialLinks: 'Social links',
+        completeAndEarn: 'Complete and earn',
+        copiedTitle: '🔗 Copied!',
+        copiedMessage: 'Share it with friends and earn 10%',
+        infoCards: [
+            ['⭐', 'StarTask', 'The first B2B platform for promoting Telegram channels with Stars and TON rewards. Thousands of users earn with us.'],
+            ['🚀', 'How to start', 'Choose a task → Complete a simple action → Get the reward instantly on your balance. No delays.'],
+            ['💎', 'TON Foundation', 'The project is supported by TON Foundation. We are building a Web3 task economy with crypto payments.']
+        ]
+    }
+};
+
+const getInitialLanguage = () => {
+    if (typeof window === 'undefined') return 'ru';
+    const saved = localStorage.getItem(UI_LANG_KEY);
+    if (saved === 'ru' || saved === 'en') return saved;
+    const tgLang = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
+    return String(tgLang || '').toLowerCase().startsWith('en') ? 'en' : 'ru';
+};
+
+const getInitialTheme = () => {
+    if (typeof window === 'undefined') return 'dark';
+    const saved = localStorage.getItem(UI_THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+    return window.Telegram?.WebApp?.colorScheme === 'light' ? 'light' : 'dark';
+};
+
+const lightText = '#142033';
+const lightMuted = 'rgba(20,32,51,0.58)';
+const lightPanel = 'rgba(255,255,255,0.86)';
+const lightBorder = '1px solid rgba(20,32,51,0.10)';
+const lightBg = 'radial-gradient(800px at 20% 0%, rgba(0,194,255,0.12), transparent), radial-gradient(600px at 80% 100%, rgba(255,51,102,0.10), transparent), linear-gradient(160deg, #f8fbff 0%, #eef6ff 48%, #fff4f8 100%)';
+
+const getThemedStyles = (base, theme) => {
+    if (theme !== 'light') return base;
+
+    return {
+        ...base,
+        screen: { ...base.screen, background: lightBg, color: lightText },
+        profileOverlay: { ...base.profileOverlay, background: lightBg },
+        loadingScreen: { ...base.loadingScreen, background: lightBg },
+        loadingTitle: { ...base.loadingTitle },
+        loadingSubtitle: { ...base.loadingSubtitle, color: lightMuted },
+        bgNeonGrid: { ...base.bgNeonGrid, backgroundImage: 'radial-gradient(rgba(20,32,51,0.08) 1px, transparent 1px)', opacity: 0.45 },
+        headerMain: { ...base.headerMain },
+        logoMain: { ...base.logoMain, color: lightText },
+        balanceInline: { ...base.balanceInline, background: 'rgba(255,255,255,0.72)', border: lightBorder, boxShadow: '0 8px 24px rgba(31,51,84,0.08)' },
+        profileBtn: { ...base.profileBtn, background: 'rgba(255,255,255,0.78)', border: '1.5px solid rgba(20,32,51,0.12)' },
+        profileHeaderFrosted: { ...base.profileHeaderFrosted, background: 'rgba(248,251,255,0)' },
+        profileHeaderTitle: { ...base.profileHeaderTitle, color: lightText },
+        backBtnPremium: { ...base.backBtnPremium, background: lightPanel, border: lightBorder, color: lightText },
+        profileAvatarInner: { ...base.profileAvatarInner, background: 'rgba(255,255,255,0.9)' },
+        profileAvatarLetter: { ...base.profileAvatarLetter, color: lightText },
+        profileDisplayName: { ...base.profileDisplayName, color: lightText },
+        profileDisplaySub: { ...base.profileDisplaySub, color: lightMuted },
+        balanceCardPremium: { ...base.balanceCardPremium, background: lightPanel, border: lightBorder, boxShadow: '0 10px 30px rgba(31,51,84,0.08)' },
+        balanceCardLabel: { ...base.balanceCardLabel, color: lightMuted },
+        sectionLabel: { ...base.sectionLabel, color: lightText },
+        profileActionBtn: { ...base.profileActionBtn, background: 'rgba(0,136,204,0.08)', border: '1px solid rgba(0,136,204,0.16)' },
+        walletCard: { ...base.walletCard, background: 'rgba(0,136,204,0.08)', border: '1px solid rgba(0,136,204,0.16)' },
+        walletAddress: { ...base.walletAddress, color: lightMuted },
+        connectWalletPremium: { ...base.connectWalletPremium, background: 'rgba(0,136,204,0.08)', border: '1px solid rgba(0,136,204,0.16)' },
+        filterRowPremium: { ...base.filterRowPremium, background: 'rgba(255,255,255,0.76)', border: lightBorder },
+        filterBtnPremium: { ...base.filterBtnPremium, color: lightMuted },
+        myQuestCardPremium: { ...base.myQuestCardPremium, background: lightPanel, border: lightBorder },
+        myQuestTitlePremium: { ...base.myQuestTitlePremium, color: lightText },
+        myQuestDescPremium: { ...base.myQuestDescPremium, color: lightMuted },
+        emptySmallPremium: { ...base.emptySmallPremium, color: lightMuted, background: 'rgba(255,255,255,0.62)' },
+        segmentWrap: { ...base.segmentWrap, background: 'rgba(255,255,255,0.72)', border: lightBorder },
+        segment: { ...base.segment, color: lightMuted },
+        questTitle: { ...base.questTitle, color: lightText },
+        questDesc: { ...base.questDesc, color: lightMuted },
+        questCard: { ...base.questCard, background: lightPanel, border: lightBorder, boxShadow: '0 10px 28px rgba(31,51,84,0.08)' },
+        questCardUltra: { ...base.questCardUltra, background: lightPanel, border: lightBorder, boxShadow: '0 10px 28px rgba(31,51,84,0.10)' },
+        completedMark: { ...base.completedMark, color: lightMuted },
+        emptyStateTitle: { ...base.emptyStateTitle, color: lightText },
+        emptyStateText: { ...base.emptyStateText, color: lightMuted },
+        cardPremium: { ...base.cardPremium, background: lightPanel, border: lightBorder, boxShadow: '0 10px 28px rgba(31,51,84,0.08)' },
+        cardTitle: { ...base.cardTitle, color: lightText },
+        cardDescription: { ...base.cardDescription, color: lightMuted },
+        referralCodeBox: { ...base.referralCodeBox, background: 'rgba(20,32,51,0.04)', border: '1px solid rgba(0,136,204,0.14)' },
+        statsHeading: { ...base.statsHeading, color: lightText },
+        statLabelPremium: { ...base.statLabelPremium, color: lightMuted },
+        statValuePremium: { ...base.statValuePremium, color: lightText },
+        navItem: { ...base.navItem, background: 'rgba(255,255,255,0.82)', border: '1px solid rgba(0,136,204,0.18)', boxShadow: '0 8px 24px rgba(31,51,84,0.08)' },
+        navItemLabel: { ...base.navItemLabel, color: lightMuted },
+        sheetPremium: { ...base.sheetPremium, background: 'rgba(255,255,255,0.98)', border: lightBorder },
+        sheetHeaderPremium: { ...base.sheetHeaderPremium, color: lightText },
+        closePremium: { ...base.closePremium, background: 'rgba(20,32,51,0.06)', color: lightMuted },
+        textSecondary: { ...base.textSecondary, color: lightMuted },
+        inputPremium: { ...base.inputPremium, background: 'rgba(20,32,51,0.04)', border: lightBorder, color: lightText },
+        textareaPremium: { ...base.textareaPremium, background: 'rgba(20,32,51,0.04)', border: lightBorder, color: lightText },
+        selectPremium: { ...base.selectPremium, background: 'rgba(255,255,255,0.98)', border: lightBorder, color: lightText },
+        amountBtnPremium: { ...base.amountBtnPremium, background: 'rgba(20,32,51,0.04)', border: lightBorder, color: lightMuted },
+        btnSecondaryPremium: { ...base.btnSecondaryPremium, background: 'rgba(20,32,51,0.04)', border: lightBorder, color: lightMuted },
+        loadingTextPremium: { ...base.loadingTextPremium, color: lightMuted },
+        settingsCard: { ...base.settingsCard, background: lightPanel, border: lightBorder, boxShadow: '0 10px 28px rgba(31,51,84,0.08)' },
+        settingsLabel: { ...base.settingsLabel, color: lightText },
+        settingsHint: { ...base.settingsHint, color: lightMuted },
+        toggleGroup: { ...base.toggleGroup, background: 'rgba(20,32,51,0.05)', border: lightBorder },
+        toggleOption: { ...base.toggleOption, color: lightMuted },
+    };
+};
 
 // ============ ADMIN PANEL ============
 const AdminPanel = ({ onClose, userId }) => {
@@ -437,6 +658,8 @@ const AdminPanel = ({ onClose, userId }) => {
 
 // ============ MAIN APP ============
 function App() {
+    const [language, setLanguage] = useState(getInitialLanguage);
+    const [theme, setTheme] = useState(getInitialTheme);
     const [user, setUser] = useState(null);
     const [balance, setBalance] = useState(0);
     const [tonBalance, setTonBalance] = useState(0);
@@ -481,11 +704,27 @@ function App() {
 
     const [tonConnectUI] = useTonConnectUI();
     const wallet = useTonWallet();
+    const st = useMemo(() => getThemedStyles(baseSt, theme), [theme]);
+    const t = translations[language] || translations.ru;
 
     const titleInput = useRef(null);
     const descInput = useRef(null);
     const rewardInput = useRef(null);
     const channelInput = useRef(null);
+
+    useEffect(() => {
+        localStorage.setItem(UI_LANG_KEY, language);
+        document.documentElement.lang = language;
+    }, [language]);
+
+    useEffect(() => {
+        localStorage.setItem(UI_THEME_KEY, theme);
+        const bgColor = theme === 'light' ? '#f8fbff' : '#0a0014';
+        document.documentElement.dataset.theme = theme;
+        document.body.style.background = bgColor;
+        window.Telegram?.WebApp?.setHeaderColor?.(bgColor);
+        window.Telegram?.WebApp?.setBackgroundColor?.(bgColor);
+    }, [theme]);
 
     useEffect(() => {
         if (wallet && user) {
@@ -516,7 +755,8 @@ function App() {
     useEffect(() => {
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand(); tg.MainButton.hide();
-        tg.setHeaderColor('#0a0014'); tg.setBackgroundColor('#0a0014');
+        const bgColor = theme === 'light' ? '#f8fbff' : '#0a0014';
+        tg.setHeaderColor(bgColor); tg.setBackgroundColor(bgColor);
 		
 		//Инициализация Telegram Analytics SDK
 		try {
@@ -844,7 +1084,7 @@ function App() {
     const getReferralLink = () => `https://t.me/StarTaskBot?start=ref_${user?.id}`;
     const copyReferralLink = () => {
         navigator.clipboard.writeText(getReferralLink());
-        window.Telegram.WebApp.showPopup({ title: '🔗 Скопировано!', message: 'Поделитесь с друзьями и получайте 10%', buttons: [{ type: 'ok' }] });
+        window.Telegram.WebApp.showPopup({ title: t.copiedTitle, message: t.copiedMessage, buttons: [{ type: 'ok' }] });
     };
 
     const getFriendlyAddress = () => {
@@ -868,7 +1108,7 @@ function App() {
                     </svg>
                 </div>
                 <p style={st.loadingTitle}>StarTask</p>
-                <p style={st.loadingSubtitle}>Платформа микрозаданий</p>
+                <p style={st.loadingSubtitle}>{t.loadingSubtitle}</p>
                 <div style={st.loadingLine}><div style={st.loadingLineFill}></div></div>
             </div>
         </div>
@@ -883,11 +1123,11 @@ function App() {
             <div style={{...st.bgOrb3, animation: IS_TOUCH ? 'none' : undefined, filter: IS_TOUCH ? 'blur(40px)' : 'blur(120px)', transform: IS_TOUCH ? 'none' : 'translateY(var(--parallax, 0px))'}}></div>
             <div style={{...st.bgOrb4, animation: IS_TOUCH ? 'none' : undefined, filter: IS_TOUCH ? 'blur(40px)' : 'blur(120px)', transform: IS_TOUCH ? 'none' : 'translateY(var(--parallax, 0px))'}}></div>
 
-            <div style={{...st.profileHeaderFrosted, opacity: Math.min(profileScrollY / 60, 0.85), backdropFilter: IS_TOUCH ? 'none' : `blur(${Math.min(profileScrollY / 2, 30)}px)`, background: IS_TOUCH ? 'rgba(10,5,20,0.9)' : undefined }}>
+            <div style={{...st.profileHeaderFrosted, opacity: Math.min(profileScrollY / 60, 0.85), backdropFilter: IS_TOUCH ? 'none' : `blur(${Math.min(profileScrollY / 2, 30)}px)`, background: IS_TOUCH ? (theme === 'light' ? 'rgba(248,251,255,0.92)' : 'rgba(10,5,20,0.9)') : undefined }}>
                 <button onClick={() => setShowProfile(false)} style={st.backBtnPremium}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
                 </button>
-                <span style={{...st.profileHeaderTitle, opacity: Math.min(profileScrollY / 80, 1) }}>Профиль</span>
+                <span style={{...st.profileHeaderTitle, opacity: Math.min(profileScrollY / 80, 1) }}>{t.profile}</span>
                 <div style={{width:36}}></div>
             </div>
 
@@ -918,35 +1158,61 @@ function App() {
                         <div style={st.walletCard}>
                             <div style={st.walletCardLeft}>
                                 <div style={st.walletDot}></div>
-                                <div><p style={st.walletLabel}>TON кошелёк подключён</p><p style={st.walletAddress}>{getFriendlyAddress()}</p></div>
+                                <div><p style={st.walletLabel}>{t.walletConnected}</p><p style={st.walletAddress}>{getFriendlyAddress()}</p></div>
                             </div>
-                            <button onClick={() => tonConnectUI.disconnect()} style={st.walletDisconnectBtn}>Отключить</button>
+                            <button onClick={() => tonConnectUI.disconnect()} style={st.walletDisconnectBtn}>{t.disconnect}</button>
                         </div>
                     ) : (
-                        <button onClick={() => tonConnectUI.openModal()} style={st.connectWalletPremium}>💎 Подключить TON кошелёк</button>
+                        <button onClick={() => tonConnectUI.openModal()} style={st.connectWalletPremium}>💎 {t.connectWallet}</button>
                     )}
                 </div>
 
                 <div style={st.profileSection}>
-                    <button onClick={() => setShowCreateForm(true)} style={st.profileActionBtn}><span>✨</span> Создать задание</button>
-                    <button onClick={() => setShowTopUpModal(true)} style={{...st.profileActionBtn, background: 'rgba(255,210,0,0.05)', borderColor: 'rgba(255,210,0,0.15)', color: '#FFD200'}}><span>⭐</span> Пополнить Stars</button>
-                    <button onClick={() => setShowTonTopUpModal(true)} style={{...st.profileActionBtn, background: 'rgba(0,136,204,0.05)', borderColor: 'rgba(0,136,204,0.15)', color: '#0088CC'}}><span>💎</span> Пополнить TON</button>
-                    <button onClick={() => setShowConvertModal(true)} style={{...st.profileActionBtn, background: 'rgba(255,193,7,0.05)', borderColor: 'rgba(255,193,7,0.15)', color: '#FFC107'}}><span>🔄</span> Конвертировать Stars → TON</button>
-                    <button onClick={() => setShowWithdrawModal(true)} style={{...st.profileActionBtn, background: 'rgba(76,175,80,0.05)', borderColor: 'rgba(76,175,80,0.15)', color: '#4CAF50'}}><span>💸</span> Вывести TON</button>
+                    <button onClick={() => setShowCreateForm(true)} style={st.profileActionBtn}><span>✨</span> {t.createTask}</button>
+                    <button onClick={() => setShowTopUpModal(true)} style={{...st.profileActionBtn, background: 'rgba(255,210,0,0.05)', borderColor: 'rgba(255,210,0,0.15)', color: '#FFD200'}}><span>⭐</span> {t.topUpStars}</button>
+                    <button onClick={() => setShowTonTopUpModal(true)} style={{...st.profileActionBtn, background: 'rgba(0,136,204,0.05)', borderColor: 'rgba(0,136,204,0.15)', color: '#0088CC'}}><span>💎</span> {t.topUpTon}</button>
+                    <button onClick={() => setShowConvertModal(true)} style={{...st.profileActionBtn, background: 'rgba(255,193,7,0.05)', borderColor: 'rgba(255,193,7,0.15)', color: '#FFC107'}}><span>🔄</span> {t.convertStars}</button>
+                    <button onClick={() => setShowWithdrawModal(true)} style={{...st.profileActionBtn, background: 'rgba(76,175,80,0.05)', borderColor: 'rgba(76,175,80,0.15)', color: '#4CAF50'}}><span>💸</span> {t.withdrawTon}</button>
                     {user?.telegram_id && String(user.telegram_id) === "850997324" && (
-                        <button onClick={() => setShowAdminPanel(true)} style={{...st.profileActionBtn, background: 'rgba(255,51,102,0.05)', borderColor: 'rgba(255,51,102,0.15)', color: '#FF3366'}}><span>🛡️</span> Панель администратора</button>
+                        <button onClick={() => setShowAdminPanel(true)} style={{...st.profileActionBtn, background: 'rgba(255,51,102,0.05)', borderColor: 'rgba(255,51,102,0.15)', color: '#FF3366'}}><span>🛡️</span> {t.adminPanel}</button>
                     )}
+                </div>
+
+                <div style={st.profileSection}>
+                    <h3 style={st.sectionLabel}>{t.settings}</h3>
+                    <div style={st.settingsCard}>
+                        <div>
+                            <p style={st.settingsLabel}>{t.language}</p>
+                            <p style={st.settingsHint}>Русский / English</p>
+                        </div>
+                        <div style={st.toggleGroup}>
+                            {[['ru', 'RU'], ['en', 'EN']].map(([value, label]) => (
+                                <button key={value} onClick={() => setLanguage(value)} style={language === value ? st.toggleOptionActive : st.toggleOption}>{label}</button>
+                            ))}
+                        </div>
+                    </div>
+                    <div style={st.settingsCard}>
+                        <div>
+                            <p style={st.settingsLabel}>{t.theme}</p>
+                            <p style={st.settingsHint}>{t.light} / {t.dark}</p>
+                        </div>
+                        <div style={st.toggleGroup}>
+                            {[['light', t.light], ['dark', t.dark]].map(([value, label]) => (
+                                <button key={value} onClick={() => setTheme(value)} style={theme === value ? st.toggleOptionActive : st.toggleOption}>{label}</button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 {myQuests.length > 0 && (
                     <div style={st.profileSection}>
-                        <h3 style={st.sectionLabel}>Мои задания</h3>
+                        <h3 style={st.sectionLabel}>{t.myTasks}</h3>
                         <div style={st.filterRowPremium}>
-                            {[['pending', 'На модерации'], ['active', 'Принято'], ['rejected', 'Отклонено']].map(([val, label]) => (
+                            {[['pending', t.pending], ['active', t.accepted], ['rejected', t.rejected]].map(([val, label]) => (
                                 <button key={val} onClick={() => setQuestStatusFilter(val)} style={questStatusFilter === val ? st.filterBtnActivePremium : st.filterBtnPremium}>{label}</button>
                             ))}
                         </div>
-                        {myQuests.filter(q => q.status === questStatusFilter).length === 0 ? <div style={st.emptySmallPremium}>Нет заданий</div> : myQuests.filter(q => q.status === questStatusFilter).map(quest => (
+                        {myQuests.filter(q => q.status === questStatusFilter).length === 0 ? <div style={st.emptySmallPremium}>{t.noTasks}</div> : myQuests.filter(q => q.status === questStatusFilter).map(quest => (
                             <div key={quest.id} style={st.myQuestCardPremium}>
                                 <div style={{...st.myQuestAvatarBox, background: channelAvatars[quest.id] ? 'transparent' : getChannelColor(quest.title)}}>
                                     {channelAvatars[quest.id] ? <img src={channelAvatars[quest.id]} alt="" style={st.myQuestAvatarImg} /> : <span>{getChannelInitial(quest.title, quest.target_url)}</span>}
@@ -957,7 +1223,7 @@ function App() {
                                     <div style={st.myQuestFooterPremium}>
                                         <span style={st.myQuestReward}>+{quest.reward} ⭐</span>
                                         <span style={{...st.statusTag, ...(quest.status === 'pending' && {background:'rgba(255,193,7,0.12)', color:'#FFC107'}), ...(quest.status === 'active' && {background:'rgba(76,175,80,0.12)', color:'#4CAF50'}), ...(quest.status === 'rejected' && {background:'rgba(255,51,102,0.12)', color:'#FF3366'})}}>
-                                            {quest.status === 'pending' && 'На модерации'}{quest.status === 'active' && 'Опубликовано'}{quest.status === 'rejected' && 'Отклонено'}{quest.status === 'inactive' && 'Снято'}
+                                            {quest.status === 'pending' && t.pending}{quest.status === 'active' && t.published}{quest.status === 'rejected' && t.rejected}{quest.status === 'inactive' && t.inactive}
                                         </span>
                                     </div>
                                     {quest.status === 'rejected' && quest.rejection_reason && <p style={st.rejectionReasonText}>📝 {quest.rejection_reason}</p>}
@@ -1435,16 +1701,16 @@ function App() {
             <div style={{...st.mainScroll, WebkitOverflowScrolling: 'touch', willChange: 'transform', transform: 'translateZ(0)'}} className="mainScroll">
                 {mainTab === 'tasks' && (<>
                     <div style={st.segmentWrap}>
-                        <button onClick={() => setActiveTab('active')} style={activeTab === 'active' ? st.segmentActive : st.segment}>Активные<span style={st.segmentBadge}>{activeTasks.length}</span></button>
-                        <button onClick={() => setActiveTab('completed')} style={activeTab === 'completed' ? st.segmentActive : st.segment}>Выполненные<span style={st.segmentBadge}>{completedTasks.length}</span></button>
+                        <button onClick={() => setActiveTab('active')} style={activeTab === 'active' ? st.segmentActive : st.segment}>{t.active}<span style={st.segmentBadge}>{activeTasks.length}</span></button>
+                        <button onClick={() => setActiveTab('completed')} style={activeTab === 'completed' ? st.segmentActive : st.segment}>{t.completed}<span style={st.segmentBadge}>{completedTasks.length}</span></button>
                     </div>
 
-                    {activeTab === 'active' && (activeTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>✨</div><h3 style={st.emptyStateTitle}>Всё выполнено</h3><p style={st.emptyStateText}>Новые задания появятся в ближайшее время</p></div> : activeTasks.map((task, i) => {
+                    {activeTab === 'active' && (activeTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>✨</div><h3 style={st.emptyStateTitle}>{t.allDone}</h3><p style={st.emptyStateText}>{t.newTasksSoon}</p></div> : activeTasks.map((task, i) => {
     const typeMeta = {
-        admin:    { icon: '📢', label: 'Подписка', color: '#00C2FF', rgb: '0,194,255' },
-        invite:   { icon: '🔗', label: 'Инвайт',   color: '#A855F7', rgb: '168,85,247' },
-        repost:   { icon: '🔁', label: 'Репост',   color: '#FFC107', rgb: '255,193,7' },
-        referral: { icon: '👥', label: 'Реферал',  color: '#4CAF50', rgb: '76,175,80' },
+        admin:    { icon: '📢', label: t.subscribe, color: '#00C2FF', rgb: '0,194,255' },
+        invite:   { icon: '🔗', label: t.invite,   color: '#A855F7', rgb: '168,85,247' },
+        repost:   { icon: '🔁', label: t.repost,   color: '#FFC107', rgb: '255,193,7' },
+        referral: { icon: '👥', label: t.referral,  color: '#4CAF50', rgb: '76,175,80' },
     };
     const tMeta = typeMeta[task.verification_type] || typeMeta.admin;
     const hasNftBg = !!nftBackgrounds[task.id];
@@ -1585,7 +1851,7 @@ function App() {
                         boxShadow: `0 4px 20px rgba(${tMeta.rgb}, 0.4)`
                     }}
                 >
-                    Выполнить
+                    {t.complete}
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                         <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
@@ -1596,21 +1862,21 @@ function App() {
     );
 }))}
 
-                    {activeTab === 'completed' && (completedTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>📋</div><h3 style={st.emptyStateTitle}>Пока пусто</h3><p style={st.emptyStateText}>Выполняйте задания и получайте награды</p></div> : completedTasks.map(task => (
+                    {activeTab === 'completed' && (completedTasks.length === 0 ? <div style={st.emptyStatePremium}><div style={st.emptyStateIcon}>📋</div><h3 style={st.emptyStateTitle}>{t.empty}</h3><p style={st.emptyStateText}>{t.completeTasksToEarn}</p></div> : completedTasks.map(task => (
                         <div key={task.id} style={{...st.questCard, opacity: 0.5}}>
                             <div style={{...st.questAvatar, background: channelAvatars[task.id] ? 'transparent' : getChannelColor(task.title)}}>{channelAvatars[task.id] ? <img src={channelAvatars[task.id]} alt="" style={st.questAvatarImg} /> : <span style={st.questAvatarLetter}>{getChannelInitial(task.title, task.target_url)}</span>}</div>
-                            <div style={st.questBody}><h4 style={st.questTitle}>{task.title}</h4><p style={st.questDesc}>{task.description}</p><div style={st.questFooter}><div style={{...st.rewardTag, background: 'rgba(168,85,247,0.1)', color: '#A855F7', borderColor: 'rgba(168,85,247,0.2)'}}>✓ +{task.reward} ⭐</div><span style={st.completedMark}>Выполнено</span></div></div>
+                            <div style={st.questBody}><h4 style={st.questTitle}>{task.title}</h4><p style={st.questDesc}>{task.description}</p><div style={st.questFooter}><div style={{...st.rewardTag, background: 'rgba(168,85,247,0.1)', color: '#A855F7', borderColor: 'rgba(168,85,247,0.2)'}}>✓ +{task.reward} ⭐</div><span style={st.completedMark}>{t.completedMark}</span></div></div>
                         </div>
                     )))}
                 </>)}
 
                 {mainTab === 'referral' && (<>
-                    <div style={st.cardPremium}><div style={st.cardIconBox}>👥</div><h3 style={st.cardTitle}>Партнёрская программа</h3><p style={st.cardDescription}>Приглашайте друзей и получайте <strong style={{color: '#FF3366'}}>10%</strong> от их заработка навсегда</p><div style={st.referralCodeBox}><code style={st.referralCode}>{getReferralLink()}</code></div><button onClick={copyReferralLink} style={st.copyBtnPremium}><span>📋</span> Скопировать ссылку</button></div>
-                    <div style={st.cardPremium}><h4 style={st.statsHeading}>Статистика</h4><div style={st.statRowPremium}><span style={st.statLabelPremium}>Приглашено друзей</span><span style={st.statValuePremium}>0</span></div><div style={st.statRowPremium}><span style={st.statLabelPremium}>Заработано комиссии</span><span style={st.statValuePremium}>0 ⭐</span></div></div>
+                    <div style={st.cardPremium}><div style={st.cardIconBox}>👥</div><h3 style={st.cardTitle}>{t.referralProgram}</h3><p style={st.cardDescription}>{t.referralText}<strong style={{color: '#FF3366'}}>10%</strong>{t.referralTail}</p><div style={st.referralCodeBox}><code style={st.referralCode}>{getReferralLink()}</code></div><button onClick={copyReferralLink} style={st.copyBtnPremium}><span>📋</span> {t.copyLink}</button></div>
+                    <div style={st.cardPremium}><h4 style={st.statsHeading}>{t.statistics}</h4><div style={st.statRowPremium}><span style={st.statLabelPremium}>{t.invitedFriends}</span><span style={st.statValuePremium}>0</span></div><div style={st.statRowPremium}><span style={st.statLabelPremium}>{t.earnedCommission}</span><span style={st.statValuePremium}>0 ⭐</span></div></div>
                 </>)}
 
                 {mainTab === 'info' && (<>
-                    {[{ icon: '⭐', title: 'StarTask', desc: 'Первая B2B-платформа для продвижения Telegram-каналов через вознаграждения в Stars и TON. С нами зарабатывают тысячи пользователей.' }, { icon: '🚀', title: 'Как начать', desc: 'Выберите задание → Выполните простое действие → Получите вознаграждение мгновенно на ваш баланс. Никаких задержек.' }, { icon: '💎', title: 'TON Foundation', desc: 'Проект поддержан TON Foundation. Мы строим Web3-экономику заданий с криптовалютными расчётами.' }].map(({ icon, title, desc }) => (<div key={title} style={st.cardPremium}><div style={st.cardIconBox}>{icon}</div><h3 style={st.cardTitle}>{title}</h3><p style={st.cardDescription}>{desc}</p></div>))}
+                    {t.infoCards.map(([icon, title, desc]) => (<div key={title} style={st.cardPremium}><div style={st.cardIconBox}>{icon}</div><h3 style={st.cardTitle}>{title}</h3><p style={st.cardDescription}>{desc}</p></div>))}
                 </>)}
             </div>
 
@@ -1638,25 +1904,25 @@ function App() {
                             <div style={{display: 'flex', gap: '10px', marginBottom: '16px'}}>
                                 <div style={{flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '10px', textAlign: 'center'}}>
                                     <p style={{margin: 0, color: '#00C2FF', fontSize: '16px', fontWeight: '700'}}>{selectedTask.subscribers_count.toLocaleString()}</p>
-                                    <p style={{margin: 0, color: 'rgba(255,255,255,0.35)', fontSize: '10px'}}>подписчиков</p>
+                                    <p style={{margin: 0, color: theme === 'light' ? lightMuted : 'rgba(255,255,255,0.35)', fontSize: '10px'}}>{t.subscribers}</p>
                                 </div>
                                 <div style={{flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '10px', textAlign: 'center'}}>
                                     <p style={{margin: 0, color: '#FF3366', fontSize: '16px', fontWeight: '700'}}>+{selectedTask.reward} ⭐</p>
-                                    <p style={{margin: 0, color: 'rgba(255,255,255,0.35)', fontSize: '10px'}}>награда</p>
+                                    <p style={{margin: 0, color: theme === 'light' ? lightMuted : 'rgba(255,255,255,0.35)', fontSize: '10px'}}>{t.reward}</p>
                                 </div>
                             </div>
                         )}
 
                         {selectedTask.extended_description && (
                             <div style={{background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '14px', marginBottom: '16px'}}>
-                                <p style={{margin: '0 0 6px', color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px'}}>О канале</p>
-                                <p style={{margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: '13px', lineHeight: 1.6}}>{selectedTask.extended_description}</p>
+                                <p style={{margin: '0 0 6px', color: theme === 'light' ? lightMuted : 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px'}}>{t.aboutChannel}</p>
+                                <p style={{margin: 0, color: theme === 'light' ? lightText : 'rgba(255,255,255,0.7)', fontSize: '13px', lineHeight: 1.6}}>{selectedTask.extended_description}</p>
                             </div>
                         )}
 
                         {selectedTask.screenshots && selectedTask.screenshots.length > 0 && (
                             <div style={{marginBottom: '16px'}}>
-                                <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px'}}>Скриншоты</p>
+                                <p style={{margin: '0 0 10px', color: theme === 'light' ? lightMuted : 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px'}}>{t.screenshots}</p>
                                 <div style={{display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch'}}>
                                     {selectedTask.screenshots.map((url, i) => url && (
                                         <img key={i} src={getScreenshotSrc(url)} alt={`screenshot ${i+1}`} style={{width: '140px', height: '200px', objectFit: 'cover', borderRadius: '10px', flexShrink: 0}} />
@@ -1667,7 +1933,7 @@ function App() {
 
                         {selectedTask.social_links && Object.values(selectedTask.social_links).some(v => v) && (
                             <div style={{marginBottom: '16px'}}>
-                                <p style={{margin: '0 0 10px', color: 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px'}}>Соцсети</p>
+                                <p style={{margin: '0 0 10px', color: theme === 'light' ? lightMuted : 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px'}}>{t.socialLinks}</p>
                                 <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
                                     {Object.entries(selectedTask.social_links).map(([key, val]) => val && (
                                         <a key={key} href={val} target="_blank" rel="noreferrer" style={{display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '6px 12px', color: 'white', fontSize: '12px', textDecoration: 'none', fontWeight: '600'}}>
@@ -1680,21 +1946,21 @@ function App() {
 
                         <button onClick={(e) => { createRipple(e); setSelectedTask(null); completeTask(selectedTask.id, selectedTask.target_url, selectedTask.target_url.split('t.me/')[1], selectedTask.invite_link, selectedTask.verification_type, selectedTask.post_url, selectedTask.referral_url); }}
                         style={{...st.actionBtnUltra, width: '100%', justifyContent: 'center', padding: '14px', fontSize: '15px'}}>
-                            Выполнить и получить +{selectedTask.reward} ⭐
+                            {t.completeAndEarn} +{selectedTask.reward} ⭐
                         </button>
                     </div>
                 </div>
             )}
 
             <div style={st.bottomNav}>
-                {[{ id: 'tasks', icon: '📋', label: 'Задания' }, { id: 'referral', icon: '👥', label: 'Партнёры' }, { id: 'info', icon: 'ℹ️', label: 'О проекте' }].map(({ id, icon, label }) => (<button key={id} onClick={() => setMainTab(id)} style={mainTab === id ? st.navItemActive : st.navItem}><span style={st.navItemIcon}>{icon}</span><span style={st.navItemLabel}>{label}</span></button>))}
+                {[{ id: 'tasks', icon: '📋', label: t.tasks }, { id: 'referral', icon: '👥', label: t.partners }, { id: 'info', icon: 'ℹ️', label: t.project }].map(({ id, icon, label }) => (<button key={id} onClick={() => setMainTab(id)} style={mainTab === id ? st.navItemActive : st.navItem}><span style={st.navItemIcon}>{icon}</span><span style={st.navItemLabel}>{label}</span></button>))}
             </div>
         </div>
     );
 }
 
 // ============ STYLES ============
-const st = {
+const baseSt = {
     screen: { minHeight: '100vh', position: 'relative', overflowX: 'hidden', fontFamily: "'Inter', -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif", background: 'radial-gradient(800px at 20% 0%, rgba(0,194,255,0.10), transparent), radial-gradient(600px at 80% 100%, rgba(255,51,102,0.10), transparent), linear-gradient(160deg, #05010a 0%, #0a0014 50%, #0d0020 100%)', backgroundAttachment: 'fixed', color: '#FFFFFF' },
     profileOverlay: { position: 'fixed', inset: 0, zIndex: 200, background: 'radial-gradient(800px at 20% 0%, rgba(0,194,255,0.10), transparent), radial-gradient(600px at 80% 100%, rgba(255,51,102,0.10), transparent), linear-gradient(160deg, #05010a 0%, #0a0014 50%, #0d0020 100%)', backgroundAttachment: 'fixed', display: 'flex', flexDirection: 'column' },
     loadingScreen: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(160deg, #0a0014 0%, #0d001a 15%, #100020 30%, #0a0020 50%, #0d0030 70%, #0a0014 100%)', position: 'relative', overflow: 'hidden' },
@@ -1778,6 +2044,12 @@ const st = {
     profileSection: { padding: '8px 20px' },
     sectionLabel: { color: 'white', fontSize: '16px', fontWeight: '700', margin: '0 0 14px' },
     profileActionBtn: { width: '100%', padding: '14px 20px', marginBottom: '8px', background: 'rgba(0,194,255,0.04)', border: '1px solid rgba(0,194,255,0.1)', borderRadius: '14px', color: '#00C2FF', fontWeight: '700', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', transition: 'all 0.2s ease' },
+    settingsCard: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '14px', padding: '12px 14px', marginBottom: '8px' },
+    settingsLabel: { margin: '0 0 3px', color: 'white', fontSize: '13px', fontWeight: '700' },
+    settingsHint: { margin: 0, color: 'rgba(255,255,255,0.35)', fontSize: '11px' },
+    toggleGroup: { display: 'flex', flexShrink: 0, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '3px', gap: '3px' },
+    toggleOption: { border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.5)', borderRadius: '9px', padding: '7px 10px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' },
+    toggleOptionActive: { border: 'none', background: 'linear-gradient(135deg,#00C2FF,#FF3366)', color: 'white', borderRadius: '9px', padding: '7px 10px', fontSize: '11px', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,194,255,0.22)' },
     walletCard: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,136,204,0.04)', border: '1px solid rgba(0,136,204,0.12)', borderRadius: '14px', padding: '12px 16px' },
     walletCardLeft: { display: 'flex', alignItems: 'center', gap: '10px' },
     walletDot: { width: '8px', height: '8px', borderRadius: '50%', background: '#0088CC', boxShadow: '0 0 10px rgba(0,136,204,0.5)' },
@@ -1855,6 +2127,8 @@ const st = {
     infoBoxYellow: { background: 'rgba(255,193,7,0.06)', border: '1px solid rgba(255,193,7,0.15)', borderRadius: '14px', padding: '12px', marginBottom: '14px', color: '#FFC107', fontSize: '12px' },
     infoBoxGreen: { background: 'rgba(76,175,80,0.06)', border: '1px solid rgba(76,175,80,0.15)', borderRadius: '14px', padding: '12px', marginBottom: '14px', color: '#4CAF50', fontSize: '12px' },
 };
+
+const st = baseSt;
 
 const styleSheet = document.createElement("style");
 styleSheet.textContent = `
