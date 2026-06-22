@@ -30,11 +30,3 @@ StarTask — платформа микрозаданий внутри Telegram, 
 
 \- `MINI\_APP\_URL` — URL деплоя Mini App
 
-
-
-\## Грант TON Foundation
-
-
-
-Проект подан на грант TON Foundation для масштабирования.
-

@@ -130,7 +130,7 @@ const translations = {
         infoCards: [
             ['⭐', 'StarTask', 'Первая B2B-платформа для продвижения Telegram-каналов через вознаграждения в Stars и TON. С нами зарабатывают тысячи пользователей.'],
             ['🚀', 'Как начать', 'Выберите задание → Выполните простое действие → Получите вознаграждение мгновенно на ваш баланс. Никаких задержек.'],
-            ['💎', 'TON Foundation', 'Проект поддержан TON Foundation. Мы строим Web3-экономику заданий с криптовалютными расчётами.']
+            ['💎', 'TON blockchain', 'Платформа интегрирована с TON-блокчейном для моментальных выплат в криптовалюте.']
         ]
     },
     en: {
@@ -191,7 +191,7 @@ const translations = {
         infoCards: [
             ['⭐', 'StarTask', 'The first B2B platform for promoting Telegram channels with Stars and TON rewards. Thousands of users earn with us.'],
             ['🚀', 'How to start', 'Choose a task → Complete a simple action → Get the reward instantly on your balance. No delays.'],
-            ['💎', 'TON Foundation', 'The project is supported by TON Foundation. We are building a Web3 task economy with crypto payments.']
+            ['💎', 'TON blockchain', 'The platform is integrated with the TON blockchain for instant crypto payouts.']
         ]
     }
 };
