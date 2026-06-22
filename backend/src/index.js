@@ -1245,9 +1245,11 @@ app.post('/api/parse-nft-background', async (req, res) => {
 
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
+app.get('/', (req, res) => res.status(200).json({ service: 'StarTask API', status: 'running' }));
+
 app.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://startask-7yhw.onrender.com';
+    const WEBHOOK_URL = (process.env.WEBHOOK_URL || 'https://startask-7yhw.onrender.com').replace(/\/+$/, '');
     try {
         const result = await bot.telegram.setWebhook(`${WEBHOOK_URL}/webhook`);
         console.log(`✅ Webhook set: ${WEBHOOK_URL}/webhook →`, JSON.stringify(result));
