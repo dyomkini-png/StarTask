@@ -27,8 +27,6 @@ app.use(cors());
 const { Telegraf } = require('telegraf');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-
-
 // ========== КОМАНДЫ БОТА ==========
 const MINI_APP_URL = process.env.MINI_APP_URL || 'https://startask-ten.vercel.app';
 
@@ -1245,17 +1243,16 @@ app.post('/api/parse-nft-background', async (req, res) => {
     }
 });
 
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 app.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    const WEBHOOK_URL = process.env.WEBHOOK_URL;
-    if (WEBHOOK_URL) {
-        try {
-            const result = await bot.telegram.setWebhook(`${WEBHOOK_URL}/webhook`);
-            console.log(`✅ Webhook set result:`, JSON.stringify(result));
-        } catch (err) {
-            console.error('❌ Webhook setup error:', err.message);
-        }
+    const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://startask-7yhw.onrender.com';
+    try {
+        const result = await bot.telegram.setWebhook(`${WEBHOOK_URL}/webhook`);
+        console.log(`✅ Webhook set: ${WEBHOOK_URL}/webhook →`, JSON.stringify(result));
+    } catch (err) {
+        console.error('❌ Webhook setup error:', err.message);
     }
 
     // Устанавливаем кнопку меню глобально для всех пользователей
