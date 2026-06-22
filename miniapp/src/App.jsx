@@ -5,6 +5,8 @@ import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { Address } from '@ton/core';
 import Analytics from '@telegram-apps/analytics';
 
+const track = (event, data) => { try { Analytics.track?.(event, data); } catch {} };
+
 const API_URL = import.meta.env.VITE_API_URL || 'https://startask-7yhw.onrender.com';
 
 const getScreenshotSrc = (url) => `${API_URL}/api/image-proxy?url=${encodeURIComponent(url)}`;
@@ -802,7 +804,7 @@ function App() {
             fetchMyQuests(response.data.user.id);
             fetchConversionRate();
             // Отправляем событие в аналитику
-            Analytics.track('app_opened', {
+            track('app_opened', {
                 user_id: response.data.user.id,
                 timestamp: new Date().toISOString()
             });
@@ -888,7 +890,7 @@ function App() {
             setConvertStep('waiting');
             const response = await axios.post(`${API_URL}/api/convert/stars-to-ton`, { userId: user.id, starsAmount: convertAmount });
             if (response.data.success) {
-                Analytics.track('stars_converted', {
+                track('stars_converted', {
                     amount: convertAmount,
                     ton_received: convertAmount / conversionRate,
                     user_id: user.id
@@ -912,7 +914,7 @@ function App() {
             setWithdrawStep('waiting');
             const response = await axios.post(`${API_URL}/api/withdraw/ton`, { userId: user.id, amount: withdrawAmount });
             if (response.data.success) {
-                Analytics.track('withdrawal_requested', {
+                track('withdrawal_requested', {
                     amount: withdrawAmount,
                     user_id: user.id
                 });
@@ -968,7 +970,7 @@ function App() {
                 const response = await axios.post(`${API_URL}/api/check-subscription`, { userId: user.id, channelUsername, questId: taskId });
                 tg.MainButton.hide();
                 if (response.data.success) {
-                    Analytics.track('task_completed', {
+                    track('task_completed', {
                         task_id: taskId,
                         reward: questReward, // если есть доступ к награде
                         user_id: user.id
@@ -1022,7 +1024,7 @@ function App() {
             });
 
             if (response.data.success) {
-                Analytics.track('quest_created', {
+                track('quest_created', {
                     quest_type: questType,
                     reward: reward,
                     budget: totalBudget,
@@ -1067,7 +1069,7 @@ function App() {
             const tx = await tonConnectUI.sendTransaction({ validUntil: Math.floor(Date.now() / 1000) + 600, messages: [{ address: import.meta.env.VITE_PLATFORM_TON_WALLET, amount: (tonTopUpAmount * 1e9).toString() }] });
             const response = await axios.post(`${API_URL}/api/ton-payment/credit`, { userId: user.id, amount: tonTopUpAmount, boc: tx.boc });
             if (response.data.success) {
-                Analytics.track('ton_topup', {
+                track('ton_topup', {
                     amount: tonTopUpAmount,
                     user_id: user.id
                 });
