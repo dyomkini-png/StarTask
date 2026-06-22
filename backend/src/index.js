@@ -246,6 +246,9 @@ initDB();
 app.post('/api/auth', async (req, res) => {
     const { telegramId, username } = req.body;
     try {
+        if (!telegramId || telegramId === 0 || telegramId === '0') {
+            return res.status(400).json({ error: 'Невалидный Telegram ID' });
+        }
         let user = await db.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
         if (user.rows.length === 0) {
             const newUser = await db.query('INSERT INTO users (telegram_id, username) VALUES ($1, $2) RETURNING *', [telegramId, username]);

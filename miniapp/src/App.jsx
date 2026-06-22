@@ -757,19 +757,24 @@ function App() {
         tg.ready(); tg.expand(); tg.MainButton.hide();
         const bgColor = theme === 'light' ? '#f8fbff' : '#0a0014';
         tg.setHeaderColor(bgColor); tg.setBackgroundColor(bgColor);
-		
-		//Инициализация Telegram Analytics SDK
-		try {
-			Analytics.init({
-				token: import.meta.env.VITE_ANALYTICS_TOKEN || '',
-				appName: 'StarTask',
-				appVersion: '1.0.0'
-			});
-			console.log('✅ Analytics SDK initialized');
-		} catch (e) {
-			console.error('Analytics init error:', e);
-		}
-        if (tg.initDataUnsafe?.user) authenticate(tg.initDataUnsafe.user);
+
+        try {
+            Analytics.init({
+                token: import.meta.env.VITE_ANALYTICS_TOKEN || '',
+                appName: 'StarTask',
+                appVersion: '1.0.0'
+            });
+        } catch (e) {
+            console.error('Analytics init error:', e);
+        }
+
+        const telegramUser = tg.initDataUnsafe?.user;
+        if (telegramUser && telegramUser.id) {
+            authenticate(telegramUser);
+        } else {
+            console.error('Telegram user data not available');
+            setLoading(false);
+        }
     }, []);
 
     const authenticate = async (telegramUser) => {
