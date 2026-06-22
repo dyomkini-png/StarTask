@@ -119,7 +119,8 @@ bot.on('successful_payment', async (ctx) => {
     }
 });
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 app.post('/webhook', async (req, res) => {
     try {

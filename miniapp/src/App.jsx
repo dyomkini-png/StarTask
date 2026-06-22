@@ -1055,7 +1055,8 @@ function App() {
                 setTotalBudget('');
             }
         } catch (error) {
-            tg.showPopup({ title: 'Ошибка', message: error.response?.data?.error || 'Ошибка', buttons: [{ type: 'ok' }] });
+            const msg = error.response?.data?.error || error.message || 'Ошибка создания задания';
+            tg.showPopup({ title: 'Ошибка', message: msg, buttons: [{ type: 'ok' }] });
         }
     };
 
