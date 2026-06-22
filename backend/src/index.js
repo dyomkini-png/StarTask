@@ -27,6 +27,13 @@ app.use(cors());
 const { Telegraf } = require('telegraf');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
+bot.launch({
+    webhook: {
+        domain: 'https://startask-7yhw.onrender.com',
+        port: process.env.PORT || 3000
+    }
+});
+
 // ========== КОМАНДЫ БОТА ==========
 const MINI_APP_URL = process.env.MINI_APP_URL || 'https://startask-ten.vercel.app';
 
@@ -1244,6 +1251,16 @@ app.post('/api/parse-nft-background', async (req, res) => {
     } catch (error) {
         console.error(`❌ NFT parse error:`, error.message);
         res.json({ success: false });
+    }
+});
+
+app.post('/api/webhook', async (req, res) => {
+    try {
+        await bot.handleUpdate(req.body);
+        res.sendStatus(200);
+    } catch (error) {
+        console.error('Webhook error:', error.message);
+        res.sendStatus(200); // Всё равно отвечаем 200, чтобы Telegram не повторял
     }
 });
 
