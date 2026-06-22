@@ -1295,6 +1295,17 @@ app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 app.get('/', (req, res) => res.status(200).json({ service: 'StarTask API', status: 'running' }));
 
+// Self-pinger: не даёт Render free tier заснуть
+const SELF_URL = (process.env.WEBHOOK_URL || 'https://startask-7yhw.onrender.com').replace(/\/+$/, '');
+setInterval(async () => {
+    try {
+        await axios.get(`${SELF_URL}/health`, { timeout: 30000 });
+        console.log('🏓 Self-ping OK');
+    } catch (e) {
+        console.error('🏓 Self-ping failed:', e.message);
+    }
+}, 10 * 60 * 1000);
+
 app.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     const WEBHOOK_URL = (process.env.WEBHOOK_URL || 'https://startask-7yhw.onrender.com').replace(/\/+$/, '');
