@@ -259,7 +259,7 @@ app.post('/api/auth', async (req, res) => {
             process.env.JWT_SECRET || 'secret',
             { expiresIn: '7d' }
         );
-        res.json({ token, user: user.rows[0] });
+        res.json({ token, user: user.rows[0], adminId: process.env.ADMIN_TELEGRAM_ID || null });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

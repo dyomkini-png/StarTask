@@ -674,6 +674,7 @@ function App() {
     const [showProfile, setShowProfile] = useState(false);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [showAdminPanel, setShowAdminPanel] = useState(false);
+    const [adminId, setAdminId] = useState(null);
     const [verificationType, setVerificationType] = useState('admin');
     const [inviteLinkInput, setInviteLinkInput] = useState('');
     const [selectedTask, setSelectedTask] = useState(null);
@@ -769,7 +770,7 @@ function App() {
         }
 
         const telegramUser = tg.initDataUnsafe?.user;
-        if (telegramUser && telegramUser.id) {
+        if (telegramUser) {
             authenticate(telegramUser);
         } else {
             console.error('Telegram user data not available');
@@ -783,6 +784,7 @@ function App() {
             const response = await axios.post(`${API_URL}/api/auth`, { telegramId: telegramUser.id, username: telegramUser.username });
             setUser({ ...response.data.user, photo_url: userPhotoUrl, first_name: telegramUser.first_name, last_name: telegramUser.last_name });
             localStorage.setItem('token', response.data.token);
+            if (response.data.adminId) setAdminId(response.data.adminId);
             fetchBalance(response.data.user.id);
             fetchTonBalance(response.data.user.id);
             fetchTasks(response.data.user.id);
@@ -806,12 +808,12 @@ function App() {
     // Оптимизированный fetchTasks с батчингом запросов
     const fetchTasks = async (userId) => {
         try {
-            const [allTasksRes, completionsRes] = await Promise.all([
+            const [allTasksRes, completionsRes] = await Promise.allSettled([
                 axios.get(`${API_URL}/api/quests`),
                 axios.get(`${API_URL}/api/user/${userId}/completions`)
             ]);
-            const allTasks = (allTasksRes.data || []).map(normalizeTask);
-            const completedIds = completionsRes.data.map(c => c.quest_id);
+            const allTasks = (allTasksRes.status === 'fulfilled' ? (allTasksRes.value.data || []) : []).map(normalizeTask);
+            const completedIds = completionsRes.status === 'fulfilled' ? completionsRes.value.data.map(c => c.quest_id) : [];
             setActiveTasks(allTasks.filter(t => !completedIds.includes(t.id) && t.advertiser_id !== userId));
             setCompletedTasks(allTasks.filter(t => completedIds.includes(t.id)));
 
@@ -1178,7 +1180,7 @@ function App() {
                     <button onClick={() => setShowTonTopUpModal(true)} style={{...st.profileActionBtn, background: 'rgba(0,136,204,0.05)', borderColor: 'rgba(0,136,204,0.15)', color: '#0088CC'}}><span>💎</span> {t.topUpTon}</button>
                     <button onClick={() => setShowConvertModal(true)} style={{...st.profileActionBtn, background: 'rgba(255,193,7,0.05)', borderColor: 'rgba(255,193,7,0.15)', color: '#FFC107'}}><span>🔄</span> {t.convertStars}</button>
                     <button onClick={() => setShowWithdrawModal(true)} style={{...st.profileActionBtn, background: 'rgba(76,175,80,0.05)', borderColor: 'rgba(76,175,80,0.15)', color: '#4CAF50'}}><span>💸</span> {t.withdrawTon}</button>
-                    {user?.telegram_id && String(user.telegram_id) === "850997324" && (
+                    {user?.telegram_id && adminId && String(user.telegram_id) === String(adminId) && (
                         <button onClick={() => setShowAdminPanel(true)} style={{...st.profileActionBtn, background: 'rgba(255,51,102,0.05)', borderColor: 'rgba(255,51,102,0.15)', color: '#FF3366'}}><span>🛡️</span> {t.adminPanel}</button>
                     )}
                 </div>
