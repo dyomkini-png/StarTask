@@ -230,10 +230,32 @@ async function initDB() {
             amount INTEGER,
             type TEXT,
             status TEXT,
+            ton_amount DECIMAL(20,9),
             telegram_payload JSONB,
             created_at TIMESTAMP DEFAULT NOW()
         );
+
+        CREATE TABLE IF NOT EXISTS withdrawals (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            amount DECIMAL(20,9),
+            wallet_address TEXT,
+            status TEXT DEFAULT 'pending',
+            tx_hash TEXT,
+            processed_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT NOW()
+        );
+
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT UNIQUE,
+            value TEXT
+        );
+
+        INSERT INTO settings (key, value) VALUES ('stars_to_ton_rate', '130')
+        ON CONFLICT (key) DO NOTHING;
     `);
+    await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS ton_wallet TEXT");
+    await db.query("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ton_amount DECIMAL(20,9)");
     console.log('✅ Database initialized');
 }
 initDB();
