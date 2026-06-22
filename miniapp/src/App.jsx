@@ -5,7 +5,7 @@ import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { Address } from '@ton/core';
 import Analytics from '@telegram-apps/analytics';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://startask-7yhw.onrender.com';
 
 const getScreenshotSrc = (url) => `${API_URL}/api/image-proxy?url=${encodeURIComponent(url)}`;
 
@@ -288,7 +288,7 @@ const getThemedStyles = (base, theme) => {
 
 // ============ ADMIN PANEL ============
 const AdminPanel = ({ onClose, userId }) => {
-    const API_URL = import.meta.env.VITE_API_URL || 'https://star-task.up.railway.app';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://startask-7yhw.onrender.com';
     const [pendingQuests, setPendingQuests] = useState([]);
     const [activeQuests, setActiveQuests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -361,7 +361,15 @@ const AdminPanel = ({ onClose, userId }) => {
             await axios.post(`${API_URL}/api/admin/withdrawals/${id}/complete`, { adminId: userId });
             fetchWithdrawals();
             window.Telegram.WebApp.showPopup({ title: '✅ Готово', message: 'Вывод отмечен как выполненный', buttons: [{ type: 'ok' }] });
-        } catch (e) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: 'Ошибка', buttons: [{ type: 'ok' }] }); }
+        } catch (e) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: e.response?.data?.error || 'Ошибка', buttons: [{ type: 'ok' }] }); }
+    };
+
+    const cancelWithdrawal = async (id) => {
+        try {
+            const response = await axios.post(`${API_URL}/api/admin/withdrawals/${id}/cancel`, { adminId: userId });
+            fetchWithdrawals();
+            window.Telegram.WebApp.showPopup({ title: '❌ Отменено', message: response.data.message || 'Вывод отменён, средства возвращены на баланс', buttons: [{ type: 'ok' }] });
+        } catch (e) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: e.response?.data?.error || 'Ошибка отмены', buttons: [{ type: 'ok' }] }); }
     };
 
     const approveQuest = async (questId) => {
@@ -599,6 +607,9 @@ const AdminPanel = ({ onClose, userId }) => {
                                             <p style={st.adminCardAuthor}>{new Date(w.created_at).toLocaleString('ru')}</p>
                                             <button onClick={() => completeWithdrawal(w.id)} style={st.btnApprovePremium}>
                                                 ✅ Отметить как выполнено
+                                            </button>
+                                            <button onClick={() => cancelWithdrawal(w.id)} style={{...st.btnRejectPremium, marginTop: '8px'}}>
+                                                ❌ Отменить и вернуть средства
                                             </button>
                                         </div>
                                     ))
@@ -882,7 +893,10 @@ function App() {
                     ton_received: convertAmount / conversionRate,
                     user_id: user.id
                 });
-                setConvertStep('success'); fetchBalance(user.id); fetchTonBalance(user.id); }
+                await fetchBalance(user.id);
+                await fetchTonBalance(user.id);
+                setConvertStep('success');
+            }
         } catch (error) {
             setConvertStep('select');
             window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: error.response?.data?.error || 'Ошибка конвертации', buttons: [{ type: 'ok' }] });
@@ -902,7 +916,10 @@ function App() {
                     amount: withdrawAmount,
                     user_id: user.id
                 });
-                setWithdrawStep('success'); }
+                await fetchBalance(user.id);
+                await fetchTonBalance(user.id);
+                setWithdrawStep('success');
+            }
         } catch (error) {
             setWithdrawStep('select');
             window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: error.response?.data?.error || 'Ошибка вывода', buttons: [{ type: 'ok' }] });

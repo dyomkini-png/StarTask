@@ -1137,6 +1137,32 @@ app.post('/api/admin/withdrawals/:id/complete', async (req, res) => {
     }
 });
 
+// Отмена заявки на вывод (возврат средств)
+app.post('/api/admin/withdrawals/:id/cancel', async (req, res) => {
+    const { adminId } = req.body;
+    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
+    if (String(adminId) !== String(ADMIN_ID)) {
+        return res.status(403).json({ error: 'Доступ запрещён' });
+    }
+    try {
+        const withdrawal = await db.query(
+            'SELECT * FROM withdrawals WHERE id = $1 AND status = $2',
+            [req.params.id, 'pending']
+        );
+        if (!withdrawal.rows[0]) {
+            return res.status(404).json({ error: 'Заявка не найдена или уже обработана' });
+        }
+        const { amount, user_id } = withdrawal.rows[0];
+        await db.query('UPDATE users SET ton_balance = ton_balance + $1 WHERE id = $2', [amount, user_id]);
+        await db.query("UPDATE withdrawals SET status = 'cancelled', processed_at = NOW() WHERE id = $1", [req.params.id]);
+        console.log(`❌ Withdrawal #${req.params.id} cancelled, ${amount} TON returned to user ${user_id}`);
+        res.json({ success: true, message: `Вывод отменён. ${amount} TON возвращены на баланс.` });
+    } catch (error) {
+        console.error('Cancel withdrawal error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Автоматическая отправка TON
 async function sendTonToWallet(toAddress, amount) {
     try {
