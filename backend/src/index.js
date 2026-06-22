@@ -27,12 +27,7 @@ app.use(cors());
 const { Telegraf } = require('telegraf');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-bot.launch({
-    webhook: {
-        domain: 'https://startask-7yhw.onrender.com',
-        port: process.env.PORT || 3000
-    }
-});
+
 
 // ========== КОМАНДЫ БОТА ==========
 const MINI_APP_URL = process.env.MINI_APP_URL || 'https://startask-ten.vercel.app';
@@ -126,21 +121,17 @@ bot.on('successful_payment', async (ctx) => {
     }
 });
 
-app.post('/webhook', (req, res) => {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', async () => {
-        try {
-            const update = JSON.parse(body);
-            await bot.handleUpdate(update, res);
-        } catch(e) {
-            console.error('❌ Webhook parse error:', e.message);
-            res.status(400).send('Bad request');
-        }
-    });
-});
-
 app.use(express.json());
+
+app.post('/webhook', async (req, res) => {
+    try {
+        await bot.handleUpdate(req.body);
+        res.sendStatus(200);
+    } catch(e) {
+        console.error('❌ Webhook parse error:', e.message);
+        res.sendStatus(200);
+    }
+});
 
 const db = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -1254,15 +1245,6 @@ app.post('/api/parse-nft-background', async (req, res) => {
     }
 });
 
-app.post('/api/webhook', async (req, res) => {
-    try {
-        await bot.handleUpdate(req.body);
-        res.sendStatus(200);
-    } catch (error) {
-        console.error('Webhook error:', error.message);
-        res.sendStatus(200); // Всё равно отвечаем 200, чтобы Telegram не повторял
-    }
-});
 
 app.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
