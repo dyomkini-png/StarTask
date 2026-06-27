@@ -7,6 +7,14 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const axios = require('axios');
 const cheerio = require('cheerio');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    console.error('❌ FATAL: JWT_SECRET is not set. Refusing to start without it.');
+    process.exit(1);
+}
 
 const app = express();
 // TON Client конфигурация
@@ -22,7 +30,53 @@ const PLATFORM_MNEMONIC = process.env.PLATFORM_TON_MNEMONIC?.split(' ') || [];
 const PLATFORM_WALLET_ID = parseInt(process.env.PLATFORM_WALLET_ID || '0');
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || MINI_APP_URL || 'https://startask-ten.vercel.app').split(',').map(s => s.trim());
+app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+try { app.use(require('helmet')()); } catch (e) { console.warn('⚠️ helmet not installed, skipping'); }
+
+const rateLimit = (() => { try { return require('express-rate-limit'); } catch { return null; } })();
+if (rateLimit) {
+    app.use('/api/', rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false }));
+    app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, max: 20 }));
+    app.use('/api/convert/', rateLimit({ windowMs: 60 * 1000, max: 10 }));
+    app.use('/api/withdraw/', rateLimit({ windowMs: 60 * 1000, max: 5 }));
+} else {
+    console.warn('⚠️ express-rate-limit not installed, skipping rate limiting');
+}
+
+function authMiddleware(req, res, next) {
+    const header = req.headers.authorization;
+    if (!header || !header.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authorization required' });
+    }
+    try {
+        const decoded = jwt.verify(header.slice(7), JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+}
+
+function adminMiddleware(req, res, next) {
+    const header = req.headers.authorization;
+    if (!header || !header.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authorization required' });
+    }
+    try {
+        const decoded = jwt.verify(header.slice(7), JWT_SECRET);
+        if (!decoded.isAdmin) {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+        req.user = decoded;
+        next();
+    } catch {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+}
 
 const { Telegraf } = require('telegraf');
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -118,9 +172,6 @@ bot.on('successful_payment', async (ctx) => {
         await ctx.reply('✅ Платёж получен! Баланс обновится в течение минуты.');
     }
 });
-
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
 
 app.post('/webhook', async (req, res) => {
     try {
@@ -263,44 +314,79 @@ initDB();
 
 // ========== АВТОРИЗАЦИЯ ==========
 app.post('/api/auth', async (req, res) => {
-    const { telegramId, username } = req.body;
+    const { telegramId, initData, username } = req.body;
     try {
         if (!telegramId || telegramId === 0 || telegramId === '0') {
-            return res.status(400).json({ error: 'Невалидный Telegram ID' });
+            return res.status(400).json({ error: 'Invalid Telegram ID' });
         }
+
+        // Verify initData HMAC from Telegram
+        if (initData) {
+            const BOT_TOKEN = process.env.BOT_TOKEN;
+            if (BOT_TOKEN) {
+                try {
+                    const dataCheckString = initData.split('\n')
+                        .filter(line => !line.startsWith('hash='))
+                        .sort()
+                        .join('\n');
+                    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+                    const computedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+                    const providedHash = new URLSearchParams(initData).get('hash');
+                    if (computedHash !== providedHash) {
+                        return res.status(403).json({ error: 'Invalid initData signature' });
+                    }
+                } catch {
+                    return res.status(403).json({ error: 'initData verification failed' });
+                }
+            }
+        }
+
+        const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
+        const isAdmin = ADMIN_ID && String(telegramId) === String(ADMIN_ID);
+
         let user = await db.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
         if (user.rows.length === 0) {
             const newUser = await db.query('INSERT INTO users (telegram_id, username) VALUES ($1, $2) RETURNING *', [telegramId, username]);
             user = newUser;
         }
-        const token = require('jsonwebtoken').sign(
-            { userId: user.rows[0].id, telegramId },
-            process.env.JWT_SECRET || 'secret',
+        const token = jwt.sign(
+            { userId: user.rows[0].id, telegramId, isAdmin },
+            JWT_SECRET,
             { expiresIn: '7d' }
         );
-        res.json({ token, user: user.rows[0], adminId: process.env.ADMIN_TELEGRAM_ID || null });
+        res.json({ token, user: user.rows[0] });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Auth failed' });
     }
 });
 
-app.post('/api/user/connect-wallet', async (req, res) => {
+app.post('/api/user/connect-wallet', authMiddleware, async (req, res) => {
     const { userId, walletAddress } = req.body;
+    if (req.user.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     try {
+        // Validate TON address format
+        try { Address.parse(walletAddress); } catch {
+            return res.status(400).json({ error: 'Invalid wallet address' });
+        }
         await db.query(
             'UPDATE users SET ton_wallet = $1 WHERE id = $2',
             [walletAddress, userId]
         );
-        console.log(`✅ Wallet connected for user ${userId}: ${walletAddress}`);
+        console.log(`✅ Wallet connected for user ${userId}`);
         res.json({ success: true });
     } catch (error) {
-        console.error('❌ Wallet connect error:', error);
-        res.status(500).json({ error: error.message });
+        console.error('Wallet connect error');
+        res.status(500).json({ error: 'Wallet connect failed' });
     }
 });
 
-app.post('/api/ton-payment/verify', async (req, res) => {
+app.post('/api/ton-payment/verify', authMiddleware, async (req, res) => {
     const { userId, txHash, amount } = req.body;
+    if (req.user.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
 
     try {
         // Проверяем не обрабатывали ли уже эту транзакцию
@@ -357,50 +443,18 @@ app.post('/api/ton-payment/verify', async (req, res) => {
     }
 });
 
-app.post('/api/ton-payment/credit', async (req, res) => {
-    const { userId, amount, boc } = req.body;
-
-    try {
-        // Проверяем что такой boc ещё не обрабатывался
-        const existing = await db.query(
-            'SELECT id FROM transactions WHERE tx_hash = $1',
-            [boc]
-        );
-        if (existing.rows.length > 0) {
-            return res.status(400).json({ error: 'Transaction already processed' });
-        }
-
-        // Зачисляем TON баланс
-        await db.query(
-            'UPDATE users SET ton_balance = ton_balance + $1 WHERE id = $2',
-            [amount, userId]
-        );
-
-        // Сохраняем транзакцию
-        await db.query(
-            `INSERT INTO transactions (user_id, amount, type, status, tx_hash, ton_amount)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-            [userId, 0, 'ton_topup', 'completed', boc, amount]
-        );
-
-        console.log(`✅ TON credited: user ${userId}, amount ${amount} TON`);
-        res.json({ success: true, amount });
-
-    } catch (error) {
-        console.error('❌ TON credit error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // ========== ПОПОЛНЕНИЕ БАЛАНСА ==========
 
 // ✅ ФУНКЦИЯ СОЗДАНИЯ И ОТПРАВКИ ИНВОЙСА (РАБОТАЕТ С MINI APP)
-app.post('/api/create-invoice', async (req, res) => {
+app.post('/api/create-invoice', authMiddleware, async (req, res) => {
     const { userId, amount } = req.body;
+    if (req.user.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     const BOT_TOKEN = process.env.BOT_TOKEN;
 
     if (!BOT_TOKEN) return res.status(500).json({ error: 'BOT_TOKEN not configured' });
-    if (!amount || amount < 1) return res.status(400).json({ error: 'Invalid amount' });
+    if (!amount || amount < 1 || amount > 100000) return res.status(400).json({ error: 'Invalid amount' });
 
     try {
         const user = await db.query('SELECT telegram_id FROM users WHERE id = $1', [userId]);
@@ -430,9 +484,13 @@ app.post('/api/create-invoice', async (req, res) => {
 });
 
 // Обработка успешного платежа (вызывается вебхуком или ботом)
-app.post('/api/stars-payment/success', async (req, res) => {
+app.post('/api/stars-payment/success', authMiddleware, async (req, res) => {
     const { userId, amount, telegram_payment_id } = req.body;
-    
+
+    if (req.user.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
     console.log(`💰 Stars payment success: user ${userId}, amount ${amount}`);
 
     try {
@@ -458,21 +516,27 @@ app.post('/api/stars-payment/success', async (req, res) => {
 });
 
 // ========== ВСЕ ОСТАЛЬНЫЕ ЭНДПОИНТЫ (БАЛАНСЫ, ЗАДАНИЯ, АДМИНКА) ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ ==========
-app.get('/api/user/:userId/balance', async (req, res) => {
+app.get('/api/user/:userId/balance', authMiddleware, async (req, res) => {
+    if (req.user.userId !== Number(req.params.userId)) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     try {
         const user = await db.query('SELECT stars_balance FROM users WHERE id = $1', [req.params.userId]);
         res.json({ balance: user.rows[0]?.stars_balance || 0 });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Failed to fetch balance' });
     }
 });
 
-app.get('/api/user/:userId/ton-balance', async (req, res) => {
+app.get('/api/user/:userId/ton-balance', authMiddleware, async (req, res) => {
+    if (req.user.userId !== Number(req.params.userId)) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     try {
         const user = await db.query('SELECT ton_balance FROM users WHERE id = $1', [req.params.userId]);
         res.json({ balance: parseFloat(user.rows[0]?.ton_balance || 0) });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Failed to fetch balance' });
     }
 });
 
@@ -491,7 +555,10 @@ app.get('/api/quests', async (req, res) => {
     }
 });
 
-app.get('/api/user/:userId/quests', async (req, res) => {
+app.get('/api/user/:userId/quests', authMiddleware, async (req, res) => {
+    if (req.user.userId !== Number(req.params.userId)) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     try {
         const quests = await db.query(
             'SELECT * FROM quests WHERE advertiser_id = $1 ORDER BY created_at DESC',
@@ -499,11 +566,14 @@ app.get('/api/user/:userId/quests', async (req, res) => {
         );
         res.json(quests.rows.map(normalizeQuestRow));
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Failed to fetch quests' });
     }
 });
 
-app.get('/api/user/:userId/completions', async (req, res) => {
+app.get('/api/user/:userId/completions', authMiddleware, async (req, res) => {
+    if (req.user.userId !== Number(req.params.userId)) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     try {
         const completions = await db.query(
             'SELECT quest_id FROM completions WHERE user_id = $1 AND status = $2',
@@ -511,11 +581,11 @@ app.get('/api/user/:userId/completions', async (req, res) => {
         );
         res.json(completions.rows);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Failed to fetch completions' });
     }
 });
 
-app.post('/api/create-quest', async (req, res) => {
+app.post('/api/create-quest', authMiddleware, async (req, res) => {
     const { 
         userId, title, description, reward, targetUrl,
         inviteLink, verificationType,
@@ -523,6 +593,10 @@ app.post('/api/create-quest', async (req, res) => {
         socialLinks, subscribersCount, totalBudget,
 		nftGiftUrl, postUrl, referralUrl 
     } = req.body;
+
+    if (req.user.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
 
     if (!userId || !title || !description || !reward || !targetUrl || !totalBudget) {
         return res.status(400).json({ error: 'Все поля обязательны' });
@@ -615,8 +689,11 @@ app.post('/api/create-quest', async (req, res) => {
     }
 });
 
-app.post('/api/check-subscription', async (req, res) => {
+app.post('/api/check-subscription', authMiddleware, async (req, res) => {
     const { userId, channelUsername, questId } = req.body;
+    if (req.user.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     const BOT_TOKEN = process.env.BOT_TOKEN;
 
     if (!BOT_TOKEN) return res.status(500).json({ error: 'BOT_TOKEN not configured' });
@@ -690,13 +767,19 @@ app.post('/api/check-subscription', async (req, res) => {
     }
 });
 
-app.post('/api/referral/create', async (req, res) => {
+app.post('/api/referral/create', authMiddleware, async (req, res) => {
     const { userId } = req.body;
+    if (req.user.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     const link = `https://t.me/StarTaskBot?start=ref_${userId}`;
     res.json({ link });
 });
 
-app.get('/api/referral/:userId/stats', async (req, res) => {
+app.get('/api/referral/:userId/stats', authMiddleware, async (req, res) => {
+    if (req.user.userId !== Number(req.params.userId)) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     try {
         const referrals = await db.query(
             `SELECT COUNT(*) as count, SUM(commission_earned) as total_commission 
@@ -708,12 +791,15 @@ app.get('/api/referral/:userId/stats', async (req, res) => {
             totalCommission: parseInt(referrals.rows[0].total_commission) || 0
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Failed to fetch referral stats' });
     }
 });
 
 app.get('/api/channel/avatar/:username', async (req, res) => {
     const { username } = req.params;
+    if (!/^[a-zA-Z0-9_]{5,}$/.test(username)) {
+        return res.status(400).json({ success: false, error: 'Invalid username' });
+    }
     
     try {
         const response = await axios.get(`https://t.me/s/${username}`, {
@@ -763,6 +849,20 @@ app.get('/api/image-proxy', async (req, res) => {
         targetUrl = new URL(url);
         if (!['http:', 'https:'].includes(targetUrl.protocol)) {
             return res.status(400).json({ error: 'Only http/https URLs are allowed' });
+        }
+        // Block internal/private IPs to prevent SSRF
+        const hostname = targetUrl.hostname;
+        if (
+            hostname === 'localhost' ||
+            hostname === '127.0.0.1' ||
+            hostname === '0.0.0.0' ||
+            /^10\./.test(hostname) ||
+            /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+            /^192\.168\./.test(hostname) ||
+            /^169\.254\./.test(hostname) ||
+            hostname.endsWith('.internal')
+        ) {
+            return res.status(400).json({ error: 'Internal URLs are not allowed' });
         }
     } catch {
         return res.status(400).json({ error: 'Invalid image URL' });
@@ -828,7 +928,7 @@ app.get('/api/image-proxy', async (req, res) => {
     }
 });
 
-app.get('/api/admin/pending-quests', async (req, res) => {
+app.get('/api/admin/pending-quests', adminMiddleware, async (req, res) => {
     try {
         const quests = await db.query(
             `SELECT q.*, u.username as creator_name, u.telegram_id as creator_telegram_id
@@ -843,14 +943,9 @@ app.get('/api/admin/pending-quests', async (req, res) => {
     }
 });
 
-app.post('/api/admin/approve-quest/:questId', async (req, res) => {
+app.post('/api/admin/approve-quest/:questId', adminMiddleware, async (req, res) => {
     const { questId } = req.params;
-    const { adminId } = req.body;
     const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
-
-    if (String(adminId) !== String(ADMIN_ID)) {
-        return res.status(403).json({ error: 'Доступ запрещён' });
-    }
 
     try {
         const quest = await db.query('SELECT * FROM quests WHERE id = $1', [questId]);
@@ -895,14 +990,9 @@ app.post('/api/admin/approve-quest/:questId', async (req, res) => {
     }
 });
 
-app.post('/api/admin/reject-quest/:questId', async (req, res) => {
+app.post('/api/admin/reject-quest/:questId', adminMiddleware, async (req, res) => {
     const { questId } = req.params;
-    const { adminId, reason } = req.body;
-    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
-    
-    if (String(adminId) !== String(ADMIN_ID)) {
-        return res.status(403).json({ error: 'Доступ запрещён' });
-    }
+    const { reason } = req.body;
     
     try {
         await db.query('UPDATE quests SET status = $1, rejection_reason = $2 WHERE id = $3', ['rejected', reason || 'Не указана', questId]);
@@ -912,14 +1002,9 @@ app.post('/api/admin/reject-quest/:questId', async (req, res) => {
     }
 });
 
-app.post('/api/admin/deactivate-quest/:questId', async (req, res) => {
+app.post('/api/admin/deactivate-quest/:questId', adminMiddleware, async (req, res) => {
     const { questId } = req.params;
-    const { adminId } = req.body;
     const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
-
-    if (String(adminId) !== String(ADMIN_ID)) {
-        return res.status(403).json({ error: 'Доступ запрещён' });
-    }
 
     try {
         const quest = await db.query('SELECT * FROM quests WHERE id = $1', [questId]);
@@ -962,13 +1047,7 @@ app.post('/api/admin/deactivate-quest/:questId', async (req, res) => {
     }
 });
 
-app.get('/api/admin/active-quests', async (req, res) => {
-    const { adminId } = req.query;
-    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
-    
-    if (String(adminId) !== String(ADMIN_ID)) {
-        return res.status(403).json({ error: 'Доступ запрещён' });
-    }
+app.get('/api/admin/active-quests', adminMiddleware, async (req, res) => {
     
     try {
         const quests = await db.query(
@@ -995,10 +1074,9 @@ app.get('/api/settings/rate', async (req, res) => {
 });
 
 // Изменить курс (только админ)
-app.post('/api/admin/set-rate', async (req, res) => {
-    const { adminId, rate } = req.body;
-    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
-    if (String(adminId) !== String(ADMIN_ID)) return res.status(403).json({ error: 'Доступ запрещён' });
+app.post('/api/admin/set-rate', adminMiddleware, async (req, res) => {
+    const { rate } = req.body;
+    if (!rate || rate < 1 || rate > 100000) return res.status(400).json({ error: 'Invalid rate' });
     try {
         await db.query("UPDATE settings SET value = $1 WHERE key = 'stars_to_ton_rate'", [rate]);
         res.json({ success: true });
@@ -1008,8 +1086,11 @@ app.post('/api/admin/set-rate', async (req, res) => {
 });
 
 // Конвертация Stars → TON
-app.post('/api/convert/stars-to-ton', async (req, res) => {
+app.post('/api/convert/stars-to-ton', authMiddleware, async (req, res) => {
     const { userId, starsAmount } = req.body;
+    if (req.user.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     try {
         const user = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
         if (!user.rows[0]) return res.status(404).json({ error: 'Пользователь не найден' });
@@ -1042,8 +1123,11 @@ app.post('/api/convert/stars-to-ton', async (req, res) => {
 });
 
 // Запрос на вывод TON
-app.post('/api/withdraw/ton', async (req, res) => {
+app.post('/api/withdraw/ton', authMiddleware, async (req, res) => {
     const { userId, amount } = req.body;
+    if (req.user.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
     try {
         const user = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
         if (!user.rows[0]) return res.status(404).json({ error: 'Пользователь не найден' });
@@ -1066,10 +1150,7 @@ app.post('/api/withdraw/ton', async (req, res) => {
 });
 
 // Список заявок на вывод (для админа)
-app.get('/api/admin/withdrawals', async (req, res) => {
-    const { adminId } = req.query;
-    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
-    if (String(adminId) !== String(ADMIN_ID)) return res.status(403).json({ error: 'Доступ запрещён' });
+app.get('/api/admin/withdrawals', adminMiddleware, async (req, res) => {
     try {
         const result = await db.query(`
             SELECT w.*, u.username, u.telegram_id
@@ -1085,13 +1166,7 @@ app.get('/api/admin/withdrawals', async (req, res) => {
 });
 
 // Отметить вывод как выполненный + автоматическая отправка TON
-app.post('/api/admin/withdrawals/:id/complete', async (req, res) => {
-    const { adminId } = req.body;
-    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
-    
-    if (String(adminId) !== String(ADMIN_ID)) {
-        return res.status(403).json({ error: 'Доступ запрещён' });
-    }
+app.post('/api/admin/withdrawals/:id/complete', adminMiddleware, async (req, res) => {
     
     try {
         // Получаем данные заявки
@@ -1139,12 +1214,7 @@ app.post('/api/admin/withdrawals/:id/complete', async (req, res) => {
 });
 
 // Отмена заявки на вывод (возврат средств)
-app.post('/api/admin/withdrawals/:id/cancel', async (req, res) => {
-    const { adminId } = req.body;
-    const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
-    if (String(adminId) !== String(ADMIN_ID)) {
-        return res.status(403).json({ error: 'Доступ запрещён' });
-    }
+app.post('/api/admin/withdrawals/:id/cancel', adminMiddleware, async (req, res) => {
     try {
         const withdrawal = await db.query(
             'SELECT * FROM withdrawals WHERE id = $1 AND status = $2',
@@ -1223,14 +1293,14 @@ async function sendTonToWallet(toAddress, amount) {
     }
 }
 
-app.get('/api/admin/wallet-info', async (req, res) => {
+app.get('/api/admin/wallet-info', adminMiddleware, async (req, res) => {
     try {
         if (!PLATFORM_MNEMONIC.length) {
             return res.json({ error: 'Мнемоника не настроена' });
         }
         
         const key = await mnemonicToPrivateKey(PLATFORM_MNEMONIC);
-        const wallet = WalletContractV4.create({
+        const wallet = WalletContractV5R1.create({
             workchain: 0,
             publicKey: key.publicKey
         });
@@ -1253,7 +1323,7 @@ app.get('/api/admin/wallet-info', async (req, res) => {
     }
 });
 
-app.post('/api/parse-nft-background', async (req, res) => {
+app.post('/api/parse-nft-background', authMiddleware, async (req, res) => {
     const { nftUrl } = req.body;
     
     if (!nftUrl || !nftUrl.includes('t.me/nft/')) {

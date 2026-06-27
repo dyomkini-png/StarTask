@@ -9,7 +9,41 @@ const track = (event, data) => { try { Analytics.track?.(event, data); } catch {
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://startask-7yhw.onrender.com';
 
+axios.interceptors.request.use(config => {
+    const token = localStorage.getItem('token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+});
+
+axios.interceptors.response.use(
+    response => response,
+    error => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
+        return Promise.reject(error);
+    }
+);
+
 const getScreenshotSrc = (url) => `${API_URL}/api/image-proxy?url=${encodeURIComponent(url)}`;
+
+const safeHref = (url) => {
+    try {
+        const parsed = new URL(url);
+        if (['http:', 'https:'].includes(parsed.protocol)) return url;
+    } catch {}
+    return '#';
+};
+
+const safeOpenLink = (url) => {
+    try {
+        const parsed = new URL(url);
+        if (['http:', 'https:'].includes(parsed.protocol)) {
+            window.Telegram.WebApp.openLink(url);
+        }
+    } catch {}
+};
 
 const parseMaybeJson = (value) => {
     if (!value) return null;
@@ -330,14 +364,14 @@ const AdminPanel = ({ onClose, userId }) => {
 
     const fetchActiveQuests = async () => {
         try {
-            const response = await axios.get(`${API_URL}/api/admin/active-quests?adminId=${userId}`);
+            const response = await axios.get(`${API_URL}/api/admin/active-quests`);
             setActiveQuests((response.data || []).map(normalizeTask));
         } catch (error) { console.error(error); } finally { setLoading(false); }
     };
 
     const fetchWithdrawals = async () => {
         try {
-            const r = await axios.get(`${API_URL}/api/admin/withdrawals?adminId=${userId}`);
+            const r = await axios.get(`${API_URL}/api/admin/withdrawals`);
             setWithdrawals(r.data);
         } catch (e) { console.error(e); }
     };
@@ -352,7 +386,7 @@ const AdminPanel = ({ onClose, userId }) => {
 
     const updateRate = async () => {
         try {
-            await axios.post(`${API_URL}/api/admin/set-rate`, { adminId: userId, rate: parseInt(newRate) });
+                await axios.post(`${API_URL}/api/admin/set-rate`, { rate: parseInt(newRate) });
             setRate(parseInt(newRate));
             window.Telegram.WebApp.showPopup({ title: '✅ Курс обновлён', message: `Новый курс: ${newRate} Stars = 1 GRAM`, buttons: [{ type: 'ok' }] });
         } catch (e) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: 'Не удалось обновить', buttons: [{ type: 'ok' }] }); }
@@ -360,7 +394,7 @@ const AdminPanel = ({ onClose, userId }) => {
 
     const completeWithdrawal = async (id) => {
         try {
-            await axios.post(`${API_URL}/api/admin/withdrawals/${id}/complete`, { adminId: userId });
+                await axios.post(`${API_URL}/api/admin/withdrawals/${id}/complete`);
             fetchWithdrawals();
             window.Telegram.WebApp.showPopup({ title: '✅ Готово', message: 'Вывод отмечен как выполненный', buttons: [{ type: 'ok' }] });
         } catch (e) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: e.response?.data?.error || 'Ошибка', buttons: [{ type: 'ok' }] }); }
@@ -368,7 +402,7 @@ const AdminPanel = ({ onClose, userId }) => {
 
     const cancelWithdrawal = async (id) => {
         try {
-            const response = await axios.post(`${API_URL}/api/admin/withdrawals/${id}/cancel`, { adminId: userId });
+            const response = await axios.post(`${API_URL}/api/admin/withdrawals/${id}/cancel`);
             fetchWithdrawals();
             window.Telegram.WebApp.showPopup({ title: '❌ Отменено', message: response.data.message || 'Вывод отменён, средства возвращены на баланс', buttons: [{ type: 'ok' }] });
         } catch (e) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: e.response?.data?.error || 'Ошибка отмены', buttons: [{ type: 'ok' }] }); }
@@ -378,7 +412,7 @@ const AdminPanel = ({ onClose, userId }) => {
         if (actionLoading) return;
         setActionLoading(true);
         try {
-            const response = await axios.post(`${API_URL}/api/admin/approve-quest/${questId}`, { adminId: Number(userId) });
+            const response = await axios.post(`${API_URL}/api/admin/approve-quest/${questId}`);
             if (response.data.success) {
                 await fetchPendingQuests();
                 await fetchActiveQuests();
@@ -406,7 +440,6 @@ const AdminPanel = ({ onClose, userId }) => {
         setActionLoading(true);
         try {
             const response = await axios.post(`${API_URL}/api/admin/reject-quest/${currentQuestId}`, {
-                adminId: Number(userId),
                 reason: finalReason
             });
             if (response.data.success) {
@@ -433,9 +466,7 @@ const AdminPanel = ({ onClose, userId }) => {
             if (buttonId === 'ok') {
                 setActionLoading(true);
                 try {
-                    const response = await axios.post(`${API_URL}/api/admin/deactivate-quest/${questId}`, {
-                        adminId: Number(userId)
-                    });
+                    const response = await axios.post(`${API_URL}/api/admin/deactivate-quest/${questId}`);
                     if (response.data.success) {
                         await fetchActiveQuests();
                         window.Telegram.WebApp.showPopup({ title: '✅ Снято', message: 'Задание скрыто из ленты', buttons: [{ type: 'ok' }] });
@@ -794,10 +825,19 @@ function App() {
     const authenticate = async (telegramUser) => {
         try {
             const userPhotoUrl = window.Telegram.WebApp.initDataUnsafe?.user?.photo_url;
-            const response = await axios.post(`${API_URL}/api/auth`, { telegramId: telegramUser.id, username: telegramUser.username });
+            const initData = window.Telegram.WebApp.initData;
+            const response = await axios.post(`${API_URL}/api/auth`, {
+                telegramId: telegramUser.id,
+                username: telegramUser.username,
+                initData
+            });
             setUser({ ...response.data.user, photo_url: userPhotoUrl, first_name: telegramUser.first_name, last_name: telegramUser.last_name });
             localStorage.setItem('token', response.data.token);
-            if (response.data.adminId) setAdminId(response.data.adminId);
+            // Decode JWT to get isAdmin
+            try {
+                const payload = JSON.parse(atob(response.data.token.split('.')[1]));
+                if (payload.isAdmin) setAdminId(String(telegramUser.id));
+            } catch {}
             fetchBalance(response.data.user.id);
             fetchTonBalance(response.data.user.id);
             fetchTasks(response.data.user.id);
@@ -963,7 +1003,7 @@ function App() {
         if (verificationType === 'invite' && inviteLink) linkToOpen = inviteLink;
         if (verificationType === 'repost' && postUrl) linkToOpen = postUrl;
         if (verificationType === 'referral' && referralUrl) linkToOpen = referralUrl;
-        tg.openLink(linkToOpen);
+        safeOpenLink(linkToOpen);
         tg.MainButton.show(); tg.MainButton.setText('⏳ Проверка...'); tg.MainButton.disable();
         setTimeout(async () => {
             try {
@@ -1970,7 +2010,7 @@ function App() {
                                 <p style={{margin: '0 0 10px', color: theme === 'light' ? lightMuted : 'rgba(255,255,255,0.4)', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px'}}>{t.socialLinks}</p>
                                 <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
                                     {Object.entries(selectedTask.social_links).map(([key, val]) => val && (
-                                        <a key={key} href={val} target="_blank" rel="noreferrer" style={{display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '6px 12px', color: 'white', fontSize: '12px', textDecoration: 'none', fontWeight: '600'}}>
+                                        <a key={key} href={safeHref(val)} target="_blank" rel="noreferrer" style={{display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '6px 12px', color: 'white', fontSize: '12px', textDecoration: 'none', fontWeight: '600'}}>
                                             {key === 'telegram' && '✈️'}{key === 'instagram' && '📸'}{key === 'youtube' && '▶️'}{key === 'tiktok' && '🎵'}{key.charAt(0).toUpperCase() + key.slice(1)}
                                         </a>
                                     ))}
