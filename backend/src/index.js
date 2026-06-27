@@ -30,7 +30,7 @@ const PLATFORM_MNEMONIC = process.env.PLATFORM_TON_MNEMONIC?.split(' ') || [];
 const PLATFORM_WALLET_ID = parseInt(process.env.PLATFORM_WALLET_ID || '0');
 const PORT = process.env.PORT || 3000;
 
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || MINI_APP_URL || 'https://startask-ten.vercel.app').split(',').map(s => s.trim());
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://startask-ten.vercel.app').split(',').map(s => s.trim());
 app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
