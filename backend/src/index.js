@@ -679,7 +679,7 @@ app.post('/api/check-subscription', async (req, res) => {
                 [userId, questId, verificationType === 'invite' ? 'invite_verified' : 'auto_verified', 'completed']
             );
 
-            const currencySymbol = rewardType === 'ton' ? 'TON' : '⭐';
+            const currencySymbol = rewardType === 'ton' ? 'GRAM' : '⭐';
             return res.json({ success: true, message: `✅ Вы получили ${reward} ${currencySymbol}!` });
         } else {
             return res.json({ success: false, message: '❌ Вы не подписались на канал' });
@@ -1048,8 +1048,8 @@ app.post('/api/withdraw/ton', async (req, res) => {
         const user = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
         if (!user.rows[0]) return res.status(404).json({ error: 'Пользователь не найден' });
         if (!user.rows[0].ton_wallet) return res.status(400).json({ error: 'Кошелёк не подключён' });
-        if (user.rows[0].ton_balance < amount) return res.status(400).json({ error: 'Недостаточно TON' });
-        if (amount < 0.1) return res.status(400).json({ error: 'Минимальный вывод 0.1 TON' });
+        if (user.rows[0].ton_balance < amount) return res.status(400).json({ error: 'Недостаточно GRAM' });
+        if (amount < 0.1) return res.status(400).json({ error: 'Минимальный вывод 0.1 GRAM' });
 
         // Списываем с баланса и создаём заявку
         await db.query('UPDATE users SET ton_balance = ton_balance - $1 WHERE id = $2', [amount, userId]);
@@ -1128,7 +1128,7 @@ app.post('/api/admin/withdrawals/:id/complete', async (req, res) => {
         
         res.json({ 
             success: true, 
-            message: 'TON отправлены автоматически',
+            message: 'GRAM отправлены автоматически',
             hash: sendResult.hash 
         });
         
@@ -1157,7 +1157,7 @@ app.post('/api/admin/withdrawals/:id/cancel', async (req, res) => {
         await db.query('UPDATE users SET ton_balance = ton_balance + $1 WHERE id = $2', [amount, user_id]);
         await db.query("UPDATE withdrawals SET status = 'cancelled', processed_at = NOW() WHERE id = $1", [req.params.id]);
         console.log(`❌ Withdrawal #${req.params.id} cancelled, ${amount} TON returned to user ${user_id}`);
-        res.json({ success: true, message: `Вывод отменён. ${amount} TON возвращены на баланс.` });
+        res.json({ success: true, message: `Вывод отменён. ${amount} GRAM возвращены на баланс.` });
     } catch (error) {
         console.error('Cancel withdrawal error:', error);
         res.status(500).json({ error: error.message });

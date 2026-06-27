@@ -80,14 +80,14 @@ const translations = {
         theme: 'Тема',
         light: 'Светлая',
         dark: 'Тёмная',
-        walletConnected: 'TON кошелёк подключён',
+        walletConnected: 'GRAM кошелёк подключён',
         disconnect: 'Отключить',
-        connectWallet: 'Подключить TON кошелёк',
+        connectWallet: 'Подключить GRAM кошелёк',
         createTask: 'Создать задание',
         topUpStars: 'Пополнить Stars',
-        topUpTon: 'Пополнить TON',
-        convertStars: 'Конвертировать Stars → TON',
-        withdrawTon: 'Вывести TON',
+        topUpTon: 'Пополнить GRAM',
+        convertStars: 'Конвертировать Stars → GRAM',
+        withdrawTon: 'Вывести GRAM',
         adminPanel: 'Панель администратора',
         myTasks: 'Мои задания',
         pending: 'На модерации',
@@ -128,9 +128,9 @@ const translations = {
         copiedTitle: '🔗 Скопировано!',
         copiedMessage: 'Поделитесь с друзьями и получайте 10%',
         infoCards: [
-            ['⭐', 'StarTask', 'Первая B2B-платформа для продвижения Telegram-каналов через вознаграждения в Stars и TON. С нами зарабатывают тысячи пользователей.'],
+            ['⭐', 'StarTask', 'Первая B2B-платформа для продвижения Telegram-каналов через вознаграждения в Stars и GRAM. С нами зарабатывают тысячи пользователей.'],
             ['🚀', 'Как начать', 'Выберите задание → Выполните простое действие → Получите вознаграждение мгновенно на ваш баланс. Никаких задержек.'],
-            ['💎', 'TON blockchain', 'Платформа интегрирована с TON-блокчейном для моментальных выплат в криптовалюте.']
+            ['💎', 'GRAM blockchain', 'Платформа интегрирована с TON-блокчейном для моментальных выплат в GRAM.']
         ]
     },
     en: {
@@ -141,14 +141,14 @@ const translations = {
         theme: 'Theme',
         light: 'Light',
         dark: 'Dark',
-        walletConnected: 'TON wallet connected',
+        walletConnected: 'GRAM wallet connected',
         disconnect: 'Disconnect',
-        connectWallet: 'Connect TON wallet',
+        connectWallet: 'Connect GRAM wallet',
         createTask: 'Create task',
         topUpStars: 'Top up Stars',
-        topUpTon: 'Top up TON',
-        convertStars: 'Convert Stars → TON',
-        withdrawTon: 'Withdraw TON',
+        topUpTon: 'Top up GRAM',
+        convertStars: 'Convert Stars → GRAM',
+        withdrawTon: 'Withdraw GRAM',
         adminPanel: 'Admin panel',
         myTasks: 'My tasks',
         pending: 'In review',
@@ -189,9 +189,9 @@ const translations = {
         copiedTitle: '🔗 Copied!',
         copiedMessage: 'Share it with friends and earn 10%',
         infoCards: [
-            ['⭐', 'StarTask', 'The first B2B platform for promoting Telegram channels with Stars and TON rewards. Thousands of users earn with us.'],
+            ['⭐', 'StarTask', 'The first B2B platform for promoting Telegram channels with Stars and GRAM rewards. Thousands of users earn with us.'],
             ['🚀', 'How to start', 'Choose a task → Complete a simple action → Get the reward instantly on your balance. No delays.'],
-            ['💎', 'TON blockchain', 'The platform is integrated with the TON blockchain for instant crypto payouts.']
+            ['💎', 'GRAM blockchain', 'The platform is integrated with the TON blockchain for instant GRAM payouts.']
         ]
     }
 };
@@ -354,7 +354,7 @@ const AdminPanel = ({ onClose, userId }) => {
         try {
             await axios.post(`${API_URL}/api/admin/set-rate`, { adminId: userId, rate: parseInt(newRate) });
             setRate(parseInt(newRate));
-            window.Telegram.WebApp.showPopup({ title: '✅ Курс обновлён', message: `Новый курс: ${newRate} Stars = 1 TON`, buttons: [{ type: 'ok' }] });
+            window.Telegram.WebApp.showPopup({ title: '✅ Курс обновлён', message: `Новый курс: ${newRate} Stars = 1 GRAM`, buttons: [{ type: 'ok' }] });
         } catch (e) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: 'Не удалось обновить', buttons: [{ type: 'ok' }] }); }
     };
 
@@ -580,7 +580,7 @@ const AdminPanel = ({ onClose, userId }) => {
                                         Текущий курс конвертации
                                     </p>
                                     <p style={{color: '#FFC107', fontSize: '18px', fontWeight: '700', margin: '0 0 12px'}}>
-                                        {rate} ⭐ = 1 💎 TON
+                                        {rate} ⭐ = 1 💎 GRAM
                                     </p>
                                     <div style={{display: 'flex', gap: '8px'}}>
                                         <input
@@ -602,7 +602,7 @@ const AdminPanel = ({ onClose, userId }) => {
                                         <div key={w.id} style={st.adminCardPremium}>
                                             <div style={st.adminCardTop}>
                                                 <span style={{...st.adminCardBadge, background: 'rgba(76,175,80,0.12)', color: '#4CAF50'}}>Pending</span>
-                                                <span style={{color: '#29B6F6', fontWeight: '700'}}>{parseFloat(w.amount).toFixed(3)} TON</span>
+                                                <span style={{color: '#29B6F6', fontWeight: '700'}}>{parseFloat(w.amount).toFixed(3)} GRAM</span>
                                             </div>
                                             <p style={st.adminCardAuthor}>@{w.username} · ID {w.telegram_id}</p>
                                             <p style={{...st.adminCardLink, color: 'rgba(0,194,255,0.6)'}}>→ {w.wallet_address}</p>
@@ -907,7 +907,7 @@ function App() {
 
     const withdrawTon = async () => {
         if (!wallet) {
-            window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: 'Подключите TON кошелёк', buttons: [{ type: 'ok' }] });
+            window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: 'Подключите GRAM кошелёк', buttons: [{ type: 'ok' }] });
             return;
         }
         try {
@@ -1063,7 +1063,7 @@ function App() {
     };
 
     const sendTonPayment = async () => {
-        if (!wallet) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: 'Подключите TON кошелёк', buttons: [{ type: 'ok' }] }); return; }
+        if (!wallet) { window.Telegram.WebApp.showPopup({ title: 'Ошибка', message: 'Подключите GRAM кошелёк', buttons: [{ type: 'ok' }] }); return; }
         try {
             setTonPaymentStep('waiting');
             const tx = await tonConnectUI.sendTransaction({ validUntil: Math.floor(Date.now() / 1000) + 600, messages: [{ address: import.meta.env.VITE_PLATFORM_TON_WALLET, amount: (tonTopUpAmount * 1e9).toString() }] });
@@ -1175,7 +1175,7 @@ function App() {
                         <span style={st.balanceCardAmount}>{balance.toLocaleString()}</span>
                     </div>
                     <div style={{...st.balanceCardPremium, borderColor: 'rgba(0,136,204,0.15)'}}>
-                        <span style={st.balanceCardLabel}>💎 TON</span>
+                        <span style={st.balanceCardLabel}>💎 GRAM</span>
                         <span style={{...st.balanceCardAmount, color: '#0088CC'}}>{parseFloat(tonBalance || 0).toFixed(3)}</span>
                     </div>
                 </div>
@@ -1646,14 +1646,14 @@ function App() {
             {showTonTopUpModal && (
                 <div style={IS_TOUCH ? {...st.modalOverlay, backdropFilter: 'none', background: 'rgba(0,0,0,0.85)'} : st.modalOverlay}>
                     <div style={IS_TOUCH ? {...st.sheetPremium, backdropFilter: 'none', background: 'rgb(15,5,30)'} : st.sheetPremium}>
-                        <div style={st.sheetHeaderPremium}><span>💎</span><h3>Пополнение TON</h3><button onClick={() => { setShowTonTopUpModal(false); setTonPaymentStep('select'); }} style={st.closePremium}>✕</button></div>
+                        <div style={st.sheetHeaderPremium}><span>💎</span><h3>Пополнение GRAM</h3><button onClick={() => { setShowTonTopUpModal(false); setTonPaymentStep('select'); }} style={st.closePremium}>✕</button></div>
                         {tonPaymentStep === 'select' && <>
                             <p style={st.textSecondary}>Выберите сумму пополнения:</p>
                             <div style={st.amountGridPremium}>{[0.5, 1, 2, 5, 10, 20].map(amt => (<button key={amt} onClick={() => setTonTopUpAmount(amt)} style={tonTopUpAmount === amt ? st.amountBtnActivePremium : st.amountBtnPremium}>{amt} 💎</button>))}</div>
-                            <button onClick={sendTonPayment} style={{...st.btnPrimaryPremium, marginTop:'20px', background: 'rgba(0,136,204,0.12)', borderColor: 'rgba(0,136,204,0.3)', color: '#0088CC'}}>Оплатить {tonTopUpAmount} TON</button>
+                            <button onClick={sendTonPayment} style={{...st.btnPrimaryPremium, marginTop:'20px', background: 'rgba(0,136,204,0.12)', borderColor: 'rgba(0,136,204,0.3)', color: '#0088CC'}}>Оплатить {tonTopUpAmount} GRAM</button>
                         </>}
                         {tonPaymentStep === 'waiting' && (<div style={st.paymentWaitingPremium}><div style={st.spinnerPremium}></div><p style={st.textSecondary}>Ожидание подтверждения транзакции...</p></div>)}
-                        {tonPaymentStep === 'success' && (<div style={st.paymentSuccessPremium}><span style={{fontSize:'64px'}}>✅</span><h3 style={{color:'white', margin:'12px 0 4px'}}>Готово</h3><p style={st.textSecondary}>+{tonTopUpAmount} TON зачислено на баланс</p><button onClick={() => { setShowTonTopUpModal(false); setTonPaymentStep('select'); }} style={st.btnPrimaryPremium}>Закрыть</button></div>)}
+                        {tonPaymentStep === 'success' && (<div style={st.paymentSuccessPremium}><span style={{fontSize:'64px'}}>✅</span><h3 style={{color:'white', margin:'12px 0 4px'}}>Готово</h3><p style={st.textSecondary}>+{tonTopUpAmount} GRAM зачислено на баланс</p><button onClick={() => { setShowTonTopUpModal(false); setTonPaymentStep('select'); }} style={st.btnPrimaryPremium}>Закрыть</button></div>)}
                     </div>
                 </div>
             )}
@@ -1672,15 +1672,15 @@ function App() {
             {showConvertModal && (
     <div style={IS_TOUCH ? {...st.modalOverlay, backdropFilter: 'none', background: 'rgba(0,0,0,0.85)'} : st.modalOverlay}>
         <div style={IS_TOUCH ? {...st.sheetPremium, backdropFilter: 'none', background: 'rgb(15,5,30)'} : st.sheetPremium}>
-            <div style={st.sheetHeaderPremium}><span>🔄</span><h3>Stars → TON</h3><button onClick={() => { setShowConvertModal(false); setConvertStep('select'); }} style={st.closePremium}>✕</button></div>
+            <div style={st.sheetHeaderPremium}><span>🔄</span><h3>Stars → GRAM</h3><button onClick={() => { setShowConvertModal(false); setConvertStep('select'); }} style={st.closePremium}>✕</button></div>
             {convertStep === 'select' && <>
-                <p style={st.textSecondary}>Курс: {conversionRate} ⭐ = 1 💎 TON · Ваш баланс: {balance} ⭐</p>
+                <p style={st.textSecondary}>Курс: {conversionRate} ⭐ = 1 💎 GRAM · Ваш баланс: {balance} ⭐</p>
                 <div style={st.amountGridPremium}>{[conversionRate, conversionRate * 2, conversionRate * 5, conversionRate * 10].map(amt => (<button key={amt} onClick={() => setConvertAmount(amt)} style={convertAmount === amt ? st.amountBtnActivePremium : st.amountBtnPremium}>{amt} ⭐</button>))}</div>
-                <p style={{...st.textSecondary, textAlign: 'center', marginTop: '12px'}}>Получите: <strong style={{color: '#29B6F6'}}>{(convertAmount / conversionRate).toFixed(2)} TON</strong></p>
+                <p style={{...st.textSecondary, textAlign: 'center', marginTop: '12px'}}>Получите: <strong style={{color: '#29B6F6'}}>{(convertAmount / conversionRate).toFixed(2)} GRAM</strong></p>
                 <button onClick={convertStarsToTon} style={{...st.btnPrimaryPremium, marginTop: '8px'}}>Конвертировать</button>
             </>}
             {convertStep === 'waiting' && (<div style={st.paymentWaitingPremium}><div style={st.spinnerPremium}></div><p style={st.textSecondary}>Выполняем конвертацию...</p></div>)}
-            {convertStep === 'success' && (<div style={st.paymentSuccessPremium}><span style={{fontSize: '52px'}}>✅</span><h3 style={{color: 'white', margin: '12px 0 4px'}}>Готово!</h3><p style={st.textSecondary}>{convertAmount} ⭐ → {(convertAmount / conversionRate).toFixed(2)} TON зачислено</p><button onClick={() => { setShowConvertModal(false); setConvertStep('select'); }} style={st.btnPrimaryPremium}>Закрыть</button></div>)}
+            {convertStep === 'success' && (<div style={st.paymentSuccessPremium}><span style={{fontSize: '52px'}}>✅</span><h3 style={{color: 'white', margin: '12px 0 4px'}}>Готово!</h3><p style={st.textSecondary}>{convertAmount} ⭐ → {(convertAmount / conversionRate).toFixed(2)} GRAM зачислено</p><button onClick={() => { setShowConvertModal(false); setConvertStep('select'); }} style={st.btnPrimaryPremium}>Закрыть</button></div>)}
         </div>
     </div>
 )}
@@ -1688,16 +1688,16 @@ function App() {
 {showWithdrawModal && (
     <div style={IS_TOUCH ? {...st.modalOverlay, backdropFilter: 'none', background: 'rgba(0,0,0,0.85)'} : st.modalOverlay}>
         <div style={IS_TOUCH ? {...st.sheetPremium, backdropFilter: 'none', background: 'rgb(15,5,30)'} : st.sheetPremium}>
-            <div style={st.sheetHeaderPremium}><span>💸</span><h3>Вывод TON</h3><button onClick={() => { setShowWithdrawModal(false); setWithdrawStep('select'); }} style={st.closePremium}>✕</button></div>
+            <div style={st.sheetHeaderPremium}><span>💸</span><h3>Вывод GRAM</h3><button onClick={() => { setShowWithdrawModal(false); setWithdrawStep('select'); }} style={st.closePremium}>✕</button></div>
             {withdrawStep === 'select' && <>
-                <p style={st.textSecondary}>Доступно: {parseFloat(tonBalance || 0).toFixed(3)} TON · Минимум 0.1 TON</p>
-                {wallet ? (<div style={{...st.walletCard, marginBottom: '16px'}}><div style={st.walletCardLeft}><div style={st.walletDot}></div><div><p style={st.walletLabel}>Вывод на кошелёк</p><p style={st.walletAddress}>{getFriendlyAddress()}</p></div></div></div>) : (<p style={{...st.textSecondary, color: '#FF3366'}}>⚠️ Подключите TON кошелёк для вывода</p>)}
+                <p style={st.textSecondary}>Доступно: {parseFloat(tonBalance || 0).toFixed(3)} GRAM · Минимум 0.1 GRAM</p>
+                {wallet ? (<div style={{...st.walletCard, marginBottom: '16px'}}><div style={st.walletCardLeft}><div style={st.walletDot}></div><div><p style={st.walletLabel}>Вывод на кошелёк</p><p style={st.walletAddress}>{getFriendlyAddress()}</p></div></div></div>) : (<p style={{...st.textSecondary, color: '#FF3366'}}>⚠️ Подключите GRAM кошелёк для вывода</p>)}
                 <div style={st.amountGridPremium}>{[0.1, 0.5, 1, 2].map(amt => (<button key={amt} onClick={() => setWithdrawAmount(amt)} style={withdrawAmount === amt ? st.amountBtnActivePremium : st.amountBtnPremium}>{amt} 💎</button>))}</div>
                 <p style={{...st.textSecondary, fontSize: '11px', textAlign: 'center', marginTop: '12px'}}>⏱ Обработка заявки до 24 часов</p>
                 <button onClick={withdrawTon} disabled={!wallet} style={{...st.btnPrimaryPremium, marginTop: '8px', opacity: wallet ? 1 : 0.5}}>Подать заявку на вывод</button>
             </>}
             {withdrawStep === 'waiting' && (<div style={st.paymentWaitingPremium}><div style={st.spinnerPremium}></div><p style={st.textSecondary}>Создаём заявку...</p></div>)}
-            {withdrawStep === 'success' && (<div style={st.paymentSuccessPremium}><span style={{fontSize: '52px'}}>📬</span><h3 style={{color: 'white', margin: '12px 0 4px'}}>Заявка принята!</h3><p style={st.textSecondary}>{withdrawAmount} TON будет отправлен на ваш кошелёк в течение 24 часов</p><button onClick={() => { setShowWithdrawModal(false); setWithdrawStep('select'); }} style={st.btnPrimaryPremium}>Закрыть</button></div>)}
+            {withdrawStep === 'success' && (<div style={st.paymentSuccessPremium}><span style={{fontSize: '52px'}}>📬</span><h3 style={{color: 'white', margin: '12px 0 4px'}}>Заявка принята!</h3><p style={st.textSecondary}>{withdrawAmount} GRAM будет отправлен на ваш кошелёк в течение 24 часов</p><button onClick={() => { setShowWithdrawModal(false); setWithdrawStep('select'); }} style={st.btnPrimaryPremium}>Закрыть</button></div>)}
         </div>
     </div>
 )}
