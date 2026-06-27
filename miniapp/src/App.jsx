@@ -1231,6 +1231,13 @@ function App() {
                     </div>
                 </div>
 
+                <div style={st.profileSection}>
+                    <div style={{display: 'flex', gap: '12px', justifyContent: 'center'}}>
+                        <button onClick={() => window.Telegram.WebApp.openLink('https://startask-ten.vercel.app/privacy.html')} style={{background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline'}}>Политика конфиденциальности</button>
+                        <button onClick={() => window.Telegram.WebApp.openLink('https://startask-ten.vercel.app/terms.html')} style={{background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline'}}>Условия использования</button>
+                    </div>
+                </div>
+
                 {myQuests.length > 0 && (
                     <div style={st.profileSection}>
                         <h3 style={st.sectionLabel}>{t.myTasks}</h3>

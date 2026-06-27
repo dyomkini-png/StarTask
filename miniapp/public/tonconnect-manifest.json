@@ -1,5 +1,7 @@
 {
   "url": "https://startask-ten.vercel.app",
   "name": "StarTask",
-  "iconUrl": "https://startask-ten.vercel.app/icon.png"
+  "iconUrl": "https://startask-ten.vercel.app/icon.svg",
+  "termsUrl": "https://startask-ten.vercel.app/terms.html",
+  "privacyPolicyUrl": "https://startask-ten.vercel.app/privacy.html"
 }
