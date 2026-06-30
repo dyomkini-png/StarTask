@@ -115,11 +115,36 @@ bot.start(async (ctx) => {
 });
 
 bot.command('balance', async (ctx) => {
-    await ctx.reply('⭐ *Ваш баланс:* 0 Stars', { parse_mode: 'Markdown' });
+    try {
+        const user = await db.query('SELECT stars_balance, ton_balance FROM users WHERE telegram_id = $1', [String(ctx.from.id)]);
+        if (user.rows.length === 0) {
+            await ctx.reply('❌ Вы ещё не зарегистрированы. Откройте Mini App для входа.');
+            return;
+        }
+        const { stars_balance, ton_balance } = user.rows[0];
+        await ctx.reply(
+            `⭐ *Stars:* ${stars_balance || 0}\n💎 *GRAM:* ${parseFloat(ton_balance || 0).toFixed(3)}`,
+            { parse_mode: 'Markdown' }
+        );
+    } catch (error) {
+        await ctx.reply('⭐ *Ваш баланс:* загрузка...', { parse_mode: 'Markdown' });
+    }
 });
 
 bot.command('tasks', async (ctx) => {
-    await ctx.reply('📋 Откройте Mini App, чтобы увидеть задания!', { parse_mode: 'Markdown' });
+    try {
+        const quests = await db.query(
+            `SELECT q.title, q.reward, q.remaining FROM quests q WHERE q.status = 'active' AND q.remaining > 0 ORDER BY q.created_at DESC LIMIT 5`
+        );
+        if (quests.rows.length === 0) {
+            await ctx.reply('📋 Активных заданий пока нет. Загляните позже!');
+            return;
+        }
+        const list = quests.rows.map((q, i) => `${i + 1}. *${q.title}* — +${q.reward} ⭐ (${q.remaining} мест)`).join('\n');
+        await ctx.reply(`📋 *Активные задания:*\n\n${list}`, { parse_mode: 'Markdown' });
+    } catch (error) {
+        await ctx.reply('📋 Откройте Mini App, чтобы увидеть задания!', { parse_mode: 'Markdown' });
+    }
 });
 
 bot.command('referral', async (ctx) => {
@@ -298,6 +323,15 @@ async function initDB() {
             created_at TIMESTAMP DEFAULT NOW()
         );
 
+        CREATE TABLE IF NOT EXISTS budget_locks (
+            id SERIAL PRIMARY KEY,
+            quest_id INTEGER REFERENCES quests(id),
+            user_id INTEGER REFERENCES users(id),
+            amount INTEGER,
+            status TEXT DEFAULT 'locked',
+            created_at TIMESTAMP DEFAULT NOW()
+        );
+
         CREATE TABLE IF NOT EXISTS settings (
             key TEXT UNIQUE,
             value TEXT
@@ -308,6 +342,11 @@ async function initDB() {
     `);
     await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS ton_wallet TEXT");
     await db.query("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ton_amount DECIMAL(20,9)");
+    await db.query("ALTER TABLE quests ADD COLUMN IF NOT EXISTS rejection_reason TEXT");
+    await db.query("ALTER TABLE quests ADD COLUMN IF NOT EXISTS invite_link TEXT");
+    await db.query("ALTER TABLE quests ADD COLUMN IF NOT EXISTS post_url TEXT");
+    await db.query("ALTER TABLE quests ADD COLUMN IF NOT EXISTS referral_url TEXT");
+    await db.query("ALTER TABLE quests ADD COLUMN IF NOT EXISTS total_budget INTEGER");
     console.log('✅ Database initialized');
 }
 initDB();
@@ -440,6 +479,41 @@ app.post('/api/ton-payment/verify', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error('❌ TON verify error:', error);
         res.status(500).json({ error: 'Verification failed' });
+    }
+});
+
+app.post('/api/ton-payment/credit', authMiddleware, async (req, res) => {
+    const { userId, amount, boc } = req.body;
+    if (req.user.userId !== userId) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    try {
+        const existing = await db.query(
+            'SELECT id FROM transactions WHERE tx_hash = $1',
+            [boc]
+        );
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: 'Transaction already processed' });
+        }
+
+        await db.query(
+            'UPDATE users SET ton_balance = ton_balance + $1 WHERE id = $2',
+            [amount, userId]
+        );
+
+        await db.query(
+            `INSERT INTO transactions (user_id, amount, type, status, tx_hash, ton_amount)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [userId, 0, 'ton_topup', 'completed', boc, amount]
+        );
+
+        console.log(`✅ TON credited: user ${userId}, amount ${amount} TON`);
+        res.json({ success: true, amount });
+
+    } catch (error) {
+        console.error('❌ TON credit error:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 

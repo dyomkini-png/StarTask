@@ -1012,7 +1012,6 @@ function App() {
                 if (response.data.success) {
                     track('task_completed', {
                         task_id: taskId,
-                        reward: questReward, // если есть доступ к награде
                         user_id: user.id
                     });
                     tg.showPopup({ title: '🎉 Выполнено!', message: response.data.message, buttons: [{ type: 'ok' }] }); fetchBalance(user.id); fetchTasks(user.id); }
