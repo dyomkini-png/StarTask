@@ -364,14 +364,17 @@ app.post('/api/auth', async (req, res) => {
             const BOT_TOKEN = process.env.BOT_TOKEN;
             if (BOT_TOKEN) {
                 try {
-                    const dataCheckString = initData.split('\n')
-                        .filter(line => !line.startsWith('hash='))
-                        .sort()
+                    // initData is URL-encoded: key=value pairs separated by &
+                    const urlParams = new URLSearchParams(initData);
+                    const hash = urlParams.get('hash');
+                    urlParams.delete('hash');
+                    const dataCheckString = [...urlParams.entries()]
+                        .sort((a, b) => a[0].localeCompare(b[0]))
+                        .map(([k, v]) => `${k}=${v}`)
                         .join('\n');
                     const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
                     const computedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-                    const providedHash = new URLSearchParams(initData).get('hash');
-                    if (computedHash !== providedHash) {
+                    if (!hash || computedHash !== hash) {
                         return res.status(403).json({ error: 'Invalid initData signature' });
                     }
                 } catch {
